@@ -592,7 +592,7 @@ void humap::HierarchicalUMAP::fit(py::array_t<float> X, py::array_t<int> y)
 			cout << "Constructing eigen matrix: " << eigen_duration.count() << endl;
 			cout << endl;
 
-			data = umap::Matrix(sparse);
+			data = umap::Matrix(sparse, greatest.size());
 			reducer = umap::UMAP("precomputed", this->knn_algorithm);
 		} else {
 
@@ -639,9 +639,6 @@ void humap::HierarchicalUMAP::fit(py::array_t<float> X, py::array_t<int> y)
 
 		knn_dists = reducer.knn_dists();
 		graph = reducer.get_graph();
-
-		Eigen::VectorXf result = graph * Eigen::VectorXf::Ones(graph.cols());
-		vector<float> my_vec(&result[0], result.data() + result.size());
 
 
 		sec level_duration = clock::now() - level_before;
@@ -713,17 +710,29 @@ void humap::HierarchicalUMAP::fit(py::array_t<float> X, py::array_t<int> y)
 		for( int j = 0; j < this->n_components; ++j ) {
 
 
+			// float min_v = embedding[0][j];
+			// float max_v = embedding[0][j];
+			// for( int i = 0; i < embedding.size(); ++i ) {
+			// 	// cout << embedding[i][j] << " ";
+			// 	min_v = min(min_v, embedding[i][j]);
+			// 	max_v = max(max_v, embedding[i][j]);
+			// }
 
+
+			// cout << endl;
+			// min_vec.push_back(min_v);
+			// max_vec.push_back(max_v);
 
 			min_vec.push_back((*min_element(embedding.begin(), embedding.end(), 
 				[j](vector<float> a, vector<float> b) {							
 					return a[j] < b[j];
 				}))[j]);
-
+			// cout <<" ****** 2" << endl;
 			max_vec.push_back((*max_element(embedding.begin(), embedding.end(), 
 				[j](vector<float> a, vector<float> b) {
 					return a[j] < b[j];
 				}))[j]);
+			// cout <<" ****** 3" << endl;
 
 		}
 		cout << "chguei aqui 11 " << endl;

@@ -80,6 +80,11 @@ public:
 		shape_.push_back(-1); // TODO: como definir?
 	}
 
+	Matrix(vector<utils::SparseData> sparse_matrix_, int dim): sparse_matrix(sparse_matrix_), sparse(true) {
+		shape_.push_back(sparse_matrix_.size());
+		shape_.push_back(dim); 
+	}
+
 
 	// Matrix(py::array_t<float> dense_matrix_): py_matrix(dense_matrix_), sparse(false) {
 	// 	Matrix();
@@ -89,6 +94,18 @@ public:
 	// 	shape_.push_back(matrix_buffer.shape[1]);
 
 	// }
+
+	vector<float> get_row(int i) {
+
+		vector<float> row(shape_[1], 0.0);
+
+		for( int count = 0; count < sparse_matrix[i].indices.size(); ++count ) {
+			int index = sparse_matrix[i].indices[count];
+			row[index] = sparse_matrix[i].data[count];
+		}
+		return row;
+	}
+
 
 	int size() {
 		return shape_[0];
@@ -151,7 +168,7 @@ public:
 		knn_args["knn_algorithm"] = "FAISS_IVFFlat";
 
 		// TODO: make it dinamic!
-		knn_args["nprobes"] = "4";
+		knn_args["nprobes"] = "3";
 		knn_args["nlist"] = "100";
 
 		knn_args["nTrees"] = "50";
@@ -175,7 +192,7 @@ public:
 		knn_args["knn_algorithm"] = knn_algorithm;
 
 		// TODO: make it dinamic!
-		knn_args["nprobes"] = "4";
+		knn_args["nprobes"] = "3";
 		knn_args["nlist"] = "100";
 
 		knn_args["nTrees"] = "50";
@@ -228,12 +245,16 @@ public:
 
 	map<string, string> knn_args;
 
-	vector<vector<float>> spectral_layout(const Matrix& data, const Eigen::SparseMatrix<float, Eigen::RowMajor>& graph, int dim);
+	vector<vector<float>> spectral_layout(Matrix& data, const Eigen::SparseMatrix<float, Eigen::RowMajor>& graph, int dim);
 	vector<float> make_epochs_per_sample(const vector<float>& weights, int n_epochs);
 
 	vector<vector<float>> optimize_layout_euclidean(vector<vector<float>>& head_embedding, vector<vector<float>>& tail_embedding,
 								   const vector<int>& head, const vector<int>& tail, int n_epochs, int n_vertices, 
 								   const vector<float>& epochs_per_sample, vector<long>& rng_state);
+
+
+
+
 
 private:
 
@@ -275,6 +296,13 @@ private:
 	string init = "spectral";
 
 	string name = "C++ implementation of UMAP";
+
+
+	vector<vector<float>> component_layout(umap::Matrix& data, int n_components, 
+														 vector<int>& component_labels, int dim);
+	vector<vector<float>> multi_component_layout(umap::Matrix& data, 
+	const Eigen::SparseMatrix<float, Eigen::RowMajor>& graph, int n_components, 
+	vector<int>& component_labels, int dim);
 
 
 	void optimize_euclidean_epoch(vector<vector<float>>& head_embedding, vector<vector<float>>& tail_embedding,

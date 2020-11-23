@@ -11,6 +11,7 @@ from sklearn.preprocessing import normalize
 from sklearn.neighbors import NearestNeighbors
 from sklearn.datasets import fetch_openml
 from sklearn.manifold import trustworthiness
+from sklearn.utils import check_random_state, check_array
 
 
 def compute_trustworthiness(X, X_emb, Khigh=30):
@@ -60,19 +61,17 @@ n_neighbors = 15
 
 
 fashionTrain = pd.read_csv('data/fashion-train.csv')
-fashionTest = pd.read_csv('data/fashion-test.csv')
 
-fashion = pd.concat([fashionTrain, fashionTest])
-fashionX = fashion.values[:,2:]
-fashionY = fashion.values[:, 1].astype(int)
+fashionX = fashionTrain.values[:,2:]
+fashionY = fashionTrain.values[:, 1].astype(int)
 
 print(fashionX.shape, fashionY.shape)
 
-# X = fashionX
-# y = fashionY
-
-X = np.load('./data/MNIST_70000.npy')
-y = np.load('./data/MNIST_70000_label.npy').astype(int)
+X = fashionX
+y = fashionY
+X = check_array(X, dtype=np.float32, accept_sparse="csr", order="C")
+# X = np.load('./data/MNIST_70000.npy')
+# y = np.load('./data/MNIST_70000_label.npy').astype(int)
 # X = normalize(X)
 # print(greatest.shape, cols.shape, graph.shape, knn_dists.shape)
 
@@ -85,8 +84,7 @@ print(X.shape)
 # end = time.time()
 # print("time: %.5fs" % (end-start))
 
-
-hUmap = h_umap.HUMAP("precomputed", np.array([0.22, 0.19]), 15, "FAISS_IVFFlat", True)
+hUmap = h_umap.HUMAP("precomputed", np.array([0.22, 0.20]), 15, "KDTree_NNDescent", True)
 hUmap.fit(X, y)
 
 
@@ -99,9 +97,7 @@ third_level = second_level[hUmap.get_indices(1),:]
 y2 = hUmap.get_labels(2)
 embedding2 = hUmap.get_embedding(2)
 
-# precision, recall = NNP(third_level, embedding2)
-# plt.plot(precision, recall)
-# plt.show()
+precision2, recall2 = NNP(third_level, embedding2)
 
 
 
@@ -113,13 +109,21 @@ embedding1 = hUmap.get_embedding(1)
 # indices1 = hUmap.get_indices(1)
 # plt.scatter(embedding1[indices1, 0], embedding1[indices1, 1], c ='red', alpha=1, s=1)
 
-# precision, recall = NNP(second_level, embedding1)
-# plt.plot(precision, recall)
-# plt.show()
+precision, recall = NNP(second_level, embedding1)
 
 precision_third, recall_third = compute_trustworthiness(third_level, embedding2)
 precision_second, recall_second = compute_trustworthiness(second_level, embedding1)
 
+
+plt.plot(precision2, recall2)
+plt.show()
+
+
+plt.plot(precision, recall)
+plt.show()
+
+
+	
 
 plt.plot(precision_third, recall_third)
 plt.ylim(0, 1)

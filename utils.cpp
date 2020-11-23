@@ -81,3 +81,33 @@ float utils::clip(float value)
     else 
       return value;
 }
+
+
+vector<vector<float>> utils::pairwise_distances(vector<vector<float>>& X)
+{
+
+  int n = X.size();
+  int d = X[0].size();
+
+
+  vector<vector<float>> pd(n, vector<float>(n, 0.0));
+
+
+  // TODO: add possibility for other distance functions
+  #pragma omp parallel for 
+  for( int i = 0; i < n; ++i ) {
+    for( int j = i+1; j < n; ++j ) {
+
+      float distance = 0;
+
+      for( int k = 0; k < d; ++k ) {
+        distance += (X[i][k]-X[j][k])*(X[i][k]-X[j][k]);
+      }
+
+      pd[i][j] = sqrt(distance);
+      pd[j][i] = pd[i][j];
+    }
+  }
+
+  return pd;
+}

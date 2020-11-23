@@ -92,6 +92,7 @@ Eigen::SparseMatrix<float, Eigen::RowMajor> create_sparse(const vector<SparseDat
 float rdist(const vector<float>& x, const vector<float>& y);
 float clip(float value);
 long tau_rand_int(vector<long>& state);
+vector<vector<float>> pairwise_distances(vector<vector<float>>& X);
 
 
 }

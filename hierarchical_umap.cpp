@@ -77,28 +77,32 @@ void humap::split_string( string const& str, vector<humap::StringRef> &result, c
 }
 
 
-int humap::dfs(int u, int n_neighbors, bool* visited, vector<int>& cols, vector<float>& sigmas,
-			   float* strength, int* owners, int last_landmark)
+int humap::HierarchicalUMAP::dfs(int u, int n_neighbors, bool* visited, vector<int>& cols, const vector<float>& sigmas,
+			   vector<float>& strength, vector<int>& owners, vector<int>& is_landmark)
 {
 	visited[u] = true;
 
-	if( sigmas[u] >= sigmas[last_landmark] )
+	// cout << "dfs::checking for landmark" << endl;
+	if( is_landmark[u] != -1 ) //sigmas[u] >= sigmas[last_landmark] )
 		return u;
-	else if( *(strength + u) != -1 )
-		return *(owners + u);
+	else if( owners[u] != -1 )
+		return owners[u];
 
+	// cout << "dfs::constructing neighbor list" << endl;
 	int* neighbors = new int[n_neighbors*sizeof(int)];
 	for( int j = 0; j < n_neighbors; ++j ) {
 		neighbors[j] = cols[u*n_neighbors + j];
 	}	
 
+	// cout << "dfs::checking for landmark" << endl;
+
 	for( int i = 1; i < n_neighbors; ++i ) {
 		int neighbor = neighbors[i];
 
-		if( *(visited + neighbor) ) {
+		if( !visited[neighbor] ) {
 
-			int landmark = humap::dfs(neighbor, n_neighbors, visited, cols, sigmas, 
-									  strength, owners, last_landmark);
+			int landmark = this->dfs(neighbor, n_neighbors, visited, cols, sigmas, 
+									  strength, owners, is_landmark);
 			if( landmark != -1 ) {
 				free(neighbors);
 				neighbors = nullptr;
@@ -115,11 +119,11 @@ int humap::dfs(int u, int n_neighbors, bool* visited, vector<int>& cols, vector<
 
 }
 
-int humap::depth_first_search(int n_neighbors, int* neighbors, vector<int>& cols, vector<float>& sigmas,
-							  float* strength, int* owners, int last_landmark)
+int humap::HierarchicalUMAP::depth_first_search(int n_neighbors, int* neighbors, vector<int>& cols, const vector<float>& sigmas,
+							  vector<float>& strength, vector<int>& owners, vector<int>& is_landmark)
 {
 	bool* visited = new bool[sigmas.size()*sizeof(bool)];
-	memset(visited, false, sigmas.size()*sizeof(bool));
+	fill(visited, visited+sigmas.size(), false);
 
 	for( int i = 1; i < n_neighbors; ++i ) {
 
@@ -127,54 +131,211 @@ int humap::depth_first_search(int n_neighbors, int* neighbors, vector<int>& cols
 
 		if( !*(visited + neighbor) ) {
 
-			int landmark = humap::dfs(neighbor, n_neighbors, visited, cols, sigmas, strength, owners, last_landmark);
+			int landmark = this->dfs(neighbor, n_neighbors, visited, cols, sigmas, strength, owners, is_landmark);
 			if( landmark != -1 )  
 				return landmark;
-
 		}
 	}
 
 	return -1;
 }
 
+void humap::HierarchicalUMAP::associate_to_landmarks(int n, int n_neighbors, vector<int>& landmarks, vector<int>& cols, 
+	vector<float>& strength, vector<int>& owners, vector<int>& indices, 
 
-void humap::associate_to_landmarks(int n, int n_neighbors, int* indices, vector<int>& cols, vector<float>& sigmas,
-								   float* strength, int* owners, int last_landmark, 
-								   Eigen::SparseMatrix<float, Eigen::RowMajor>& graph)
+
+	vector<vector<int>>& association, vector<int>& is_landmark, 
+
+	vector<int>& count_influence, vector<vector<float>>& knn_dists )
 {
 	int* neighbors = new int[n_neighbors*sizeof(int)];
 
 	for( int i = 0; i < n; ++i ) {
-		int index = indices[i];
+
+		int landmark = landmarks[i];
+
+		owners[landmark] = landmark;
+		strength[landmark] = 0;
+		indices[landmark] = i;
+		association[landmark].push_back(i);
+		count_influence[i]++;
 
 		for( int j = 0; j < n_neighbors; ++j ) {
-			neighbors[j] = cols[index*n_neighbors + j];
+			neighbors[j] = cols[landmark*n_neighbors + j];
 		}
 
-		int nn = neighbors[1];
 
-		if( sigmas[nn] >= sigmas[last_landmark] ) {
-			*(strength + index) = graph.coeffRef(nn, index);
-			*(owners + index) = nn;
-		} else {
-			if( *(strength + nn) != -1 ) {
-				*(strength + index) = graph.coeffRef(*(owners + nn), index);
-				*(owners + index) = *(owners + nn);
-			} else {
 
-				int landmark = humap::depth_first_search(n_neighbors, neighbors, cols, sigmas, 
-					                                     strength, owners, last_landmark);
+		for( int j = 1; j < n_neighbors; ++j ) {
 
-				if( landmark != -1 ) {
-					cout << "Found a landmark :)" << endl;
-					*(strength + index) = graph.coeffRef(landmark, index);
-					*(owners + index) = landmark;
-				} else 
-					throw runtime_error("Did not find a landmark");
+			int neighbor = neighbors[j];
+
+			if( is_landmark[neighbor] != -1 ) {
+				// owners[neighbor] = neighbor;
+				// indices[neighbor] = is_landmark[neighbor];
+				// strength[neighbor] = 0;
+
+				// association[neighbor].push_back(is_landmark[neighbor]);
+				// cout << "2.1" << endl;
+				// cout << neighbor << " < " << is_landmark.size() << endl;
+				// cout << is_landmark[neighbor] <<" < " << count_influence.size() << endl;
+				// count_influence[is_landmark[neighbor]]++;
+				// cout << "2.2" << endl;
+				continue;
+			}
+
+			if( owners[neighbor] == -1 ) { // is not associated to any landmark
+				owners[neighbor] = landmark;
+				indices[neighbor] = i;
+				strength[neighbor] = knn_dists[landmark][j];
+				association[neighbor].push_back(i);
+				count_influence[i]++;
+			} 
+			else if( knn_dists[landmark][j] < strength[neighbor] ) {
+				owners[neighbor] = landmark;
+				indices[neighbor] = i;
+				association[neighbor].push_back(i);
+				strength[neighbor] = knn_dists[landmark][j];				
 			}
 		}
+
 	}
 
+	free(neighbors);
+
+}
+
+
+void humap::HierarchicalUMAP::associate_to_landmarks(int n, int n_neighbors, int* indices, vector<int>& cols, const vector<float>& sigmas,
+								   vector<float>& strength, vector<int>& owners, vector<int>& indices_landmark, vector<vector<int>>& association, vector<int>& count_influence, vector<int>& is_landmark, 
+								   Eigen::SparseMatrix<float, Eigen::RowMajor>& graph, vector<vector<float>>& knn_dists)
+{
+	int* neighbors = new int[n_neighbors*sizeof(int)];
+	int count_search = 0;
+	for( int i = 0; i < n; ++i ) {
+
+		int index = indices[i];
+		if( is_landmark[index] != -1 || owners[index] != -1 )
+			continue;
+
+		// for( int j = 0; j < n_neighbors; ++j ) {
+		// 	neighbors[j] = cols[index*n_neighbors + j];
+		// }
+
+		// int nn = neighbors[1];
+
+		bool found = false;
+		
+		for( int j = 1; j < n_neighbors && !found; ++j ) {
+
+			int nn = cols[index*n_neighbors + j];
+
+
+			if( is_landmark[nn] != -1 ) {
+				strength[index] = knn_dists[nn][j];//graph.coeffRef(nn, index);
+				owners[index] = nn;
+				indices_landmark[index] = is_landmark[nn];
+				association[index].push_back(is_landmark[nn]);
+				count_influence[is_landmark[nn]]++;
+				found = true;
+			} else if( owners[nn] != -1 ) {
+				// TODO: this is an estimative
+				strength[index] = strength[nn]; //graph.coeffRef(*(owners + nn), index);
+				owners[index] = owners[nn];			
+				indices_landmark[index] = is_landmark[owners[nn]];	
+				association[index].push_back(is_landmark[owners[nn]]);
+				count_influence[is_landmark[owners[nn]]]++;
+				found = true;
+			}
+		}
+
+		if( !found ) {
+
+			count_search++;
+			int landmark = this->depth_first_search(n_neighbors, neighbors, cols, sigmas, 
+					                                     strength, owners, is_landmark);
+			// cout << "ENTREI AQUI: " << landmark << endl;
+			if( landmark != -1 ) {
+				// cout << "Found a landmark :)" << endl;
+				// TODO: need to compute when needed
+				strength[index] = 0;//knn_dists[landmark]
+				owners[index] = landmark;
+				indices_landmark[index] = is_landmark[landmark];	
+				association[index].push_back(is_landmark[landmark]);
+				count_influence[is_landmark[landmark]]++;
+			} else {
+				cout << "Did not find a landmark :(" << endl;
+				throw runtime_error("Did not find a landmark");
+			}
+
+
+		}
+
+		// for( int j = 1; j < n_neighbors && !found; ++j ) {
+
+		// 	int nn = cols[index*n_neighbors + j];
+
+
+		// 	if( is_landmark[nn] ) {
+		// 		*(strength + index) = graph.coeffRef(nn, index);
+		// 		*(owners + index) = nn;
+		// 		found = true;
+		// 	} else if( *(strength + nn) != -1.0 ) {
+		// 		*(strength + index) = graph.coeffRef(*(owners + nn), index);
+		// 		*(owners + index) = *(owners + nn);				
+		// 		found = true;
+		// 	}
+		// }
+
+
+
+
+
+
+		// if( is_landmark[nn] ) {
+		// 	// cout << "Associating with a landmark" << endl;
+		// 	*(strength + index) = graph.coeffRef(nn, index);
+		// 	*(owners + index) = nn;
+		// } else {
+		// 	// cout << "hello, estou aqui : 0" << endl;
+		// 	if( *(strength + nn) != -1.0 ) {
+		// 		// cout << "Associating with already found" << endl;
+		// 		*(strength + index) = graph.coeffRef(*(owners + nn), index);
+		// 		*(owners + index) = *(owners + nn);
+		// 	} else {
+
+				
+		// 	}
+		// }
+
+
+
+		// if( is_landmark[nn] ) {
+		// 	// cout << "Associating with a landmark" << endl;
+		// 	*(strength + index) = graph.coeffRef(nn, index);
+		// 	*(owners + index) = nn;
+		// } else {
+		// 	// cout << "hello, estou aqui : 0" << endl;
+		// 	if( *(strength + nn) != -1.0 ) {
+		// 		// cout << "Associating with already found" << endl;
+		// 		*(strength + index) = graph.coeffRef(*(owners + nn), index);
+		// 		*(owners + index) = *(owners + nn);
+		// 	} else {
+
+		// 		int landmark = this->depth_first_search(n_neighbors, neighbors, cols, sigmas, 
+		// 			                                     strength, owners, is_landmark);
+		// 		// cout << "ENTREI AQUI: " << landmark << endl;
+		// 		if( landmark != -1 ) {
+		// 			// cout << "Found a landmark :)" << endl;
+		// 			*(strength + index) = graph.coeffRef(landmark, index);
+		// 			*(owners + index) = landmark;
+		// 		} else {
+		// 			cout << "Did not find a landmark :(" << endl;
+		// 			throw runtime_error("Did not find a landmark");
+		// 		}
+		// 	}
+		// }
+	}
 	free(neighbors);
 }
 
@@ -265,7 +426,7 @@ humap::SparseComponents humap::HierarchicalUMAP::create_sparse(int n, int n_neig
 	vector<float> vals;
 
 	int* current = new int[n*sizeof(int)];
-	memset(current, 0, n * sizeof(int));
+	fill(current, current+n, 0);
 
 	for( int i = 0; i < n; ++i ) {
 		bool flag = true;
@@ -320,7 +481,7 @@ humap::SparseComponents humap::HierarchicalUMAP::sparse_similarity(int n, int n_
 	std::vector<std::vector<float> > distance_sim;
 
 	int* mapper = new int[n * sizeof(int)];
-	memset(mapper, -1, n * sizeof(int));
+	fill(mapper, mapper+n, -1);
 
 	for( int i = 0; i < greatest.size(); ++i )
 		mapper[greatest[i]] = i;
@@ -333,11 +494,11 @@ humap::SparseComponents humap::HierarchicalUMAP::sparse_similarity(int n, int n_
 	}
 
 	float* elements = new float[greatest.size()*greatest.size()*sizeof(float)];
-	memset(elements, 0.0, greatest.size()*greatest.size()*sizeof(float));
+	fill(elements, elements+greatest.size()*greatest.size(), 0.0);
 
 
 	int* non_zeros = new int[greatest.size() * sizeof(int)];
-	memset(non_zeros, 0, greatest.size() * sizeof(int));
+	fill(non_zeros, non_zeros+greatest.size(), 0);
 
 	vector<vector<int>> indices_nzeros(greatest.size(), vector<int>());
 
@@ -470,19 +631,22 @@ void humap::HierarchicalUMAP::fit(py::array_t<float> X, py::array_t<int> y)
 
 	this->reducers.push_back(reducer);
 
-	int* indices = new int[sizeof(int)*X.size()];
-	iota(indices, indices+X.size(), 0);
+	// int* indices = new int[sizeof(int)*this->hierarchy_X[0].size()];
+	vector<int> indices(this->hierarchy_X[0].size(), 0);
+	iota(indices.begin(), indices.end(), 0);
 
-	int* owners = new int[sizeof(int)*X.size()];
-	memset(owners, -1, sizeof(int)*X.size());
-
-	float* strength = new float[sizeof(float)*X.size()];
-	memset(strength, -1.0, sizeof(float)*X.size());
-
+	// int* owners = new int[sizeof(int)*this->hierarchy_X[0].size()];
+	// fill(owners, owners+this->hierarchy_X[0].size(), -1);
+	vector<int> owners(this->hierarchy_X[0].size(), -1);
 
 
+	// float* strength = new float[sizeof(float)*this->hierarchy_X[0].size()];
+	// fill(strength, strength+this->hierarchy_X[0].size(), -1.0);
+	vector<float> strength(this->hierarchy_X[0].size(), -1.0);
 
-	this->metadata.push_back(humap::Metadata(indices, owners, strength, X.size()));
+	vector<vector<int>> association(this->hierarchy_X[0].size(), vector<int>());
+
+	this->metadata.push_back(humap::Metadata(indices, owners, strength, association, this->hierarchy_X[0].size()));
 
 
 	Eigen::SparseMatrix<float, Eigen::RowMajor> graph = this->reducers[0].get_graph();
@@ -606,32 +770,79 @@ void humap::HierarchicalUMAP::fit(py::array_t<float> X, py::array_t<int> y)
 		if( this->verbose )
 			cout << "Fitting hierarchy level" << endl; 
 
+
+
+		this->metadata[level].count_influence = vector<int>(greatest.size(), 0);
+
 		auto fit_before = clock::now();
 		reducer.fit_hierarchy(data);
 		sec fit_duration = clock::now() - fit_before;
 		cout << "Fitting level " << (level+1) << ": " << fit_duration.count() << endl;
 		cout << endl;
 
-		// int n = 0;
-		// for( size_t i = 0; i < this->metadata[level].size; ++i )
-		// 	if( this->metadata[level].strength[i] == -1.0 )
-		// 		n++;
+		auto associate_before = clock::now();
+		cout << level << ": METADATA PONTO SIZE: " << this->metadata[level].size << endl;
+		vector<int> is_landmark(this->metadata[level].size, -1);
+		for( int i = 0; i < greatest.size(); ++i ) 
+		{
+			is_landmark[greatest[i]] = i;
+		}
 
-		// int* indices_not_associated = new int[sizeof(int)*n];
-		// for( size_t i = 0, j = 0; i < this->metadata[level].size; ++i )
-		// 	if( this->metadata[level].strength[i] == -1.0 )
-		// 		*(not_associated + j++) = i;
+		this->associate_to_landmarks(greatest.size(), this->n_neighbors, greatest, this->reducers[level].cols, 
+			this->metadata[level].strength, this->metadata[level].owners, this->metadata[level].indices, 
+			this->metadata[level].association, is_landmark, this->metadata[level].count_influence, knn_dists);
 
-		// int last_landmark = greatest[greatest.size()-1];
+		sec associate_duration = clock::now() - associate_before;
+		cout << "Associate landmark: " << associate_duration.count() << endl;
+		cout << endl;
 
-		// humap::associate_to_landmarks(n, this->n_neighbors, indices_not_associated, this->reducer[level].cols,
-		// 							  this->reducer[level].sigmas, this->metadata[level].strength,
-		// 							  this->metadata[level].owners, last_landmark, graph);
+
+		auto use_before = clock::now();
+		int n = 0;
+		for( int i = 0; i < this->metadata[level].size; ++i ) {
+			if( this->metadata[level].owners[i] == -1 )
+				n++;
+		}
+		cout << "NUMBER OF ELEMENTS WITH NO OWNER: " << n << endl;
+		int* indices_not_associated = new int[sizeof(int)*n];
+		for( int i = 0, j = 0; i < this->metadata[level].size; ++i )
+			if( this->metadata[level].owners[i] == -1.0 )
+				*(indices_not_associated + j++) = i;
+
+		this->associate_to_landmarks(n, this->n_neighbors, indices_not_associated, this->reducers[level].cols,
+									  this->reducers[level].sigmas(), this->metadata[level].strength,
+									  this->metadata[level].owners, this->metadata[level].indices, 
+									  this->metadata[level].association, this->metadata[level].count_influence, 
+									  is_landmark, graph, knn_dists);
+
+		sec use_duration = clock::now() - use_before;
+		cout << "Use landmark: " << use_duration.count() << endl;
+		cout << endl;
+
+
+		cout << "I have " << this->metadata[level].size << " owners" << endl;
+		cout << "See the first 10: " << level << endl;
+		for( int i = 0; i < 10; ++i ) {
+			cout << i << " " << this->metadata[level].indices[i] << " (" << this->metadata[level].owners[i] << ") -> " << this->metadata[level].strength[i] << endl;
+
+
+		}
+		cout << endl;
 
 		if( this->verbose )
 			cout << "Appending information for the next hierarchy level" << endl;
 
-		this->metadata.push_back(Metadata(greatest.data(), nullptr, nullptr, greatest.size()));//vector<int>(greatest.size(), -1), vector<float>(greatest.size(), -1.0)));
+		// int* new_owners = new int[sizeof(int)*greatest.size()];
+		// fill(new_owners, new_owners+greatest.size(), -1);
+		vector<int> new_owners(greatest.size(), -1);
+
+		// float* new_strength = new float[sizeof(float)*greatest.size()];
+		// fill(new_strength, new_strength+greatest.size(), -1.0);
+		vector<float> new_strength(greatest.size(), -1.0);
+
+		vector<vector<int>> new_association(greatest.size(), vector<int>());
+
+		this->metadata.push_back(Metadata(greatest, new_owners, new_strength, new_association, greatest.size()));//vector<int>(greatest.size(), -1), vector<float>(greatest.size(), -1.0)));
 		this->reducers.push_back(reducer);
 		this->hierarchy_X.push_back(data);
 		this->hierarchy_y.push_back(utils::arrange_by_indices(this->hierarchy_y[level], greatest));
@@ -657,10 +868,10 @@ void humap::HierarchicalUMAP::fit(py::array_t<float> X, py::array_t<int> y)
 
 
 	for( int i = 0; i < this->hierarchy_X.size(); ++i ) {
-		cout << "chguei aqui 1 " << endl;
+		// cout << "chguei aqui 1 " << endl;
 		Eigen::SparseMatrix<float, Eigen::RowMajor> graph = this->reducers[i].get_graph();		
 		int n_vertices = graph.cols();
-		cout << "chguei aqui 2 " << endl;
+		// cout << "chguei aqui 2 " << endl;
 
 		if( this->n_epochs == -1 ) {
 			if( graph.rows() <= 10000 )
@@ -669,34 +880,34 @@ void humap::HierarchicalUMAP::fit(py::array_t<float> X, py::array_t<int> y)
 				n_epochs = 200;
 
 		}
-		cout << "chguei aqui 3 " << endl;
+		// cout << "chguei aqui 3 " << endl;
 		if( !graph.isCompressed() )
 			graph.makeCompressed();
 		// graph = graph.pruned();
-		cout << "chguei aqui 4 " << endl;
+		// cout << "chguei aqui 4 " << endl;
 		float max_value = graph.coeffs().maxCoeff();
 		graph = graph.pruned(max_value/(float)n_epochs, 1.0);
 
 
-		cout << "chguei aqui 5 " << endl;
+		// cout << "chguei aqui 5 " << endl;
 
 
 		vector<vector<float>> embedding = this->reducers[i].spectral_layout(this->hierarchy_X[i], graph, this->n_components);
 
 
-		cout << "chguei aqui 6 " << endl;
+		// cout << "chguei aqui 6 " << endl;
 		vector<int> rows, cols;
 		vector<float> data;
 
 		
-		cout << "chguei aqui 7 " << endl;
+		// cout << "chguei aqui 7 " << endl;
 		tie(rows, cols, data) = utils::to_row_format(graph);
 
-		cout << "chguei aqui 8 " << endl;
+		// cout << "chguei aqui 8 " << endl;
 		vector<float> epochs_per_sample = this->reducers[i].make_epochs_per_sample(data, this->n_epochs);
 		// cout << "\n\nepochs_per_sample: " << epochs_per_sample.size() << endl;
 
-		cout << "chguei aqui 9 " << endl;
+		// cout << "chguei aqui 9 " << endl;
 		// for( int j = 0; j < 20; ++j )
 		// 	printf("%.4f ", epochs_per_sample[j]);
 
@@ -704,7 +915,7 @@ void humap::HierarchicalUMAP::fit(py::array_t<float> X, py::array_t<int> y)
 
 
 
-		cout << "chguei aqui 10 " << endl;
+		// cout << "chguei aqui 10 " << endl;
 		vector<float> min_vec, max_vec;
 		// printf("min and max values:\n");
 		for( int j = 0; j < this->n_components; ++j ) {
@@ -735,10 +946,10 @@ void humap::HierarchicalUMAP::fit(py::array_t<float> X, py::array_t<int> y)
 			// cout <<" ****** 3" << endl;
 
 		}
-		cout << "chguei aqui 11 " << endl;
+		// cout << "chguei aqui 11 " << endl;
 		vector<float> max_minus_min(this->n_components, 0.0);
 		transform(max_vec.begin(), max_vec.end(), min_vec.begin(), max_minus_min.begin(), [](float a, float b){ return a-b; });
-		cout << "chguei aqui 12 " << endl;
+		// cout << "chguei aqui 12 " << endl;
 
 		for( int j = 0; j < embedding.size(); ++j ) {
 
@@ -752,7 +963,7 @@ void humap::HierarchicalUMAP::fit(py::array_t<float> X, py::array_t<int> y)
 					return a/b;
 				});
 		}
-		cout << "chguei aqui 13 " << endl;
+		// cout << "chguei aqui 13 " << endl;
 
 		// printf("\n\nNOISED EMBEDDING:\n");
 
@@ -786,6 +997,62 @@ void humap::HierarchicalUMAP::fit(py::array_t<float> X, py::array_t<int> y)
 
 	}
 
+}
+
+int humap::HierarchicalUMAP::influenced_by(int level, int index)
+{
+
+	if( level == 0 ) {
+		return this->metadata[level].count_influence[index];
+	} else {
+		int s = 0;
+		for( int i = 0; i < this->metadata[level].size; ++i )
+			if( this->metadata[level].indices[i] == index )
+				s += this->influenced_by(level-1, i);
+		return s;
+	}
+
+
+}
+
+py::array_t<int> humap::HierarchicalUMAP::get_influence(int level)
+{
+	if( level >= this->hierarchy_X.size() || level <= 0 )
+		throw new runtime_error("Level out of bounds.");
+
+	vector<int> influence(this->metadata[level].size, 0);
+	// cout << "creating influence " << endl;
+	// for( int i = 0; i < this->metadata[level-1].size; ++i ) {
+	// 	cout << "size: " << this->metadata[level-1].association[i].size() << endl;
+	// 	for( int j = 0; j < this->metadata[level-1].association[i].size(); ++j )
+	// 		influence[this->metadata[level-1].association[i][j]] += 1;	
+	// }
+
+
+	// for( int i = 0; i < this->metadata[level-1].size; ++i ) {
+	// 	influence[this->metadata[level-1].indices[i]] += 1;
+	// }
+
+	for( int i = 0; i < this->metadata[level].size; ++i ) {
+		influence[i] = influenced_by(level-1, i);
+	}
+
+	cout << "level: " << level << endl;
+	int sum = 0;
+
+
+	for( int i = 0; i < this->metadata[level-1].count_influence.size(); ++i ) {
+		// cout << i << ": " << this->metadata[level-1].count_influence[i] << endl;
+		sum += this->metadata[level-1].count_influence[i];
+	}
+	cout << "count_influence: " << sum << endl;
+
+
+
+
+
+
+	return py::cast(influence);
 }
 
 py::array_t<float> humap::HierarchicalUMAP::get_sigmas(int level)

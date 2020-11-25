@@ -194,22 +194,22 @@ vector<vector<float>> umap::UMAP::component_layout(umap::Matrix& data, int n_com
 {
 
 
-	cout << "Entrei 1" << endl;
-	cout << "n_components " << n_components << endl;
-	cout << "data.is_sparse(): " << data.is_sparse() << endl;
-	cout << "data.shape(1) " << data.shape(1) << endl;
+	// cout << "Entrei 1" << endl;
+	// cout << "n_components " << n_components << endl;
+	// cout << "data.is_sparse(): " << data.is_sparse() << endl;
+	// cout << "data.shape(1) " << data.shape(1) << endl;
 
 	vector<vector<float>> component_centroids(n_components, vector<float>(data.shape(1), 0.0));
 
-	cout << "Entrei 2" << endl;
+	// cout << "Entrei 2" << endl;
 	vector<vector<float>> distance_matrix;
 
 	if( this->metric == "precomputed" ) {
-		cout << "Entrei 3" << endl;
+		// cout << "Entrei 3" << endl;
 		distance_matrix = vector<vector<float>>(n_components, vector<float>(n_components, 0.0));
 
 
-		cout << "shape distance_matrix: " << n_components << " x " << n_components << endl;
+		// cout << "shape distance_matrix: " << n_components << " x " << n_components << endl;
 		for( int c_i = 0; c_i < n_components; ++c_i ) {
 
 			vector<vector<float>> dm_i;
@@ -327,11 +327,11 @@ vector<vector<float>> umap::UMAP::multi_component_layout(umap::Matrix& data,
 	for( int label = 0; label < n_components; ++label ) {
 
 		int occurences = count(component_labels.begin(), component_labels.end(), label);
-		cout << "occurences: " << occurences << endl;
+		// cout << "occurences: " << occurences << endl;
 		Eigen::SparseMatrix<float, Eigen::ColMajor> tempCol(occurences, graph.cols());
-		cout << "created tempCol" << endl;
+		// cout << "created tempCol" << endl;
 		tempCol.reserve(Eigen::VectorXi::Constant(graph.cols(), occurences));
-		cout << "reserved tempCol" << endl;
+		// cout << "reserved tempCol" << endl;
 		for( int k=0, row = -1; k < graph.outerSize(); ++k) {
 				
 			if( component_labels[k] != label )
@@ -344,15 +344,15 @@ vector<vector<float>> umap::UMAP::multi_component_layout(umap::Matrix& data,
 				// cout << "inserted tempCol" << endl;
 			}
 		}
-		cout << "added tempCol" << endl;
+		// cout << "added tempCol" << endl;
 		tempCol.makeCompressed();
-		cout << "compressed tempCol" << endl;
+		// cout << "compressed tempCol" << endl;
 
 
 		Eigen::SparseMatrix<float, Eigen::RowMajor> component_graph(occurences, occurences);
-		cout << "created component_graph" << endl;
+		// cout << "created component_graph" << endl;
 		component_graph.reserve(Eigen::VectorXi::Constant(occurences, occurences));
-		cout << "reserved component_graph" << endl;
+		// cout << "reserved component_graph" << endl;
 		for( int k = 0, col = -1; k < tempCol.outerSize(); ++k) {
 				
 			if( component_labels[k] != label )
@@ -366,9 +366,9 @@ vector<vector<float>> umap::UMAP::multi_component_layout(umap::Matrix& data,
 				component_graph.insert(it.row(), col) = it.value();
 			}
 		}
-		cout << "added component_graph" << endl;
+		// cout << "added component_graph" << endl;
 		component_graph.makeCompressed();
-		cout << "compressed component_graph" << endl;
+		// cout << "compressed component_graph" << endl;
 
 
 		// TODO: do this right...
@@ -416,7 +416,7 @@ vector<vector<float>> umap::UMAP::multi_component_layout(umap::Matrix& data,
 
 		}
 
-		cout << "PASSEI 1 " << endl;
+		// cout << "PASSEI 1 " << endl;
 
 
 		Eigen::VectorXf diag_eigen = component_graph * Eigen::VectorXf::Ones(component_graph.cols());
@@ -425,45 +425,45 @@ vector<vector<float>> umap::UMAP::multi_component_layout(umap::Matrix& data,
 		for( int i = 0; i < temp.size(); ++i )
 			temp[i] = 1.0/sqrt(diag_data[i]);
 	
-		cout << "PASSEI 2 " << endl;
+		// cout << "PASSEI 2 " << endl;
 
 		py::module scipy_sparse = py::module::import("scipy.sparse");
-		cout << "PASSEI 3 " << endl;
+		// cout << "PASSEI 3 " << endl;
 		py::object Iobj = scipy_sparse.attr("identity")(component_graph.rows(), py::arg("format") = "csr");
-		cout << "PASSEI 4 " << endl;
+		// cout << "PASSEI 4 " << endl;
 		py::object Dobj = scipy_sparse.attr("spdiags")(py::cast(temp), 0, component_graph.rows(), component_graph.rows(), 
 			py::arg("format") = "csr");
-		cout << "PASSEI 5 " << endl;
+		// cout << "PASSEI 5 " << endl;
 		Eigen::SparseMatrix<float, Eigen::RowMajor> I = Iobj.cast<Eigen::SparseMatrix<float, Eigen::RowMajor>>();
-		cout << "PASSEI 6 " << endl;
+		// cout << "PASSEI 6 " << endl;
 		Eigen::SparseMatrix<float, Eigen::RowMajor> D = Dobj.cast<Eigen::SparseMatrix<float, Eigen::RowMajor>>();
-		cout << "PASSEI 7 " << endl;
+		// cout << "PASSEI 7 " << endl;
 		Eigen::SparseMatrix<float, Eigen::RowMajor> L = I - D * component_graph * D;
-		cout << "PASSEI 8 " << endl;
+		// cout << "PASSEI 8 " << endl;
 		int k = dim+1;
 		int num_lanczos_vectors = max(2*k+1, (int)sqrt(component_graph.rows()));
 
 		try {
-			cout << "PASSEI 9 " << endl;
+			// cout << "PASSEI 9 " << endl;
 			py::module scipy_sparse_linalg = py::module::import("scipy.sparse.linalg");	
 			py::object eigen;
-			cout << "PASSEI 10 " << endl;
+			// cout << "PASSEI 10 " << endl;
 			eigen = scipy_sparse_linalg.attr("eigsh")(L, k, //nullptr, nullptr, 
 				py::arg("which") ="SM", py::arg("v0") = py::cast(vector<int>(L.rows(), 1.0)), 
 				py::arg("ncv") = num_lanczos_vectors, py::arg("tol") = 1e-4, py::arg("maxiter") = graph.rows()*5);
 			
-			cout << "PASSEI 11 " << endl;
+			// cout << "PASSEI 11 " << endl;
 			py::object eigenval = eigen.attr("__getitem__")(0);
 			py::object eigenvec = eigen.attr("__getitem__")(1);
 			vector<float> eigenvalues = eigenval.cast<vector<float>>();
 			vector<vector<float>> eigenvectors = eigenvec.cast<vector<vector<float>>>();
-			cout << "PASSEI 12 " << endl;
+			// cout << "PASSEI 12 " << endl;
 			vector<int> order_all = utils::argsort(eigenvalues);
 			vector<int> order(order_all.begin()+1, order_all.begin()+k);
-			cout << "PASSEI 13 " << endl;
+			// cout << "PASSEI 13 " << endl;
 	
 			vector<vector<float>> component_embedding(eigenvectors.size());
-			cout << "PASSEI 14 " << endl;
+			// cout << "PASSEI 14 " << endl;
 			float max_value = -1.0;
 			for( int i = 0; i < eigenvectors.size(); ++i ) {
 				component_embedding[i] = utils::arrange_by_indices(eigenvectors[i], order);
@@ -476,16 +476,16 @@ vector<vector<float>> umap::UMAP::multi_component_layout(umap::Matrix& data,
 						return abs(a) < abs(b);
 					})));
 			}
-			cout << "PASSEI 15 " << endl;
+			// cout << "PASSEI 15 " << endl;
 			float expansion = data_range/max_value;
 			for( int i = 0; i < component_embedding.size(); ++i ) {
 				transform(component_embedding[i].begin(), component_embedding[i].end(), 
 					component_embedding[i].begin(), [expansion](float &c){ return c*expansion; });
 			}
 
-			cout << "PASSEI 16 " << endl;
-			cout << component_embedding.size() << ", " << component_labels.size() << ", "
-				 << result.size() << endl;
+			// cout << "PASSEI 16 " << endl;
+			// cout << component_embedding.size() << ", " << component_labels.size() << ", "
+				 // << result.size() << endl;
 			for( int i = 0, index = 0; i < component_labels.size(); ++i ) {
 				if( component_labels[i] == label ) {
 					transform(component_embedding[index].begin(), component_embedding[index].end(), 
@@ -493,7 +493,7 @@ vector<vector<float>> umap::UMAP::multi_component_layout(umap::Matrix& data,
 					index++;
 				}
 			}
-			cout << "PASSEI 17 " << endl;
+			// cout << "PASSEI 17 " << endl;
 
 		} catch(...) {
 			wcout << "WARNING: spectral initialisation failed! The eigenvector solver\n" <<
@@ -539,16 +539,16 @@ vector<vector<float>> umap::UMAP::spectral_layout(umap::Matrix& data,
 
 	int n_samples = graph.rows();
 
-	cout << "spectral 1" << endl;
+	// cout << "spectral 1" << endl;
 
 
 	py::module csgraph = py::module::import("scipy.sparse.csgraph");
 	py::object connected_components = csgraph.attr("connected_components")(graph);
 
-	cout << "spectral 2" << endl;
+	// cout << "spectral 2" << endl;
 	int n_components = connected_components.attr("__getitem__")(0).cast<int>();
 	vector<int> labels = connected_components.attr("__getitem__")(1).cast<vector<int>>();
-	cout << "spectral 3: " << n_components << endl;
+	// cout << "spectral 3: " << n_components << endl;
 	// cout << "n_components: " << n_components << endl;
 	// cout << "labels[:10]" << endl;
 	// for( int i = 0; i < 10; ++i )
@@ -556,6 +556,7 @@ vector<vector<float>> umap::UMAP::spectral_layout(umap::Matrix& data,
 	// cout << endl;
 
 	if( n_components > 1) {
+		cout << "WARNING: found more than one component." << endl;
 		vector<vector<float>> spectral_embedding = this->multi_component_layout(data, graph, n_components, labels, dim);
 
 		float max_value = spectral_embedding[0][0];
@@ -582,9 +583,9 @@ vector<vector<float>> umap::UMAP::spectral_layout(umap::Matrix& data,
 
 		return spectral_embedding;
 	}
-	cout << "spectral 4" << endl;
+	// cout << "spectral 4" << endl;
 	Eigen::VectorXf result = graph * Eigen::VectorXf::Ones(graph.cols());
-	cout << "spectral 5" << endl;
+	// cout << "spectral 5" << endl;
 	vector<float> diag_data(&result[0], result.data() + result.size());
 	// vector<float> diag_data;
 
@@ -596,125 +597,125 @@ vector<vector<float>> umap::UMAP::spectral_layout(umap::Matrix& data,
 
 	// 	diag_data.push_back(s);
 	// }
-	cout << "diag_data[:10]" << endl;
-	for( int i = 0; i < 10; ++i )
-		cout << diag_data[i] << " ";
-	cout << endl;
+	// cout << "diag_data[:10]" << endl;
+	// for( int i = 0; i < 10; ++i )
+		// cout << diag_data[i] << " ";
+	// cout << endl;
 
 
-	cout << "spectral 6" << endl;
+	// cout << "spectral 6" << endl;
 	vector<float> temp(diag_data.size(), 0.0);
-cout << "spectral 7" << endl;
+// cout << "spectral 7" << endl;
 	for( int i = 0; i < temp.size(); ++i )
 		temp[i] = 1.0/sqrt(diag_data[i]);
-	cout << "spectral 8" << endl;
+	// cout << "spectral 8" << endl;
 	
 
 
 	py::module scipy_sparse = py::module::import("scipy.sparse");
-	cout << "spectral 9" << endl;
+	// cout << "spectral 9" << endl;
 	py::object Iobj = scipy_sparse.attr("identity")(graph.rows(), py::arg("format") = "csr");
-	cout << "spectral 10" << endl;
+	// cout << "spectral 10" << endl;
 	py::object Dobj = scipy_sparse.attr("spdiags")(py::cast(temp), 0, graph.rows(), graph.rows(), py::arg("format") = "csr");
-	cout << "spectral 11" << endl;
+	// cout << "spectral 11" << endl;
 	Eigen::SparseMatrix<float, Eigen::RowMajor> I = Iobj.cast<Eigen::SparseMatrix<float, Eigen::RowMajor>>();
-	cout << "spectral 12" << endl;
+	// cout << "spectral 12" << endl;
 	Eigen::SparseMatrix<float, Eigen::RowMajor> D = Dobj.cast<Eigen::SparseMatrix<float, Eigen::RowMajor>>();
-cout << "spectral 13" << endl;
+// cout << "spectral 13" << endl;
 	Eigen::SparseMatrix<float, Eigen::RowMajor> L = I-D*graph*D;
-cout << "spectral 14" << endl;
+// cout << "spectral 14" << endl;
 
 
-	for( int i = 0; i < 20; ++i ) {
-		auto row = L.row(i);
-		cout  << i << ": ";
-		cout << row.head(20);
-		cout << endl;
-	}
+	// for( int i = 0; i < 20; ++i ) {
+	// 	auto row = L.row(i);
+	// 	cout  << i << ": ";
+	// 	cout << row.head(20);
+	// 	cout << endl;
+	// }
 
 
 	int k = dim+1;
 	int num_lanczos_vectors = max(2*k+1, (int)sqrt(graph.rows()));
-cout << "spectral 15" << endl;
-	cout << "k: " << k << endl;
-	cout << "num_lanczos_vectors: " << num_lanczos_vectors << endl;
+// cout << "spectral 15" << endl;
+	// cout << "k: " << k << endl;
+	// cout << "num_lanczos_vectors: " << num_lanczos_vectors << endl;
 
 
 	try {
 		py::module scipy_sparse_linalg = py::module::import("scipy.sparse.linalg");	
 		py::object eigen;
 
-		cout << "spectral 16" << endl;
+		// cout << "spectral 16" << endl;
 		if( L.rows() < 2000000 ) {
 
 			eigen = scipy_sparse_linalg.attr("eigsh")(L, k, //nullptr, nullptr, 
 				py::arg("which") ="SM", py::arg("v0") = py::cast(vector<int>(L.rows(), 1.0)), 
 				py::arg("ncv") = num_lanczos_vectors, py::arg("tol") = 1e-4, py::arg("maxiter") = graph.rows()*5);
 
-			cout << "spectral 17" << endl;
+			// cout << "spectral 17" << endl;
 		} else {
-		cout << "spectral 18" << endl;
+		// cout << "spectral 18" << endl;
 			throw new runtime_error("L.rows() >= 2000000. Not implemented yet.");
 
 		}
 
-cout << "spectral 19" << endl;
+// cout << "spectral 19" << endl;
 		py::object eigenval = eigen.attr("__getitem__")(0);
 		py::object eigenvec = eigen.attr("__getitem__")(1);
-cout << "spectral 20" << endl;
+// cout << "spectral 20" << endl;
 		vector<float> eigenvalues = eigenval.cast<vector<float>>();
 		vector<vector<float>> eigenvectors = eigenvec.cast<vector<vector<float>>>();
-		cout << "eigenvalues" << endl;
-		for( int i = 0; i < 10; ++i )
-			printf("%.4f ", eigenvalues[i]);
-		cout << endl << endl;
+		// cout << "eigenvalues" << endl;
+		// for( int i = 0; i < 10; ++i )
+		// 	printf("%.4f ", eigenvalues[i]);
+		// cout << endl << endl;
 
-		cout << "eigenvectors" << endl;
-		for( int i = 0; i < 10; ++i )
-		{
-			for(int j = 0; j < eigenvectors[i].size(); ++j )
-				printf("%.4f ", eigenvectors[i][j]);
-			cout << endl;
-		}
-cout << "spectral 21" << endl;
+		// cout << "eigenvectors" << endl;
+		// for( int i = 0; i < 10; ++i )
+		// {
+			// for(int j = 0; j < eigenvectors[i].size(); ++j )
+				// printf("%.4f ", eigenvectors[i][j]);
+			// cout << endl;
+		// }
+// cout << "spectral 21" << endl;
 		vector<int> order_all = utils::argsort(eigenvalues);
 		vector<int> order(order_all.begin()+1, order_all.begin()+k);
-cout << "spectral 22" << endl;
+// cout << "spectral 22" << endl;
 		vector<vector<float>> spectral_embedding(eigenvectors.size());
-cout << "spectral 23" << endl;
+// cout << "spectral 23" << endl;
 		// printf("embedding: \n");
 		float max_value = -1.0;
 		for( int i = 0; i < eigenvectors.size(); ++i ) {
 			spectral_embedding[i] = utils::arrange_by_indices(eigenvectors[i], order);
-
-			if(  i < 10 )
-				printf("%.4f %.4f\n", spectral_embedding[i][0], spectral_embedding[i][1]);
+// 
+			// if(  i < 10 )
+				// printf("%.4f %.4f\n", spectral_embedding[i][0], spectral_embedding[i][1]);
 
 			max_value = max(max_value, 
 				abs(*max_element(spectral_embedding[i].begin(), spectral_embedding[i].end(), [](float a, float b) { return abs(a) < abs(b);})));
 		}
-cout << "spectral 24" << endl;
+// cout << "spectral 24" << endl;
 		// printf("\nmax_value: %.4f\n", max_value);
 
 		py::module scipy_random = py::module::import("numpy.random");
 		py::object randomState = scipy_random.attr("RandomState")(this->random_state);
 		vector<int> size = {graph.rows(), n_components};
 		py::object noiseObj = randomState.attr("normal")(py::arg("scale")=0.0001, py::arg("size")=size);
-cout << "spectral 25" << endl;
+// cout << "spectral 25" << endl;
 		vector<vector<float>> noise = noiseObj.cast<vector<vector<float>>>();
-cout << "spectral 26" << endl;
+// cout << "spectral 26" << endl;
 		float expansion = 10.0/max_value;
-cout << "spectral 27" << endl;
+// cout << "spectral 27" << endl;
 		for( int i = 0; i < spectral_embedding.size(); ++i ) {
 			transform(spectral_embedding[i].begin(), spectral_embedding[i].end(), 
 				spectral_embedding[i].begin(), [expansion](float &c){ return c*expansion; });
 		}
-cout << "spectral 28" << endl;
+// cout << "spectral 28" << endl;
 		for( int i = 0; i < spectral_embedding.size(); ++i ) {
 			transform(spectral_embedding[i].begin(), spectral_embedding[i].end(), 
 				noise[i].begin(), spectral_embedding[i].begin(), plus<float>());
 		}
-cout << "spectral 29" << endl;
+// cout << "spectral 29" << endl;
 		// printf("\n\n\nFINAL EMBEDDING:\n\n");
 
 		// for( int i = 0; i < 10; ++i ) {
@@ -728,8 +729,6 @@ cout << "spectral 29" << endl;
 
 
 		return spectral_embedding;
-
-cout << "spectral 30" << endl;
 
 	} catch(...) {
 		wcout << "WARNING (Spectral Layout): spectral initialisation failed! The eigenvector solver\n" <<
@@ -1148,21 +1147,21 @@ tuple<Eigen::SparseMatrix<float, Eigen::RowMajor>, vector<float>, vector<float>>
 
 
 
-	cout << "knn_indices:" << endl;
-	for( int i = 0; i < 5; ++i ) {
-		for( int j = 0; j < knn_indices[i].size(); ++j )
-			cout << knn_indices[i][j] << " ";
+	// cout << "knn_indices:" << endl;
+	// for( int i = 0; i < 5; ++i ) {
+	// 	for( int j = 0; j < knn_indices[i].size(); ++j )
+	// 		cout << knn_indices[i][j] << " ";
 
-		cout << endl;
-	}
+	// 	cout << endl;
+	// }
 
-	cout << "\nknn_dists:" << endl;
-	for( int i = 0; i < 5; ++i ) {
-		for( int j = 0; j < knn_dists[i].size(); ++j )
-			cout << knn_dists[i][j] << " ";
+	// cout << "\nknn_dists:" << endl;
+	// for( int i = 0; i < 5; ++i ) {
+	// 	for( int j = 0; j < knn_dists[i].size(); ++j )
+	// 		cout << knn_dists[i][j] << " ";
 
-		cout << endl;
-	}
+	// 	cout << endl;
+	// }
 
 
 
@@ -1171,21 +1170,21 @@ tuple<Eigen::SparseMatrix<float, Eigen::RowMajor>, vector<float>, vector<float>>
 
 	tie(sigmas, rhos) = umap::smooth_knn_dist(knn_dists, (float) n_neighbors, 64, local_connectivity);
 
-	cout << "sigmas" << endl;
-	for (int i = 0; i < 20; ++i)
-	{
-		cout << sigmas[i] << " ";
-	}
-	cout << endl;
+	// cout << "sigmas" << endl;
+	// for (int i = 0; i < 20; ++i)
+	// {
+	// 	cout << sigmas[i] << " ";
+	// }
+	// cout << endl;
 
-	cout << "rhos" << endl;
-	for (int i = 0; i < 20; ++i)
-	{
-		cout << rhos[i] << " ";
-	}
-	cout << endl;
+	// cout << "rhos" << endl;
+	// for (int i = 0; i < 20; ++i)
+	// {
+	// 	cout << rhos[i] << " ";
+	// }
+	// cout << endl;
 
-	cout << endl << endl;
+	// cout << endl << endl;
 	
 
 	vector<int> rows, cols;
@@ -1200,23 +1199,23 @@ tuple<Eigen::SparseMatrix<float, Eigen::RowMajor>, vector<float>, vector<float>>
 		obj->vals = vals;
 	}
 
-	cout << "rows: " << endl;
-	for( int i = 0; i < 20; ++i ) {
-		cout << rows[i] << " ";
-	}
-	cout << endl;
+	// cout << "rows: " << endl;
+	// for( int i = 0; i < 20; ++i ) {
+	// 	cout << rows[i] << " ";
+	// }
+	// cout << endl;
 
-	cout << "cols: " << endl;
-	for( int i = 0; i < 20; ++i ) {
-		cout << cols[i] << " ";
-	}
-	cout << endl;
+	// cout << "cols: " << endl;
+	// for( int i = 0; i < 20; ++i ) {
+	// 	cout << cols[i] << " ";
+	// }
+	// cout << endl;
 
-	cout << "vals: " << endl;
-	for( int i = 0; i < 20; ++i ) {
-		cout << vals[i] << " ";
-	}
-	cout << endl;
+	// cout << "vals: " << endl;
+	// for( int i = 0; i < 20; ++i ) {
+	// 	cout << vals[i] << " ";
+	// }
+	// cout << endl;
 
 	// cout << endl << endl;
 
@@ -1246,12 +1245,12 @@ tuple<Eigen::SparseMatrix<float, Eigen::RowMajor>, vector<float>, vector<float>>
 	}
 
 
-	for( int i = 0; i < 20; ++i ) {
-		auto row = result.row(i);
-		cout  << i << ": ";
-		cout << row.head(20);
-		cout << endl;
-	}
+	// for( int i = 0; i < 20; ++i ) {
+	// 	auto row = result.row(i);
+	// 	cout  << i << ": ";
+	// 	cout << row.head(20);
+	// 	cout << endl;
+	// }
 
 
 

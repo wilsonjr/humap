@@ -20,6 +20,7 @@ PYBIND11_MODULE(hierarchical_umap, m) {
 		.def(py::init<string, py::array_t<float>, int, string, bool>())
 		.def(py::init<>())
 		.def("fit", &humap::HierarchicalUMAP::fit)
+		.def("get_influence", &humap::HierarchicalUMAP::get_influence)
 		.def("get_labels", &humap::HierarchicalUMAP::get_labels)
 		.def("get_sigmas", &humap::HierarchicalUMAP::get_sigmas)
 		.def("get_indices", &humap::HierarchicalUMAP::get_indices)

@@ -30,15 +30,18 @@ struct Metadata {
 	 // {	 	
 	 // }
 
-	  Metadata(int* indices_, int* owners_, float* strength_, size_t size_)
-	 : indices(indices_), owners(owners_), strength(strength_), size(size_)
+	  Metadata(vector<int> indices_, vector<int> owners_, vector<float> strength_, vector<vector<int>> association_, int size_)
+	 : indices(indices_), owners(owners_), strength(strength_), association(association_), size(size_)
 	 {	 	
+	 	cout << "METADATA SIZE: " << size << endl;
 	 }
 
- 	 int* indices;
-	 int* owners;
-	 float* strength;
+ 	 vector<int> indices;
+	 vector<int> owners;
+	 vector<float> strength;
 	 int size;
+	 vector<vector<int>> association;
+	 vector<int> count_influence;
 
 
 	 // vector<int> indices;
@@ -96,6 +99,7 @@ public:
 	py::array_t<float> get_embedding(int level);
 	py::array_t<int> get_indices(int level);
 	py::array_t<float> get_sigmas(int level);
+	py::array_t<int> get_influence(int level);
 
 
 
@@ -124,7 +128,7 @@ private:
 	vector<vector<float>> _sigmas;
 
 
-	
+	int influenced_by(int level, int index);
 	
 	void add_similarity(int index, int i, int n_neighbors, vector<int>& cols,  
 					Eigen::SparseMatrix<float, Eigen::RowMajor>& graph, vector<vector<float>>& knn_dists,
@@ -142,19 +146,32 @@ private:
 		                          Eigen::SparseMatrix<float, Eigen::RowMajor>& graph);
 
 
+	void associate_to_landmarks(int n, int n_neighbors, int* indices, vector<int>& cols, const vector<float>& sigmas,
+								   vector<float>& strength, vector<int>& owners, vector<int>& indices_landmark, vector<vector<int>>& association, vector<int>& count_influence, vector<int>& is_landmark, 
+								   Eigen::SparseMatrix<float, Eigen::RowMajor>& graph, vector<vector<float>>& knn_dists);
+	void associate_to_landmarks(int n, int n_neighbors, vector<int>& landmarks, vector<int>& cols, 
+		vector<float>& strength, vector<int>& owners, vector<int>& indices, vector<vector<int>>& association, vector<int>& count_influence, vector<int>& is_landmark, vector<vector<float>>& knn_dists );
+	int depth_first_search(int n_neighbors, int* neighbors, vector<int>& cols, const vector<float>& sigmas,
+								  vector<float>& strength, vector<int>& owners, vector<int>& is_landmark);
+	int dfs(int u, int n_neighbors, bool* visited, vector<int>& cols, const vector<float>& sigmas,
+				   vector<float>& strength, vector<int>& owners, vector<int>& is_landmark);
 
+
+	// void associate_to_landmarks(int n, int n_neighbors, int* indices, vector<int>& cols, const vector<float>& sigmas,
+	// 							   float* strength, int* owners, int* indices_landmark, vector<vector<int>>& association, vector<int>& is_landmark, 
+	// 							   Eigen::SparseMatrix<float, Eigen::RowMajor>& graph, vector<vector<float>>& knn_dists);
+	// int depth_first_search(int n_neighbors, int* neighbors, vector<int>& cols, const vector<float>& sigmas,
+	// 							  float* strength, int* owners, vector<int>& is_landmark);
+	// int dfs(int u, int n_neighbors, bool* visited, vector<int>& cols, const vector<float>& sigmas,
+	// 			   float* strength, int* owners, vector<int>& is_landmark);
+
+
+	// void associate_to_landmarks(int n, int n_neighbors, vector<int>& landmarks, vector<int>& cols, float* strength, int* owners, int* indices, vector<vector<int>>& association, vector<int>& is_landmark, vector<vector<float>>& knn_dists );
 
 
 
 };
 
-void associate_to_landmarks(int n, int n_neighbors, int* indices, vector<int>& cols, vector<float>& sigmas,
-								   float* strength, int* owners, int last_landmark, 
-								   Eigen::SparseMatrix<float, Eigen::RowMajor>& graph);
-int depth_first_search(int n_neighbors, int* neighbors, vector<int>& cols, vector<float>& sigmas,
-							  float* strength, int* owners, int last_landmark);
-int dfs(int u, int n_neighbors, bool* visited, vector<int>& cols, vector<float>& sigmas,
-			   float* strength, int* owners, int last_landmark);
 
 
 

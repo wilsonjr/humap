@@ -101,6 +101,7 @@ vector<vector<float>> utils::pairwise_distances(vector<vector<float>>& X)
       float distance = 0;
 
       for( int k = 0; k < d; ++k ) {
+       // distance += (X[i*d + k]-X[j*d + k])*(X[i*d + k]-X[j*d + k]);
         distance += (X[i][k]-X[j][k])*(X[i][k]-X[j][k]);
       }
 

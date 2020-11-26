@@ -97,12 +97,24 @@ public:
 
 	vector<float> get_row(int i) {
 
+		// cout << "this is the shape: " << shape_[1] << endl;
+		// cout << "this is the sparse_matrix.size(): " << sparse_matrix.size() << endl;
+		// cout << "this is the number of indices: " << sparse_matrix[i].data.size() << endl;
+		// cout << "this is the number of indices: " << sparse_matrix[i].indices.size() << endl;
+		// cout << "this is the row I am asking for: " << i << endl;
+
 		vector<float> row(shape_[1], 0.0);
 
+
+		
+		// cout << "creating matrix" << endl;
 		for( int count = 0; count < sparse_matrix[i].indices.size(); ++count ) {
-			int index = sparse_matrix[i].indices[count];
+			int index = sparse_matrix[i].indices[count];			
 			row[index] = sparse_matrix[i].data[count];
+			// cout << index << " -> " << row.size() << endl;
+
 		}
+		// cout << "created matrix" << endl;
 		return row;
 	}
 
@@ -203,6 +215,29 @@ public:
 		knn_args["S"] = "30";
 		knn_args["R"] = "50";
 	}
+
+	UMAP(string metric_, int n_neighbors_, string knn_algorithm="FAISS_IVFFlat"): 
+		metric(metric_), 
+		verbose(true),
+		n_neighbors(n_neighbors_),
+		local_connectivity(1.0)
+	{
+
+		knn_args["knn_algorithm"] = knn_algorithm;
+
+		// TODO: make it dinamic!
+		knn_args["nprobes"] = "3";
+		knn_args["nlist"] = "100";
+
+		knn_args["nTrees"] = "50";
+		knn_args["mLevel"] = "8";
+
+		knn_args["L"] = "100";
+		knn_args["iter"] = "10";
+		knn_args["S"] = "30";
+		knn_args["R"] = "50";
+	}
+
 
 	void fit(Matrix X);
 

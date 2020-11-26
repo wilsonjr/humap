@@ -211,14 +211,16 @@ vector<vector<float>> umap::UMAP::component_layout(umap::Matrix& data, int n_com
 
 		// cout << "shape distance_matrix: " << n_components << " x " << n_components << endl;
 		for( int c_i = 0; c_i < n_components; ++c_i ) {
-
+			// cout << "passei 1" << endl;
 			vector<vector<float>> dm_i;
 			for( int i = 0; i < component_labels.size(); ++i ) {
+				// cout << "passei 2 (data.shape: " << data.shape(1) << ", " <<  component_labels.size() << ")" << endl;
 				if( component_labels[i] == c_i )
 					dm_i.push_back(data.get_row(i));
+				// cout << "passei 3" << endl;
 			}
 			string linkage = "min";
-
+			// cout << "passei 4" << endl;
 			for( int c_j = c_i+1; c_j < n_components; ++c_j  ) {
 
 				float dist = 0.0;
@@ -230,11 +232,13 @@ vector<vector<float>> umap::UMAP::component_layout(umap::Matrix& data, int n_com
 
 					}
 				}
-
+				// cout << "passei 5" << endl;
 				distance_matrix[c_i][c_j] = dist;
 				distance_matrix[c_j][c_i] = dist;
+				// cout << "passei 6" << endl;
 			}
 		}
+		// cout << "passei aqui irmao" << endl;
 
 	} else {
 
@@ -292,26 +296,29 @@ vector<vector<float>> umap::UMAP::multi_component_layout(umap::Matrix& data,
 	vector<int>& component_labels, int dim)
 {
 
+
 	vector<vector<float>> result(graph.rows(), vector<float>(dim, 0.0));
 
 	vector<vector<float>> meta_embedding;
 	if( n_components > 2*dim ) {
+		// cout << "compoent layout " << endl;
 		meta_embedding = this->component_layout(data, n_components, component_labels, dim);
 
-		cout << "n_components > 2*dim" << endl;
+		// cout << "n_components > 2*dim" << endl;
 		cout << "meta_embedding.shape: " << meta_embedding.size() << " x " << meta_embedding[0].size() << endl;
 	} else {
+		// cout << "compoent 1 " << endl;
 		int k = (int)ceil(n_components/2.0);
-
+		// cout << "compoent 2 " << endl;
 		vector<vector<float>> base(k, vector<float>(k, 0.0));
 		for( int i = 0; i < k; ++i )
 			base[i][i] = 1;
-
+		// cout << "compoent 3 " << endl;
 		int count = 0;
 		for( int i = 0; i < k && count < n_components; ++i, ++count ) {
 			meta_embedding.push_back(base[i]);
 		}
-
+		// cout << "compoent 4 " << endl;
 		for( int i = 0; i < k && count < n_components; ++i, ++count ) {
 			transform(base[i].begin(), base[i].end(), base[i].begin(), [](float& c) { return -c; });
 			meta_embedding.push_back(base[i]);
@@ -558,7 +565,7 @@ vector<vector<float>> umap::UMAP::spectral_layout(umap::Matrix& data,
 	if( n_components > 1) {
 		cout << "WARNING: found more than one component." << endl;
 		vector<vector<float>> spectral_embedding = this->multi_component_layout(data, graph, n_components, labels, dim);
-
+		cout << "Consegui passar de multi_component_layout" << endl;
 		float max_value = spectral_embedding[0][0];
 		for( int i = 0; i < spectral_embedding.size(); ++i )
 			for( int j = 0; j <spectral_embedding[i].size(); ++j )
@@ -1376,6 +1383,16 @@ void umap::UMAP::prepare_for_fitting(umap::Matrix& X)
 
 			if( row_data.size() < this->n_neighbors ) {
 				cout << "row_id: " << row_id << ", " << row_data.size() << " " << this->n_neighbors << endl;
+
+				// vector<int> temp(X.shape(1), 0);
+				// for( int i = 0; i < row_indices.size(); ++i )
+				// 	temp[row_indices[i]] = 1;
+				// for( int i = 0; i < X.shape(1); ++i ) {
+
+				// 	if( ! )
+
+				// }
+
 				throw runtime_error("Some rows contain fewer than n_neighbors distances");
 			}
 

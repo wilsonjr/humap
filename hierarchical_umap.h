@@ -101,6 +101,11 @@ public:
 	py::array_t<float> get_sigmas(int level);
 	py::array_t<int> get_influence(int level);
 
+	py::array_t<float> project(int level, py::array_t<int> c);	
+
+	py::array_t<int> get_labels_selected() { return py::cast(this->labels_selected); }
+	py::array_t<int> get_influence_selected() { return py::cast(this->influence_selected); }
+
 
 
 
@@ -117,6 +122,7 @@ private:
 	string knn_algorithm;
 
 
+
 	int n_neighbors;
 	bool verbose;
 	int n_epochs = -1;
@@ -126,7 +132,8 @@ private:
 
 	vector<vector<int>> _indices;
 	vector<vector<float>> _sigmas;
-
+	vector<int> labels_selected;
+	vector<int> influence_selected;
 
 	int influenced_by(int level, int index);
 	
@@ -145,6 +152,8 @@ private:
 	vector<float> update_position(int i, int n_neighbors, vector<int>& cols, vector<float>& vals, umap::Matrix& X, 
 		                          Eigen::SparseMatrix<float, Eigen::RowMajor>& graph);
 
+	vector<vector<float>> embed_data(int level, Eigen::SparseMatrix<float, Eigen::RowMajor>& graph, umap::Matrix& X);
+
 
 	void associate_to_landmarks(int n, int n_neighbors, int* indices, vector<int>& cols, const vector<float>& sigmas,
 								   vector<float>& strength, vector<int>& owners, vector<int>& indices_landmark, vector<vector<int>>& association, vector<int>& count_influence, vector<int>& is_landmark, 
@@ -156,6 +165,7 @@ private:
 	int dfs(int u, int n_neighbors, bool* visited, vector<int>& cols, const vector<float>& sigmas,
 				   vector<float>& strength, vector<int>& owners, vector<int>& is_landmark);
 
+	vector<int> get_influence_by_indices(int level, vector<int> indices);
 
 	// void associate_to_landmarks(int n, int n_neighbors, int* indices, vector<int>& cols, const vector<float>& sigmas,
 	// 							   float* strength, int* owners, int* indices_landmark, vector<vector<int>>& association, vector<int>& is_landmark, 

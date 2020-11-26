@@ -870,128 +870,129 @@ void humap::HierarchicalUMAP::fit(py::array_t<float> X, py::array_t<int> y)
 	for( int i = 0; i < this->hierarchy_X.size(); ++i ) {
 		// cout << "chguei aqui 1 " << endl;
 		Eigen::SparseMatrix<float, Eigen::RowMajor> graph = this->reducers[i].get_graph();		
-		int n_vertices = graph.cols();
-		// cout << "chguei aqui 2 " << endl;
+		vector<vector<float>> result = this->embed_data(i, graph, this->hierarchy_X[i]);
+		// int n_vertices = graph.cols();
+		// // cout << "chguei aqui 2 " << endl;
 
-		if( this->n_epochs == -1 ) {
-			if( graph.rows() <= 10000 )
-				n_epochs = 500;
-			else 
-				n_epochs = 200;
+		// if( this->n_epochs == -1 ) {
+		// 	if( graph.rows() <= 10000 )
+		// 		n_epochs = 500;
+		// 	else 
+		// 		n_epochs = 200;
 
-		}
-		// cout << "chguei aqui 3 " << endl;
-		if( !graph.isCompressed() )
-			graph.makeCompressed();
-		// graph = graph.pruned();
-		// cout << "chguei aqui 4 " << endl;
-		float max_value = graph.coeffs().maxCoeff();
-		graph = graph.pruned(max_value/(float)n_epochs, 1.0);
-
-
-		// cout << "chguei aqui 5 " << endl;
+		// }
+		// // cout << "chguei aqui 3 " << endl;
+		// if( !graph.isCompressed() )
+		// 	graph.makeCompressed();
+		// // graph = graph.pruned();
+		// // cout << "chguei aqui 4 " << endl;
+		// float max_value = graph.coeffs().maxCoeff();
+		// graph = graph.pruned(max_value/(float)n_epochs, 1.0);
 
 
-		vector<vector<float>> embedding = this->reducers[i].spectral_layout(this->hierarchy_X[i], graph, this->n_components);
+		// // cout << "chguei aqui 5 " << endl;
 
 
-		// cout << "chguei aqui 6 " << endl;
-		vector<int> rows, cols;
-		vector<float> data;
+		// vector<vector<float>> embedding = this->reducers[i].spectral_layout(this->hierarchy_X[i], graph, this->n_components);
+
+
+		// // cout << "chguei aqui 6 " << endl;
+		// vector<int> rows, cols;
+		// vector<float> data;
 
 		
-		// cout << "chguei aqui 7 " << endl;
-		tie(rows, cols, data) = utils::to_row_format(graph);
+		// // cout << "chguei aqui 7 " << endl;
+		// tie(rows, cols, data) = utils::to_row_format(graph);
 
-		// cout << "chguei aqui 8 " << endl;
-		vector<float> epochs_per_sample = this->reducers[i].make_epochs_per_sample(data, this->n_epochs);
-		// cout << "\n\nepochs_per_sample: " << epochs_per_sample.size() << endl;
+		// // cout << "chguei aqui 8 " << endl;
+		// vector<float> epochs_per_sample = this->reducers[i].make_epochs_per_sample(data, this->n_epochs);
+		// // cout << "\n\nepochs_per_sample: " << epochs_per_sample.size() << endl;
 
-		// cout << "chguei aqui 9 " << endl;
-		// for( int j = 0; j < 20; ++j )
-		// 	printf("%.4f ", epochs_per_sample[j]);
+		// // cout << "chguei aqui 9 " << endl;
+		// // for( int j = 0; j < 20; ++j )
+		// // 	printf("%.4f ", epochs_per_sample[j]);
 
-		// cout << endl << endl;
-
-
-
-		// cout << "chguei aqui 10 " << endl;
-		vector<float> min_vec, max_vec;
-		// printf("min and max values:\n");
-		for( int j = 0; j < this->n_components; ++j ) {
+		// // cout << endl << endl;
 
 
-			// float min_v = embedding[0][j];
-			// float max_v = embedding[0][j];
-			// for( int i = 0; i < embedding.size(); ++i ) {
-			// 	// cout << embedding[i][j] << " ";
-			// 	min_v = min(min_v, embedding[i][j]);
-			// 	max_v = max(max_v, embedding[i][j]);
-			// }
+
+		// // cout << "chguei aqui 10 " << endl;
+		// vector<float> min_vec, max_vec;
+		// // printf("min and max values:\n");
+		// for( int j = 0; j < this->n_components; ++j ) {
 
 
-			// cout << endl;
-			// min_vec.push_back(min_v);
-			// max_vec.push_back(max_v);
+		// 	// float min_v = embedding[0][j];
+		// 	// float max_v = embedding[0][j];
+		// 	// for( int i = 0; i < embedding.size(); ++i ) {
+		// 	// 	// cout << embedding[i][j] << " ";
+		// 	// 	min_v = min(min_v, embedding[i][j]);
+		// 	// 	max_v = max(max_v, embedding[i][j]);
+		// 	// }
 
-			min_vec.push_back((*min_element(embedding.begin(), embedding.end(), 
-				[j](vector<float> a, vector<float> b) {							
-					return a[j] < b[j];
-				}))[j]);
-			// cout <<" ****** 2" << endl;
-			max_vec.push_back((*max_element(embedding.begin(), embedding.end(), 
-				[j](vector<float> a, vector<float> b) {
-					return a[j] < b[j];
-				}))[j]);
-			// cout <<" ****** 3" << endl;
 
-		}
-		// cout << "chguei aqui 11 " << endl;
-		vector<float> max_minus_min(this->n_components, 0.0);
-		transform(max_vec.begin(), max_vec.end(), min_vec.begin(), max_minus_min.begin(), [](float a, float b){ return a-b; });
-		// cout << "chguei aqui 12 " << endl;
+		// 	// cout << endl;
+		// 	// min_vec.push_back(min_v);
+		// 	// max_vec.push_back(max_v);
 
-		for( int j = 0; j < embedding.size(); ++j ) {
+		// 	min_vec.push_back((*min_element(embedding.begin(), embedding.end(), 
+		// 		[j](vector<float> a, vector<float> b) {							
+		// 			return a[j] < b[j];
+		// 		}))[j]);
+		// 	// cout <<" ****** 2" << endl;
+		// 	max_vec.push_back((*max_element(embedding.begin(), embedding.end(), 
+		// 		[j](vector<float> a, vector<float> b) {
+		// 			return a[j] < b[j];
+		// 		}))[j]);
+		// 	// cout <<" ****** 3" << endl;
 
-			transform(embedding[j].begin(), embedding[j].end(), min_vec.begin(), embedding[j].begin(), 
-				[](float a, float b) {
-					return 10*(a-b);
-				});
-
-			transform(embedding[j].begin(), embedding[j].end(), max_minus_min.begin(), embedding[j].begin(),
-				[](float a, float b) {
-					return a/b;
-				});
-		}
-		// cout << "chguei aqui 13 " << endl;
-
-		// printf("\n\nNOISED EMBEDDING:\n");
-
-		// for( int j = 0; j < 10; ++j ) {
-		// 	if(  j < 10 )
-		// 		printf("%.4f %.4f\n", embedding[j][0], embedding[j][1]);
 		// }
-		// printf("------------------------------------------------------------------\n");
+		// // cout << "chguei aqui 11 " << endl;
+		// vector<float> max_minus_min(this->n_components, 0.0);
+		// transform(max_vec.begin(), max_vec.end(), min_vec.begin(), max_minus_min.begin(), [](float a, float b){ return a-b; });
+		// // cout << "chguei aqui 12 " << endl;
 
-		py::module scipy_random = py::module::import("numpy.random");
-		py::object randomState = scipy_random.attr("RandomState")(this->random_state);
+		// for( int j = 0; j < embedding.size(); ++j ) {
 
-		py::object rngStateObj = randomState.attr("randint")(numeric_limits<int>::min(), numeric_limits<int>::max(), 3);
-		vector<long> rng_state = rngStateObj.cast<vector<long>>();
+		// 	transform(embedding[j].begin(), embedding[j].end(), min_vec.begin(), embedding[j].begin(), 
+		// 		[](float a, float b) {
+		// 			return 10*(a-b);
+		// 		});
 
-		printf("Embedding a level with %d data samples\n", embedding.size());
-		before = clock::now(); 
-		vector<vector<float>> result = this->reducers[i].optimize_layout_euclidean(
-			embedding,
-			embedding,
-			rows,
-			cols,
-			this->n_epochs,
-			n_vertices,
-			epochs_per_sample,
-			rng_state);
-		duration = clock::now() - before;
-		cout << endl << "It took " << duration.count() << " to embed." << endl;
+		// 	transform(embedding[j].begin(), embedding[j].end(), max_minus_min.begin(), embedding[j].begin(),
+		// 		[](float a, float b) {
+		// 			return a/b;
+		// 		});
+		// }
+		// // cout << "chguei aqui 13 " << endl;
+
+		// // printf("\n\nNOISED EMBEDDING:\n");
+
+		// // for( int j = 0; j < 10; ++j ) {
+		// // 	if(  j < 10 )
+		// // 		printf("%.4f %.4f\n", embedding[j][0], embedding[j][1]);
+		// // }
+		// // printf("------------------------------------------------------------------\n");
+
+		// py::module scipy_random = py::module::import("numpy.random");
+		// py::object randomState = scipy_random.attr("RandomState")(this->random_state);
+
+		// py::object rngStateObj = randomState.attr("randint")(numeric_limits<int>::min(), numeric_limits<int>::max(), 3);
+		// vector<long> rng_state = rngStateObj.cast<vector<long>>();
+
+		// printf("Embedding a level with %d data samples\n", embedding.size());
+		// before = clock::now(); 
+		// vector<vector<float>> result = this->reducers[i].optimize_layout_euclidean(
+		// 	embedding,
+		// 	embedding,
+		// 	rows,
+		// 	cols,
+		// 	this->n_epochs,
+		// 	n_vertices,
+		// 	epochs_per_sample,
+		// 	rng_state);
+		// duration = clock::now() - before;
+		// cout << endl << "It took " << duration.count() << " to embed." << endl;
 
 		this->embeddings.push_back(result);
 
@@ -1001,8 +1002,9 @@ void humap::HierarchicalUMAP::fit(py::array_t<float> X, py::array_t<int> y)
 
 int humap::HierarchicalUMAP::influenced_by(int level, int index)
 {
-
-	if( level == 0 ) {
+	if( level < 0 ) {
+		return 1;
+	} else if( level == 0 ) {
 		return this->metadata[level].count_influence[index];
 	} else {
 		int s = 0;
@@ -1013,6 +1015,19 @@ int humap::HierarchicalUMAP::influenced_by(int level, int index)
 	}
 
 
+}
+
+vector<int> humap::HierarchicalUMAP::get_influence_by_indices(int level, vector<int> indices) 
+{
+	if( level >= this->hierarchy_X.size() || level < 0 )
+		throw new runtime_error("Level out of bounds.");
+	vector<int> influence(indices.size(), 0);
+
+	for( int i = 0; i < indices.size(); ++i ) {
+		influence[i] = influenced_by(level-1, indices[i]);
+	}
+
+	return influence;
 }
 
 py::array_t<int> humap::HierarchicalUMAP::get_influence(int level)
@@ -1037,19 +1052,15 @@ py::array_t<int> humap::HierarchicalUMAP::get_influence(int level)
 		influence[i] = influenced_by(level-1, i);
 	}
 
-	cout << "level: " << level << endl;
-	int sum = 0;
+	// cout << "level: " << level << endl;
+	// int sum = 0;
 
 
-	for( int i = 0; i < this->metadata[level-1].count_influence.size(); ++i ) {
-		// cout << i << ": " << this->metadata[level-1].count_influence[i] << endl;
-		sum += this->metadata[level-1].count_influence[i];
-	}
-	cout << "count_influence: " << sum << endl;
-
-
-
-
+	// for( int i = 0; i < this->metadata[level-1].count_influence.size(); ++i ) {
+	// 	// cout << i << ": " << this->metadata[level-1].count_influence[i] << endl;
+	// 	sum += this->metadata[level-1].count_influence[i];
+	// }
+	// cout << "count_influence: " << sum << endl;
 
 
 	return py::cast(influence);
@@ -1102,4 +1113,282 @@ Eigen::SparseMatrix<float, Eigen::RowMajor> humap::HierarchicalUMAP::get_data(in
 		throw new runtime_error("Level out of bounds.");
 
 	return utils::create_sparse(this->hierarchy_X[level].sparse_matrix, this->hierarchy_X[level].size(), (int) this->n_neighbors*2.5);
+}
+
+vector<vector<float>> humap::HierarchicalUMAP::embed_data(int level, Eigen::SparseMatrix<float, Eigen::RowMajor>& graph, umap::Matrix& X)
+{
+	using clock = chrono::system_clock;
+	using sec = chrono::duration<double>;
+	int n_vertices = graph.cols();
+	// cout << "chguei aqui 2 " << endl;
+
+	if( this->n_epochs == -1 ) {
+		if( graph.rows() <= 10000 )
+			n_epochs = 500;
+		else 
+			n_epochs = 200;
+
+	}
+	// cout << "chguei aqui 3 " << endl;
+	if( !graph.isCompressed() )
+		graph.makeCompressed();
+	// graph = graph.pruned();
+	// cout << "chguei aqui 4 " << endl;
+	float max_value = graph.coeffs().maxCoeff();
+	graph = graph.pruned(max_value/(float)n_epochs, 1.0);
+
+
+	// cout << "chguei aqui 5 " << endl;
+
+
+	vector<vector<float>> embedding = this->reducers[level].spectral_layout(X, graph, this->n_components);
+
+
+	// cout << "chguei aqui 6 " << endl;
+	vector<int> rows, cols;
+	vector<float> data;
+
+	
+	// cout << "chguei aqui 7 " << endl;
+	tie(rows, cols, data) = utils::to_row_format(graph);
+
+	// cout << "chguei aqui 8 " << endl;
+	vector<float> epochs_per_sample = this->reducers[level].make_epochs_per_sample(data, this->n_epochs);
+	// cout << "\n\nepochs_per_sample: " << epochs_per_sample.size() << endl;
+
+	// cout << "chguei aqui 9 " << endl;
+	// for( int j = 0; j < 20; ++j )
+	// 	printf("%.4f ", epochs_per_sample[j]);
+
+	// cout << endl << endl;
+
+
+
+	// cout << "chguei aqui 10 " << endl;
+	vector<float> min_vec, max_vec;
+	// printf("min and max values:\n");
+	for( int j = 0; j < this->n_components; ++j ) {
+
+		min_vec.push_back((*min_element(embedding.begin(), embedding.end(), 
+			[j](vector<float> a, vector<float> b) {							
+				return a[j] < b[j];
+			}))[j]);
+		// cout <<" ****** 2" << endl;
+		max_vec.push_back((*max_element(embedding.begin(), embedding.end(), 
+			[j](vector<float> a, vector<float> b) {
+				return a[j] < b[j];
+			}))[j]);
+		// cout <<" ****** 3" << endl;
+
+	}
+	// cout << "chguei aqui 11 " << endl;
+	vector<float> max_minus_min(this->n_components, 0.0);
+	transform(max_vec.begin(), max_vec.end(), min_vec.begin(), max_minus_min.begin(), [](float a, float b){ return a-b; });
+	// cout << "chguei aqui 12 " << endl;
+
+	for( int j = 0; j < embedding.size(); ++j ) {
+
+		transform(embedding[j].begin(), embedding[j].end(), min_vec.begin(), embedding[j].begin(), 
+			[](float a, float b) {
+				return 10*(a-b);
+			});
+
+		transform(embedding[j].begin(), embedding[j].end(), max_minus_min.begin(), embedding[j].begin(),
+			[](float a, float b) {
+				return a/b;
+			});
+	}
+
+	py::module scipy_random = py::module::import("numpy.random");
+	py::object randomState = scipy_random.attr("RandomState")(this->random_state);
+
+	py::object rngStateObj = randomState.attr("randint")(numeric_limits<int>::min(), numeric_limits<int>::max(), 3);
+	vector<long> rng_state = rngStateObj.cast<vector<long>>();
+
+	printf("Embedding a level with %d data samples\n", embedding.size());
+	auto before = clock::now(); 
+	vector<vector<float>> result = this->reducers[level].optimize_layout_euclidean(
+		embedding,
+		embedding,
+		rows,
+		cols,
+		this->n_epochs,
+		n_vertices,
+		epochs_per_sample,
+		rng_state);
+	sec duration = clock::now() - before;
+	cout << endl << "It took " << duration.count() << " to embed." << endl;
+
+	return result;
+}	
+
+py::array_t<float> humap::HierarchicalUMAP::project(int level, py::array_t<int> c)
+{
+	using clock = chrono::system_clock;
+	using sec = chrono::duration<double>;
+	py::buffer_info bf = c.request();
+	int* classes = (int*) bf.ptr;
+	cout << "classes 1" << endl;
+
+	vector<int> selected_indices;
+	for( int i = 0; i < this->hierarchy_y[level].size(); ++i ) {
+		bool flag = false;
+		for( int j = 0; j < bf.shape[0]; ++j )
+			if( this->hierarchy_y[level][i] == classes[j] ) {
+				flag = true;
+				break;
+			}
+
+		if( flag )
+			selected_indices.push_back(i);
+	}	
+	cout << "classes: " << endl;
+	for( int i = 0; i < bf.shape[0]; ++i )
+		cout << classes[i] << endl;
+
+	cout << endl;
+	cout << "selected indices :) " << selected_indices.size() << endl;
+
+
+	vector<bool> is_in_it(this->metadata[level-1].size, false);
+	vector<int> indices_next_level;
+	vector<int> labels;
+	map<int, int> mapper;
+	cout << "hello 1" << endl;
+	for( int i = 0; i < this->metadata[level-1].size; ++i ) {
+		int landmark = this->metadata[level-1].indices[i];
+
+		for( int j = 0; j < selected_indices.size(); ++j )
+			if( landmark == selected_indices[j] && !is_in_it[i] ) {
+				labels.push_back(this->hierarchy_y[level-1][i]);
+				indices_next_level.push_back(i);
+				mapper[i] = indices_next_level.size()-1;
+				is_in_it[i] = true;
+				break;
+			}
+	}
+	this->labels_selected = labels;
+	cout << "hello 2" << endl;
+	this->influence_selected = this->get_influence_by_indices(level-1, indices_next_level);
+	cout << "hello 3" << endl;
+	if( this->hierarchy_X[level-1].is_sparse() ) {
+		umap::Matrix X = this->hierarchy_X[level-1];
+		vector<utils::SparseData> new_X;
+
+		for( int i = 0; i < indices_next_level.size(); ++i ) {
+
+			utils::SparseData sd = X.sparse_matrix[indices_next_level[i]];
+			vector<float> data = sd.data;
+			vector<int> indices = sd.indices;
+
+			vector<float> new_data;
+			vector<int> new_indices;
+
+			for( int j = 0; j < indices.size(); ++j ) {
+
+				if( mapper.count(indices[j]) > 0 ) {
+					new_data.push_back(data[j]);
+					new_indices.push_back(mapper[indices[j]]);
+				}
+			}
+
+			new_X.push_back(utils::SparseData(new_data, new_indices));
+		}
+
+		auto manipulation = clock::now();
+
+		Eigen::SparseMatrix<float, Eigen::RowMajor> graph = this->reducers[level-1].get_graph();
+		Eigen::SparseMatrix<float, Eigen::RowMajor> new_graph(indices_next_level.size(), indices_next_level.size());
+		new_graph.reserve(Eigen::VectorXi::Constant(indices_next_level.size(), this->n_neighbors*2+5));
+
+		for( int i = 0; i < indices_next_level.size(); ++i ) {
+			// cout<<i<<endl;
+			int k = indices_next_level[i];
+			for( Eigen::SparseMatrix<float, Eigen::RowMajor>::InnerIterator it(graph, k); it; ++it ) {
+				if( mapper.count(it.col()) >0 ) {
+					new_graph.insert(i, mapper[it.col()]) = it.value();
+				
+				}
+			}
+
+		}
+		new_graph.makeCompressed();
+		sec manipulation_duration = clock::now() - manipulation;
+		cout << "duration of manipulation " << manipulation_duration.count() << endl;
+
+		umap::Matrix nX = umap::Matrix(new_X, indices_next_level.size());
+
+		// auto projection = clock::now();
+		// umap::UMAP reducer = umap::UMAP("precomputed", min_neighbors, this->knn_algorithm);
+		// reducer.fit_hierarchy(nX);
+		// sec projection_duration = clock::now() - projection;
+		// cout << "duration of projection " << projection_duration.count() << endl;
+
+		return py::cast(this->embed_data(level-1, new_graph, nX));
+	} else {
+
+
+		umap::Matrix X = this->hierarchy_X[level-1];
+		vector<vector<float>> new_X;
+		cout << "passei 1" << endl;
+		for( int i = 0; i < indices_next_level.size(); ++i ) {
+
+			vector<float> dd = X.dense_matrix[indices_next_level[i]];
+			new_X.push_back(dd);
+
+			// vector<float> data = sd.data;
+			// vector<int> indices = sd.indices;
+
+			// vector<float> new_data;
+			// vector<int> new_indices;
+
+			// for( int j = 0; j < indices.size(); ++j ) {
+
+			// 	if( mapper.count(indices[j]) > 0 ) {
+			// 		new_data.push_back(data[j]);
+			// 		new_indices.push_back(mapper[indices[j]]);
+			// 	}
+			// }
+
+			// new_X.push_back(utils::SparseData(new_data, new_indices));
+		}
+		cout << "passei 2" << endl;
+		auto manipulation = clock::now();
+
+		Eigen::SparseMatrix<float, Eigen::RowMajor> graph = this->reducers[level-1].get_graph();
+		Eigen::SparseMatrix<float, Eigen::RowMajor> new_graph(indices_next_level.size(), indices_next_level.size());
+		new_graph.reserve(Eigen::VectorXi::Constant(indices_next_level.size(), this->n_neighbors*2+5));
+		cout << "passei 3" << endl;
+		for( int i = 0; i < indices_next_level.size(); ++i ) {
+			// cout<<i<<endl;
+			int k = indices_next_level[i];
+			for( Eigen::SparseMatrix<float, Eigen::RowMajor>::InnerIterator it(graph, k); it; ++it ) {
+				if( mapper.count(it.col()) >0 ) {
+					new_graph.insert(i, mapper[it.col()]) = it.value();
+				
+				}
+			}
+
+		}
+		new_graph.makeCompressed();
+		cout << "passei 4" << endl;
+		sec manipulation_duration = clock::now() - manipulation;
+		cout << "duration of manipulation " << manipulation_duration.count() << endl;
+
+		umap::Matrix nX = umap::Matrix(new_X);
+		cout << "passei 5" << endl;
+		// auto projection = clock::now();
+		// umap::UMAP reducer = umap::UMAP("precomputed", min_neighbors, this->knn_algorithm);
+		// reducer.fit_hierarchy(nX);
+		// sec projection_duration = clock::now() - projection;
+		// cout << "duration of projection " << projection_duration.count() << endl;
+
+		return py::cast(this->embed_data(level-1, new_graph, nX));
+
+
+
+
+	}
+	vector<vector<float>> vec;
+	return py::cast(vec);
 }

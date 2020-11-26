@@ -105,12 +105,12 @@ print(fashionX.shape, fashionY.shape)
 
 X = fashionX
 y = fashionY
-X = check_array(X, dtype=np.float32, accept_sparse="csr", order="C")
-# X = np.load('./data/MNIST_70000.npy')
-# y = np.load('./data/MNIST_70000_label.npy').astype(int)
+
+# X = np.load('./data/MNIST_10500.npy')
+# y = np.load('./data/MNIST_10500_label.npy').astype(int)
 # X = normalize(X)
 # print(greatest.shape, cols.shape, graph.shape, knn_dists.shape)
-
+X = check_array(X, dtype=np.float32, accept_sparse="csr", order="C")
 print(X.shape)
 
 # cpp_umap = h_umap.UMAP("euclidean", "FAISS_IVFFlat")
@@ -120,12 +120,12 @@ print(X.shape)
 # end = time.time()
 # print("time: %.5fs" % (end-start))
 
-hUmap = h_umap.HUMAP("precomputed", np.array([0.22, 0.19]), 15, "KDTree_NNDescent", True)
+hUmap = h_umap.HUMAP("precomputed", np.array([0.5, 0.5]), 15, "KDTree_NNDescent", True)
 hUmap.fit(X, y)
 
 
-second_level = X[hUmap.get_indices(0),:]
-third_level = second_level[hUmap.get_indices(1),:]
+# second_level = X[hUmap.get_indices(0),:]
+# third_level = second_level[hUmap.get_indices(1),:]
 
 
 
@@ -134,13 +134,9 @@ y2 = hUmap.get_labels(2)
 embedding2 = hUmap.get_embedding(2)
 
 
-# demap_level3 = demap.DEMaP(third_level, embedding2)
-# print(demap_level3)
 
 
 
-y1 = hUmap.get_labels(1)
-embedding1 = hUmap.get_embedding(1)
 
 
 # indices1 = hUmap.get_indices(1)
@@ -168,14 +164,12 @@ print(np.max(influence2), np.max(influence1))
 print(influence2)
 print("influence2")
 print(np.sum(influence2), np.sum(influence2==0))
-# for i in range(len(influence2)):
-# 	if influence2[i] == 0:
-# 		print(i, " >> ", influence2[i])
-print("\n\ninfluence1")
 print(np.sum(influence1), np.sum(influence1==0))
-# for i in range(len(influence1)):
-# 	if influence1[i] == 0:
-# 		print(i, " >> ", influence1[i])
+
+# influence1 = hUmap.get_influence(1)
+# print("\n\ninfluence1")
+# maxValue = np.max(influence1)
+# print(np.sum(influence1), np.sum(influence1==0))
 	
 
 # plt.plot(precision_third, recall_third)
@@ -185,9 +179,11 @@ print(np.sum(influence1), np.sum(influence1==0))
 # plt.plot(precision_second, recall_second)
 # plt.ylim(0, 1)
 # plt.show()
-s2 = transform_sizes(influence2, 1, maxValue, rightMin=8, rightMax=100)
-s1 = transform_sizes(influence1, 1, maxValue, rightMin=8, rightMax=100)
-s0 = transform_sizes([1]*len(y), 1, maxValue, rightMin=8, rightMax=100)
+
+
+s2 = transform_sizes(influence2, 1, maxValue, rightMin=8, rightMax=300)
+s1 = transform_sizes(influence1, 1, maxValue, rightMin=8, rightMax=300)
+s0 = transform_sizes([1]*len(y), 1, maxValue, rightMin=8, rightMax=300)
 
 print("s2")
 print(s2[:10])
@@ -199,17 +195,18 @@ print("\ns0")
 print(s0[:10])
 
 
-plt.scatter(embedding2[:, 0], embedding2[:, 1], c = y2, cmap='Spectral', alpha=0.7, s=influence2*3)
-plt.show()
-plt.scatter(embedding1[:, 0], embedding1[:, 1], c = y1, cmap='Spectral', alpha=0.7, s=influence1*3)
+plt.scatter(embedding2[:, 0], embedding2[:, 1], c = y2, cmap='Spectral', alpha=0.7, s=s2)
 plt.show()
 
-
+y1 = hUmap.get_labels(1)
+embedding1 = hUmap.get_embedding(1)
+plt.scatter(embedding1[:, 0], embedding1[:, 1], c = y1, cmap='Spectral', alpha=0.7, s=s1)
+plt.show()
 
 
 embedding0 = hUmap.get_embedding(0)
-plt.scatter(embedding0[:, 0], embedding0[:, 1], c = y, cmap='Spectral', alpha=0.7, s=1)
-indices0 = hUmap.get_indices(0)
+plt.scatter(embedding0[:, 0], embedding0[:, 1], c = y, cmap='Spectral', alpha=0.01, s=s0)
+# indices0 = hUmap.get_indices(0)
 # plt.scatter(embedding0[indices0, 0], embedding0[indices0, 1], c ='red', alpha=1, s=1)
 plt.show()
 
@@ -246,8 +243,17 @@ print("Num points in scale %d: %d" % (0, len(embedding0)))
 
 
 
+values =  hUmap.project(1, np.array([5, 7, 9]))
+labels = hUmap.get_labels_selected()
+influence = hUmap.get_influence_selected()
+s = transform_sizes(influence, 1, maxValue, rightMin=8, rightMax=300)
+print(values.shape)
+print(labels)
+print(influence)
+print(s)
 
-
+plt.scatter(values[:, 0], values[:, 1], c = labels, cmap='Spectral',  s = s)
+plt.show()
 
 
 # cpp_umap = humap.UMAP("precomputed")

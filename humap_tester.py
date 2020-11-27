@@ -205,7 +205,7 @@ plt.show()
 
 
 embedding0 = hUmap.get_embedding(0)
-plt.scatter(embedding0[:, 0], embedding0[:, 1], c = y, cmap='Spectral', alpha=0.01, s=s0)
+plt.scatter(embedding0[:, 0], embedding0[:, 1], c = y, cmap='Spectral', alpha=0.7, s=s0)
 # indices0 = hUmap.get_indices(0)
 # plt.scatter(embedding0[indices0, 0], embedding0[indices0, 1], c ='red', alpha=1, s=1)
 plt.show()
@@ -243,16 +243,18 @@ print("Num points in scale %d: %d" % (0, len(embedding0)))
 
 
 
+values =  hUmap.project(2, np.array([5, 7, 9]))
+labels = hUmap.get_labels_selected()
+influence = hUmap.get_influence_selected()
+s = transform_sizes(influence, 1, maxValue, rightMin=8, rightMax=300)
+plt.scatter(values[:, 0], values[:, 1], c = labels, cmap='Spectral',  alpha=0.7, s = s)
+plt.show()
+
 values =  hUmap.project(1, np.array([5, 7, 9]))
 labels = hUmap.get_labels_selected()
 influence = hUmap.get_influence_selected()
 s = transform_sizes(influence, 1, maxValue, rightMin=8, rightMax=300)
-print(values.shape)
-print(labels)
-print(influence)
-print(s)
-
-plt.scatter(values[:, 0], values[:, 1], c = labels, cmap='Spectral',  s = s)
+plt.scatter(values[:, 0], values[:, 1], c = labels, cmap='Spectral',  alpha=0.7, s = s)
 plt.show()
 
 

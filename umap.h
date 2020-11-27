@@ -96,26 +96,32 @@ public:
 	// }
 
 	vector<float> get_row(int i) {
-
-		// cout << "this is the shape: " << shape_[1] << endl;
-		// cout << "this is the sparse_matrix.size(): " << sparse_matrix.size() << endl;
-		// cout << "this is the number of indices: " << sparse_matrix[i].data.size() << endl;
-		// cout << "this is the number of indices: " << sparse_matrix[i].indices.size() << endl;
-		// cout << "this is the row I am asking for: " << i << endl;
-
-		vector<float> row(shape_[1], 0.0);
-
-
 		
-		// cout << "creating matrix" << endl;
-		for( int count = 0; count < sparse_matrix[i].indices.size(); ++count ) {
-			int index = sparse_matrix[i].indices[count];			
-			row[index] = sparse_matrix[i].data[count];
-			// cout << index << " -> " << row.size() << endl;
 
+
+		if( sparse ) {
+			// cout << "this is the shape: " << shape_[1] << endl;
+			// cout << "this is the sparse_matrix.size(): " << sparse_matrix.size() << endl;
+			// cout << "this is the number of indices: " << sparse_matrix[i].data.size() << endl;
+			// cout << "this is the number of indices: " << sparse_matrix[i].indices.size() << endl;
+			// cout << "this is the row I am asking for: " << i << endl;
+
+
+
+			vector<float> row(shape_[1], 0.0);
+
+			// cout << "creating matrix" << endl;
+			for( int count = 0; count < sparse_matrix[i].indices.size(); ++count ) {
+				int index = sparse_matrix[i].indices[count];			
+				row[index] = sparse_matrix[i].data[count];
+				// cout << index << " -> " << row.size() << endl;
+
+			}
+			// cout << "created matrix" << endl;
+			return row;
+		} else {
+			return dense_matrix[i];
 		}
-		// cout << "created matrix" << endl;
-		return row;
 	}
 
 

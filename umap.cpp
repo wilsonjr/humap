@@ -194,10 +194,10 @@ vector<vector<float>> umap::UMAP::component_layout(umap::Matrix& data, int n_com
 {
 
 
-	// cout << "Entrei 1" << endl;
-	// cout << "n_components " << n_components << endl;
-	// cout << "data.is_sparse(): " << data.is_sparse() << endl;
-	// cout << "data.shape(1) " << data.shape(1) << endl;
+	cout << "Entrei 1" << endl;
+	cout << "n_components " << n_components << endl;
+	cout << "data.is_sparse(): " << data.is_sparse() << endl;
+	cout << "data.shape(1) " << data.shape(1) << endl;
 
 	vector<vector<float>> component_centroids(n_components, vector<float>(data.shape(1), 0.0));
 
@@ -205,7 +205,7 @@ vector<vector<float>> umap::UMAP::component_layout(umap::Matrix& data, int n_com
 	vector<vector<float>> distance_matrix;
 
 	if( this->metric == "precomputed" ) {
-		// cout << "Entrei 3" << endl;
+		cout << "precomputed" << endl;
 		distance_matrix = vector<vector<float>>(n_components, vector<float>(n_components, 0.0));
 
 
@@ -241,12 +241,13 @@ vector<vector<float>> umap::UMAP::component_layout(umap::Matrix& data, int n_com
 		// cout << "passei aqui irmao" << endl;
 
 	} else {
-
+	
 		for( int label = 0; label < n_components; ++label ) {
-
+	
 			vector<float> sum_v(data.shape(1), 0.0);
 			float count = 0.0;
 			for( int i = 0; i < component_labels.size(); ++i ) {
+
 				if( component_labels[i] == label ) {
 					vector<float> row = data.get_row(i);
 					for( int j = 0; j < row.size(); ++j  )
@@ -254,28 +255,24 @@ vector<vector<float>> umap::UMAP::component_layout(umap::Matrix& data, int n_com
 					count++;
 				}
 			}
-
+	
 			for( int j = 0; j < sum_v.size(); ++j  )
 				sum_v[j] /= count;
-
 			component_centroids[label] = sum_v;
 		}
-
 		distance_matrix = utils::pairwise_distances(component_centroids);
-
+	
 	}
-
 	for( int i = 0; i < distance_matrix.size(); ++i ) 
 		for( int j = 0; j < distance_matrix[i].size(); ++j ) 
 			distance_matrix[i][j] = exp(-(distance_matrix[i][j]*distance_matrix[i][j]));
-
-
+	
 	py::module manifold = py::module::import("sklearn.manifold");
 	py::object SpectralEmbedding = manifold.attr("SpectralEmbedding")(py::arg("n_components")=dim, py::arg("affinity")="precomputed");
 	py::object embedding = SpectralEmbedding.attr("fit_transform")(py::cast(distance_matrix));
 
 	vector<vector<float>> component_embedding = embedding.cast<vector<vector<float>>>();
-	float max_v = -99999;
+	float max_v = component_embedding[0][0];
 	for( int i = 0; i < component_embedding.size(); ++i ) {
 		for( int j = 0; j < component_embedding[i].size(); ++j ) {
 			max_v = max(max_v, component_embedding[i][j]);
@@ -304,7 +301,7 @@ vector<vector<float>> umap::UMAP::multi_component_layout(umap::Matrix& data,
 		// cout << "compoent layout " << endl;
 		meta_embedding = this->component_layout(data, n_components, component_labels, dim);
 
-		// cout << "n_components > 2*dim" << endl;
+		cout << "n_components > 2*dim" << endl;
 		cout << "meta_embedding.shape: " << meta_embedding.size() << " x " << meta_embedding[0].size() << endl;
 	} else {
 		// cout << "compoent 1 " << endl;

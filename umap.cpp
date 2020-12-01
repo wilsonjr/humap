@@ -957,7 +957,133 @@ tuple<vector<vector<int>>, vector<vector<float>>> umap::nearest_neighbors(umap::
 	} else {
 		string algorithm = knn_args["knn_algorithm"];
 
-		if( algorithm == "FAISS_Flat") {
+		if( algorithm == "FLANN" ) {
+
+			py::module pyflann = py::module::import("pyflann");
+			py::module flann = pyflann.attr("FLANN")();
+			py::array_t<float> data = py::cast(X.dense_matrix);
+			py::object result = flann.attr("nn")(
+				data, data, n_neighbors,
+				py::arg("checks")=256
+				,
+				py::arg("trees")=5
+				,
+				py::arg("iterations")=25
+				);//, py::arg("checks")=256, py::arg("trees")=3);
+
+
+			py::object knn_indices_ = result.attr("__getitem__")(0);
+			py::object knn_dists_ = result.attr("__getitem__")(1);
+
+			knn_dists = knn_dists_.cast<vector<vector<float>>>();
+			knn_indices = knn_indices_.cast<vector<vector<int>>>();
+
+		} else if( algorithm == "ANNOY" ) {
+
+			py::module annoy = py::module::import("annoy");
+			py::object t = annoy.attr("AnnoyIndex")(
+				py::cast(X.shape(1)), py::cast("euclidean")
+				);
+
+			for( int i = 0; i < X.shape(0); ++i ) {
+				py::array_t<float> values = py::cast(X.dense_matrix[i]);
+				t.attr("add_item")(py::cast(i), values);				
+			}
+
+			t.attr("build")(100, py::arg("n_jobs")=-1);
+
+
+			for( int i = 0; i < X.shape(0); ++i ) {
+				py::object result = t.attr("get_nns_by_item")(
+					py::cast(i), n_neighbors, py::arg("include_distances")=true
+					);
+
+				vector<int> indices = result.attr("__getitem__")(0).cast<vector<int>>();
+				vector<float> dists = result.attr("__getitem__")(1).cast<vector<float>>();
+
+				knn_dists.push_back(dists);
+				knn_indices.push_back(indices);
+			}
+
+
+			for( int i = 0; i < 5; ++i ) {
+				cout << i <<" ";
+				for( int j = 0; j < knn_dists[i].size(); ++j ) {
+
+					cout << knn_dists[i][j]  << "(" <<  knn_indices[i][j] << "); ";
+
+				}
+				cout << endl;
+			}
+			cout << endl;
+
+
+
+
+
+
+		} else if( algorithm == "PyNNDescent" ) {
+
+			cout << "Using PyNNDescent" << endl;
+
+			int n_trees = 5 + (int) (round((sqrt(X.shape(0) / 20.0))));
+			int n_iters = max(5, (int)(round(log2(X.shape(0)))));
+
+			cout << "n_trees: " << n_trees << endl;
+			cout << "n_iters: " << n_iters << endl;
+
+			py::module pynndescent = py::module::import("pynndescent");
+			py::array_t<float> data = py::cast(X.dense_matrix);
+			py::object nnd = pynndescent.attr("NNDescent")(
+				data,
+				py::arg("n_neighbors") = py::cast((int)(n_neighbors)),
+				py::arg("metric") = py::cast("euclidean"),
+				py::arg("random_state") = py::cast(0),//random_state,
+				py::arg("n_trees") = py::cast(n_trees),
+				py::arg("n_iters") = py::cast(n_iters),
+				py::arg("n_search_trees") = py::cast(3),
+				py::arg("max_candidates") = py::cast(60),
+				py::arg("low_memory") = py::cast(false),
+				py::arg("verbose") = py::cast(true));
+
+			py::object neighbor_graph = nnd.attr("neighbor_graph");
+
+			
+			py::object knn_indices_ = neighbor_graph.attr("__getitem__")(0);
+			py::object knn_dists_ = neighbor_graph.attr("__getitem__")(1);
+
+			knn_dists = knn_dists_.cast<vector<vector<float>>>();
+			knn_indices = knn_indices_.cast<vector<vector<int>>>();
+			cout << "knn_dists: " << knn_dists.size() << " x " << knn_dists[0].size() << endl;
+			cout << "knn_indices: " << knn_indices.size() << " x " << knn_indices[0].size() << endl;
+
+			for( int i = 0; i < 5; ++i ) {
+				cout << i <<" ";
+				for( int j = 0; j < knn_dists[i].size(); ++j ) {
+
+					cout << knn_dists[i][j]  << "(" <<  knn_indices[i][j] << "); ";
+
+				}
+				cout << endl;
+			}
+			cout << endl;
+
+
+			vector<vector<bool>> visited(knn_dists.size(), vector<bool>(knn_dists.size()));
+			for( int i = 0; i < 5; ++i ) {
+				for( int j = 0; j < knn_dists[i].size(); ++j ) {
+					if( visited[i][knn_indices[i][j]] ) {
+						cout << "already visited for: " << i << " and " << knn_indices[i][j] << 
+						 ": " << knn_dists[i][j] << endl;
+					}
+					visited[i][knn_indices[i][j]] = 1;
+				}
+			}
+
+
+
+
+		} else if( algorithm == "FAISS_Flat") {
 
 			py::module faiss = py::module::import("faiss");		
 			
@@ -1113,7 +1239,7 @@ tuple<vector<vector<int>>, vector<vector<float>>> umap::nearest_neighbors(umap::
 			knn_indices = vector<vector<int>>(X.size(), vector<int>(n_neighbors, 0));
 			knn_dists = vector<vector<float>>(X.size(), vector<float>(n_neighbors, 0.0));
 
-			#pragma omp parallel for
+			// #pragma omp parallel for
 			for( int i = 0; i < nsamples; ++i ) 
 			{
 
@@ -1227,8 +1353,19 @@ tuple<Eigen::SparseMatrix<float, Eigen::RowMajor>, vector<float>, vector<float>>
 	Eigen::SparseMatrix<float, Eigen::RowMajor> result(X.size(), X.size());
 	result.reserve(Eigen::VectorXi::Constant(X.size(), 2*n_neighbors)); // TODO: verificar se é assim (ou com int)
 	// result.reserve(rows*2*n_neighbors);
-	for( int i = 0; i < vals.size(); ++i )
-		result.insert(rows[i], cols[i]) = vals[i];
+	cout << "ADDING ELEMENTS, START" << endl;
+	for( int i = 0; i < vals.size(); ++i ) {
+
+		// try {
+
+			result.insert(rows[i], cols[i]) = vals[i];
+
+		// } catch(...) {
+		// 	cout << "using coeffRef " << endl;
+		// 	result.coeffRef(rows[i], cols[i]) = vals[i];						
+		// }
+	}
+	cout << "ADDING ELEMENTS, DONE" << endl;
 	result.makeCompressed();
 
 	if( apply_set_operations ) {

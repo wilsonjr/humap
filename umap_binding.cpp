@@ -26,8 +26,10 @@ PYBIND11_MODULE(hierarchical_umap, m) {
 		.def("get_indices", &humap::HierarchicalUMAP::get_indices)
 		.def("get_data", &humap::HierarchicalUMAP::get_data)
 		.def("get_embedding", &humap::HierarchicalUMAP::get_embedding)
+		.def("get_original_indices", &humap::HierarchicalUMAP::get_original_indices)
 		.def("project", &humap::HierarchicalUMAP::project)
 		.def("get_labels_selected", &humap::HierarchicalUMAP::get_labels_selected)
+		.def("get_indices_selected", &humap::HierarchicalUMAP::get_indices_selected)
 		.def("get_influence_selected", &humap::HierarchicalUMAP::get_influence_selected)
 		.def("__repr__",
 			[](humap::HierarchicalUMAP& a) {

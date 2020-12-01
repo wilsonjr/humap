@@ -100,11 +100,14 @@ public:
 	py::array_t<int> get_indices(int level);
 	py::array_t<float> get_sigmas(int level);
 	py::array_t<int> get_influence(int level);
+	py::array_t<int> get_original_indices(int level);
 
 	py::array_t<float> project(int level, py::array_t<int> c);	
 
 	py::array_t<int> get_labels_selected() { return py::cast(this->labels_selected); }
 	py::array_t<int> get_influence_selected() { return py::cast(this->influence_selected); }
+	py::array_t<int> get_indices_selected() { return py::cast(this->indices_selected); }
+
 
 
 
@@ -125,15 +128,17 @@ private:
 
 	int n_neighbors;
 	bool verbose;
-	int n_epochs = -1;
+	int n_epochs = 500;
 	int n_components = 2;
 
 	int random_state = 0;
 
+	vector<vector<int>> original_indices;
 	vector<vector<int>> _indices;
 	vector<vector<float>> _sigmas;
 	vector<int> labels_selected;
 	vector<int> influence_selected;
+	vector<int> indices_selected;
 
 	int influenced_by(int level, int index);
 	

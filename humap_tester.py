@@ -13,8 +13,10 @@ from tqdm import tqdm
 from sklearn.preprocessing import normalize
 from sklearn.neighbors import NearestNeighbors
 from sklearn.datasets import fetch_openml
-from sklearn.manifold import trustworthiness
+# from sklearn.manifold import trustworthiness
 from sklearn.utils import check_random_state, check_array
+
+
 
 
 
@@ -40,10 +42,6 @@ def transform_sizes(values, minValue, maxValue, rightMin=3, rightMax=50):
 	return (4.*areas)/math.pi 
 
 
-
-
-
-
 def compute_trustworthiness(X, X_emb, Khigh=30):
 
 	ks = np.zeros(Khigh)
@@ -53,10 +51,6 @@ def compute_trustworthiness(X, X_emb, Khigh=30):
 		trust[i-1] = trustworthiness(X, X_emb, n_neighbors=i)
 
 	return ks, trust
-
-
-
-
 
 def NNP(X, X_emb, Khigh=30):
 	neigh_high = NearestNeighbors(n_neighbors=Khigh, n_jobs=-1)
@@ -70,19 +64,51 @@ def NNP(X, X_emb, Khigh=30):
 
 	m_precision = np.zeros(Khigh)
 	m_recall = np.zeros(Khigh)
-	for k in range(Khigh):
-		tp = np.zeros(X.shape[0])
-		for i in range(X.shape[0]):
-			current = emb_indices[i][:k+1]
-			tp[i] = len(np.intersect1d(high_indices[i], current))
-		precision = tp/float(k+1)
-		recall = tp/Khigh
+	for i in tqdm(range(X.shape[0])):
+		high_current = high_indices[i][1:]
+		for k in range(1, Khigh+1):
+			emb_current = emb_indices[i][1:k+1]            
 
-		m_precision[k] = precision.mean()
-		m_recall[k] = recall.mean()
+			tp = len(np.intersect1d(high_current, emb_current))
+
+			precision_val = float(tp)/k
+			recall_val = float(tp)/Khigh
+
+			m_precision[k-1] += precision_val
+			m_recall[k-1] += recall_val
+
+	m_precision = m_precision/float(X.shape[0])
+	m_recall = m_recall/float(X.shape[0])
+
 
 	return m_precision, m_recall
 
+def neighborhood_preservation(X, X_emb, Khigh=30):
+    
+    neigh_high = NearestNeighbors(n_neighbors=Khigh+1, n_jobs=-1)
+    neigh_high.fit(X)
+    high_dists, high_indices = neigh_high.kneighbors(X)
+
+
+    neigh_emb = NearestNeighbors(n_neighbors=Khigh+1, n_jobs=-1)
+    neigh_emb.fit(X_emb)
+    emb_dists, emb_indices = neigh_emb.kneighbors(X_emb)
+
+    npres = np.zeros(Khigh)
+    
+    for k in range(1, Khigh+1):
+        for i in range(X.shape[0]):
+            high_current = high_indices[i][1:k+1]
+            emb_current = emb_indices[i][1:k+1]
+            
+            tp = len(np.intersect1d(high_current, emb_current))
+            
+            npres[k-1] += (tp/k)
+        
+        
+    npres /= float(X.shape[0])
+    
+    return npres
 
 def get_size(value):
 
@@ -106,8 +132,8 @@ print(fashionX.shape, fashionY.shape)
 X = fashionX
 y = fashionY
 
-# X = np.load('./data/MNIST_10500.npy')
-# y = np.load('./data/MNIST_10500_label.npy').astype(int)
+# X = np.load('./data/MNIST_70000.npy')
+# y = np.load('./data/MNIST_70000_label.npy').astype(int)
 # X = normalize(X)
 # print(greatest.shape, cols.shape, graph.shape, knn_dists.shape)
 X = check_array(X, dtype=np.float32, accept_sparse="csr", order="C")
@@ -120,12 +146,25 @@ print(X.shape)
 # end = time.time()
 # print("time: %.5fs" % (end-start))
 
-hUmap = h_umap.HUMAP("precomputed", np.array([0.5, 0.5]), 15, "KDTree_NNDescent", True)
+hUmap = h_umap.HUMAP("precomputed", np.array([0.186733333, 0.179667976]), 15, "FLANN", True)
 hUmap.fit(X, y)
 
 
-# second_level = X[hUmap.get_indices(0),:]
-# third_level = second_level[hUmap.get_indices(1),:]
+second_level = X[hUmap.get_original_indices(1),:]#X[hUmap.get_indices(0),:]
+third_level = X[hUmap.get_original_indices(2),:]#second_level[hUmap.get_indices(1),:]
+second_indices = hUmap.get_indices(0)
+third_indices = hUmap.get_indices(1)
+
+print("second_indices")
+print(second_indices[:30])
+print("third indices")
+print(third_indices[:30])
+
+print("second_level: ", second_level.shape)
+print("third_level: ", third_level.shape)
+
+print("second_level: ", hUmap.get_indices(0).shape)
+print("third_level: ", hUmap.get_indices(1).shape)
 
 
 
@@ -142,8 +181,7 @@ embedding2 = hUmap.get_embedding(2)
 # indices1 = hUmap.get_indices(1)
 # plt.scatter(embedding1[indices1, 0], embedding1[indices1, 1], c ='red', alpha=1, s=1)
 
-# precision2, recall2 = NNP(third_level, embedding2)
-# precision, recall = NNP(second_level, embedding1)
+
 
 # precision_third, recall_third = compute_trustworthiness(third_level, embedding2)
 # precision_second, recall_second = compute_trustworthiness(second_level, embedding1)
@@ -246,16 +284,20 @@ print("Num points in scale %d: %d" % (0, len(embedding0)))
 values =  hUmap.project(2, np.array([5, 7, 9]))
 labels = hUmap.get_labels_selected()
 influence = hUmap.get_influence_selected()
+indices_selected = hUmap.get_indices_selected()
+high_selected = embedding1[indices_selected]
+print("selected:")
+print(indices_selected.shape, high_selected.shape, values.shape)
 s = transform_sizes(influence, 1, maxValue, rightMin=8, rightMax=300)
 plt.scatter(values[:, 0], values[:, 1], c = labels, cmap='Spectral',  alpha=0.7, s = s)
 plt.show()
 
-values =  hUmap.project(1, np.array([5, 7, 9]))
-labels = hUmap.get_labels_selected()
-influence = hUmap.get_influence_selected()
-s = transform_sizes(influence, 1, maxValue, rightMin=8, rightMax=300)
-plt.scatter(values[:, 0], values[:, 1], c = labels, cmap='Spectral',  alpha=0.7, s = s)
-plt.show()
+# values =  hUmap.project(1, np.array([5, 7, 9]))
+# labels = hUmap.get_labels_selected()
+# influence = hUmap.get_influence_selected()
+# s = transform_sizes(influence, 1, maxValue, rightMin=8, rightMax=300)
+# plt.scatter(values[:, 0], values[:, 1], c = labels, cmap='Spectral',  alpha=0.7, s = s)
+# plt.show()
 
 
 # cpp_umap = humap.UMAP("precomputed")
@@ -263,3 +305,34 @@ plt.show()
 # cpp_umap.fit_hierarchy_sparse(data)
 # end = time.time()
 # print("time: %.5fs" % (end-start))
+
+print(demap.DEMaP(high_selected, values))
+ks=30
+npres = neighborhood_preservation(high_selected, values, Khigh=ks)
+print(npres)
+plt.plot(np.arange(ks), npres)
+plt.show()
+
+
+
+print(demap.DEMaP(third_level, embedding2))
+ks = 30
+npres = neighborhood_preservation(third_level, embedding2, Khigh=ks)
+plt.plot(np.arange(ks), npres)
+plt.show()
+
+print(demap.DEMaP(second_level, embedding1))
+ks = 30
+npres = neighborhood_preservation(second_level, embedding1, Khigh=ks)
+plt.plot(np.arange(ks), npres)
+plt.show()
+
+
+
+# precision2, recall2 = NNP(third_level, embedding2, Khigh=30)
+# plt.plot(precision2, recall2)
+# plt.show()
+
+# precision, recall = NNP(second_level, embedding1, Khigh=30)
+# plt.plot(precision, recall)
+# plt.show()

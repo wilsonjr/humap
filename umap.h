@@ -181,7 +181,8 @@ public:
 		verbose(true),
 		n_neighbors(15),
 		local_connectivity(1.0)
-	{
+	{	
+		cout << "Constructor 1" << endl;
 
 		knn_args["knn_algorithm"] = "FAISS_IVFFlat";
 
@@ -194,7 +195,7 @@ public:
 
 		knn_args["L"] = "100";
 		knn_args["iter"] = "10";
-		knn_args["S"] = "30";
+		knn_args["S"] = "50";
 		knn_args["R"] = "50";
 	}
 
@@ -206,6 +207,7 @@ public:
 		n_neighbors(15),
 		local_connectivity(1.0)
 	{
+		cout << "Constructor 2" << endl;
 
 		knn_args["knn_algorithm"] = knn_algorithm;
 
@@ -218,7 +220,7 @@ public:
 
 		knn_args["L"] = "100";
 		knn_args["iter"] = "10";
-		knn_args["S"] = "30";
+		knn_args["S"] = "50";
 		knn_args["R"] = "50";
 	}
 
@@ -228,6 +230,7 @@ public:
 		n_neighbors(n_neighbors_),
 		local_connectivity(1.0)
 	{
+		cout << "Constructor 3: " << knn_algorithm << endl;
 
 		knn_args["knn_algorithm"] = knn_algorithm;
 
@@ -239,8 +242,8 @@ public:
 		knn_args["mLevel"] = "8";
 
 		knn_args["L"] = "100";
-		knn_args["iter"] = "10";
-		knn_args["S"] = "30";
+		knn_args["iter"] = "15";
+		knn_args["S"] = "50";
 		knn_args["R"] = "50";
 	}
 

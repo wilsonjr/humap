@@ -615,7 +615,7 @@ void humap::HierarchicalUMAP::fit(py::array_t<float> X, py::array_t<int> y)
 	// 	this->knn_algorithm = "FAISS_Flat";
 	// }
 
-	umap::UMAP reducer = umap::UMAP("euclidean", this->knn_algorithm);
+	umap::UMAP reducer = umap::UMAP("euclidean", this->n_neighbors, this->knn_algorithm);
 
 	if( this->verbose ) {
 		cout << "\n\n*************************************************************************" << endl;
@@ -648,12 +648,15 @@ void humap::HierarchicalUMAP::fit(py::array_t<float> X, py::array_t<int> y)
 
 	this->metadata.push_back(humap::Metadata(indices, owners, strength, association, this->hierarchy_X[0].size()));
 
+	this->original_indices.push_back(indices);
+
 
 	Eigen::SparseMatrix<float, Eigen::RowMajor> graph = this->reducers[0].get_graph();
 
 	vector<vector<float>> knn_dists = this->reducers[0].knn_dists();
 
 	for( int level = 0; level < this->percents.size(); ++level ) {
+		// this->n_neighbors = (int) (1.5*this->n_neighbors);
 
 		auto level_before = clock::now();
 
@@ -698,6 +701,12 @@ void humap::HierarchicalUMAP::fit(py::array_t<float> X, py::array_t<int> y)
 
 		vector<int> greatest = possible_indices;
 
+		vector<int> orig_inds(greatest.size(), 0);
+
+		for( int i = 0; i < orig_inds.size(); ++i )
+			orig_inds[i] = this->original_indices[level][greatest[i]];
+		this->original_indices.push_back(orig_inds);
+
 		this->_sigmas.push_back(this->reducers[level].sigmas());
 
 		this->_indices.push_back(greatest);
@@ -732,7 +741,7 @@ void humap::HierarchicalUMAP::fit(py::array_t<float> X, py::array_t<int> y)
 
 
 			data = umap::Matrix(dense);
-			reducer = umap::UMAP("euclidean", this->knn_algorithm);
+			reducer = umap::UMAP("euclidean", this->n_neighbors, this->knn_algorithm);
 
 
 
@@ -757,11 +766,11 @@ void humap::HierarchicalUMAP::fit(py::array_t<float> X, py::array_t<int> y)
 			cout << endl;
 
 			data = umap::Matrix(sparse, greatest.size());
-			reducer = umap::UMAP("precomputed", this->knn_algorithm);
+			reducer = umap::UMAP("precomputed", this->n_neighbors, this->knn_algorithm);
 		} else {
 
 
-			reducer = umap::UMAP("euclidean", this->knn_algorithm);
+			reducer = umap::UMAP("euclidean", this->n_neighbors, this->knn_algorithm);
 
 
 		}
@@ -1082,6 +1091,15 @@ py::array_t<int> humap::HierarchicalUMAP::get_indices(int level)
 	return py::cast(this->_indices[level]);
 }
 
+py::array_t<int> humap::HierarchicalUMAP::get_original_indices(int level)
+{
+	if( level >= this->hierarchy_X.size() || level < 0 )
+		throw new runtime_error("Level out of bounds.");
+
+	return py::cast(this->original_indices[level]);
+}
+
+
 
 py::array_t<int> humap::HierarchicalUMAP::get_labels(int level)
 {
@@ -1270,6 +1288,7 @@ py::array_t<float> humap::HierarchicalUMAP::project(int level, py::array_t<int> 
 	this->labels_selected = labels;
 	cout << "hello 2" << endl;
 	this->influence_selected = this->get_influence_by_indices(level-1, indices_next_level);
+	this->indices_selected = indices_next_level;
 	cout << "hello 3" << endl;
 	if( this->hierarchy_X[level-1].is_sparse() ) {
 		umap::Matrix X = this->hierarchy_X[level-1];

@@ -964,11 +964,11 @@ tuple<vector<vector<int>>, vector<vector<float>>> umap::nearest_neighbors(umap::
 			py::array_t<float> data = py::cast(X.dense_matrix);
 			py::object result = flann.attr("nn")(
 				data, data, n_neighbors,
-				py::arg("checks")=256
+				py::arg("checks")=64
 				,
-				py::arg("trees")=5
+				py::arg("trees")=3
 				,
-				py::arg("iterations")=25
+				py::arg("iterations")=15
 				);//, py::arg("checks")=256, py::arg("trees")=3);
 
 

@@ -146,7 +146,7 @@ print(X.shape)
 # end = time.time()
 # print("time: %.5fs" % (end-start))
 
-hUmap = h_umap.HUMAP("precomputed", np.array([0.186733333, 0.179667976]), 15, "FLANN", True)
+hUmap = h_umap.HUMAP("precomputed", np.array([0.186083333, 0.177698164]), 15, "FLANN", True)
 hUmap.fit(X, y)
 
 
@@ -233,17 +233,23 @@ print("\ns0")
 print(s0[:10])
 
 
-plt.scatter(embedding2[:, 0], embedding2[:, 1], c = y2, cmap='Spectral', alpha=0.7, s=s2)
+# plt.scatter(embedding2[:, 0], embedding2[:, 1], c = y2, cmap='Spectral', alpha=0.7, s=s2)
+plt.scatter(embedding2[:, 0], embedding2[:, 1], c = y2, cmap='Spectral')
+# plt.savefig("humap_level2.svg")
 plt.show()
 
 y1 = hUmap.get_labels(1)
 embedding1 = hUmap.get_embedding(1)
-plt.scatter(embedding1[:, 0], embedding1[:, 1], c = y1, cmap='Spectral', alpha=0.7, s=s1)
+# plt.scatter(embedding1[:, 0], embedding1[:, 1], c = y1, cmap='Spectral', alpha=0.7, s=s1)
+plt.scatter(embedding1[:, 0], embedding1[:, 1], c = y1, cmap='Spectral')
+# plt.savefig("humap_level1.svg")
 plt.show()
 
 
 embedding0 = hUmap.get_embedding(0)
-plt.scatter(embedding0[:, 0], embedding0[:, 1], c = y, cmap='Spectral', alpha=0.7, s=s0)
+# plt.scatter(embedding0[:, 0], embedding0[:, 1], c = y, cmap='Spectral', alpha=0.7, s=s0)
+plt.scatter(embedding0[:, 0], embedding0[:, 1], c = y, cmap='Spectral')
+# plt.savefig("humap_level0.svg")
 # indices0 = hUmap.get_indices(0)
 # plt.scatter(embedding0[indices0, 0], embedding0[indices0, 1], c ='red', alpha=1, s=1)
 plt.show()
@@ -281,7 +287,7 @@ print("Num points in scale %d: %d" % (0, len(embedding0)))
 
 
 
-values =  hUmap.project(2, np.array([5, 7, 9]))
+values =  hUmap.project(2, np.array([0, 1, 2, 3, 4, 5, 6,  7, 8, 9]))
 labels = hUmap.get_labels_selected()
 influence = hUmap.get_influence_selected()
 indices_selected = hUmap.get_indices_selected()
@@ -289,7 +295,9 @@ high_selected = embedding1[indices_selected]
 print("selected:")
 print(indices_selected.shape, high_selected.shape, values.shape)
 s = transform_sizes(influence, 1, maxValue, rightMin=8, rightMax=300)
+# plt.scatter(values[:, 0], values[:, 1], c = labels, cmap='Spectral',  alpha=0.7, s = s)
 plt.scatter(values[:, 0], values[:, 1], c = labels, cmap='Spectral',  alpha=0.7, s = s)
+# plt.savefig("humap_drilling_down.svg")
 plt.show()
 
 # values =  hUmap.project(1, np.array([5, 7, 9]))
@@ -312,7 +320,10 @@ npres = neighborhood_preservation(high_selected, values, Khigh=ks)
 print(npres)
 plt.plot(np.arange(ks), npres)
 plt.show()
-
+pd_drilling = pd.DataFrame({
+    'humap': npres
+})
+# pd_drilling.to_csv("humap_drilling.csv", index=False)
 
 
 print(demap.DEMaP(third_level, embedding2))
@@ -320,12 +331,21 @@ ks = 30
 npres = neighborhood_preservation(third_level, embedding2, Khigh=ks)
 plt.plot(np.arange(ks), npres)
 plt.show()
+pd_level2 = pd.DataFrame({
+    'humap': npres
+})
+# pd_level2.to_csv("humap_level2.csv", index=False)
+
 
 print(demap.DEMaP(second_level, embedding1))
 ks = 30
 npres = neighborhood_preservation(second_level, embedding1, Khigh=ks)
 plt.plot(np.arange(ks), npres)
 plt.show()
+pd_level1 = pd.DataFrame({
+    'humap': npres
+})
+# pd_level1.to_csv("humap_level1.csv", index=False)
 
 
 

@@ -381,9 +381,17 @@ void humap::HierarchicalUMAP::add_similarity(int index, int i, int n_neighbors, 
 				float ms1 = membership_strength[neighbor][count];
 				float d1 = distance[neighbor][count];
 				int ind1 = indices[neighbor][count];
-	
 
-				float s = (std::min(ms1*d1, ms2*d2)/std::max(ms1*d1, ms2*d2))/(n_neighbors-1);
+				// cout << "strenghts: " << ms1 << " " << ms2 << endl;
+				
+
+				// float s = (std::min(ms1*d1, ms2*d2)/std::max(ms1*d1, ms2*d2))/(n_neighbors-1);
+				float s = (std::min(d1, d2)/std::max(d1, d2))/(n_neighbors-1);
+
+				// float s = ((std::min(ms1, ms2)/std::max(ms1,ms2))/(n_neighbors-1) + 
+				// 		  (std::min(d1, d2)/std::max(d1,d2))/(n_neighbors-1))/2.0;
+				// float s = 1/(n_neighbors-1);
+				// float s = (std::min(d1, d2)/std::max(d1, d2))/(n_neighbors-1);
 
 				// test as map
 				if( *(mapper + ind1) != -1 ) {
@@ -615,7 +623,7 @@ void humap::HierarchicalUMAP::fit(py::array_t<float> X, py::array_t<int> y)
 	// 	this->knn_algorithm = "FAISS_Flat";
 	// }
 
-	umap::UMAP reducer = umap::UMAP("euclidean", this->n_neighbors, this->knn_algorithm);
+	umap::UMAP reducer = umap::UMAP("euclidean", this->n_neighbors, this->min_dist, this->knn_algorithm);
 
 	if( this->verbose ) {
 		cout << "\n\n*************************************************************************" << endl;
@@ -670,25 +678,68 @@ void humap::HierarchicalUMAP::fit(py::array_t<float> X, py::array_t<int> y)
 		float mean_sigma = 0.0;
 		float sum_sigma = 0.0;
 		float max_sigma = -1;
-
+		float min_sigma = this->reducers[level].sigmas()[0];
 		for( int i = 0; i < values.size(); ++i ) {
 			max_sigma = max(max_sigma, this->reducers[level].sigmas()[i]);
+			min_sigma = min(min_sigma, this->reducers[level].sigmas()[i]);
 			sum_sigma += fabs(this->reducers[level].sigmas()[i]);
+			mean_sigma += this->reducers[level].sigmas()[i];
+ 		}
+ 		mean_sigma /= (float)this->reducers[level].sigmas().size();
+ 		float sdd = 0.0;
+ 		for( int i = 0; i < values.size(); ++i ) {
+
+ 			sdd += ((this->reducers[level].sigmas()[i] - mean_sigma)*(this->reducers[level].sigmas()[i] - mean_sigma));			
+
  		}
 
+ 		sdd = sqrt(sdd/((float)values.size()-1.0));
+
+
 		vector<double> probs(this->reducers[level].sigmas().size(), 0.0);
+		cout << "WARNING: using sigma" << endl; 
+		float t_min = -1;
+		float t_max = 1;
 		for( int i = 0; i < values.size(); ++i ) {
-			// probs[i] = this->reducers[level].sigmas()[i];
+
+			// if( this->reducers[level].sigmas()[i] <= 0.0 )
+			// // 	cout << "ACHEI OLHA: " << this->reducers[level].sigmas()[i] << endl;
+			// if( i < 10 )
+			// 	cout << "sigma("<<i<<"): " << this->reducers[level].sigmas()[i] << endl; 
+			probs[i] = -this->reducers[level].sigmas()[i];
 			// probs[i] = this->reducers[level].sigmas()[i]/max_sigma;
-			probs[i] = this->reducers[level].sigmas()[i]/sum_sigma;
+			// probs[i] = this->reducers[level].sigmas()[i]/sum_sigma;
 			
 			// probs[i] = humap::sigmoid(this->reducers[level].sigmas()[i]);
+
+			// probs[i] = ((this->reducers[level].sigmas()[i] - mean_sigma)/sdd)*(-1.0);
+			// float m = this->reducers[level].sigmas()[i];
+
+			// probs[i] = ((m-min_sigma)/(max_sigma-min_sigma)) * (t_max - t_min) + t_min;
+			// probs[i] *= -1;
+
+
+			// if( i < 10 || probs[i] > 9 )
+			// 	cout << "sigma2("<<i<<"): " << probs[i] << endl; 
  		}
+
+ 		cout << "probs before" << endl;
+ 		for( int i = 0; i < 30; ++i )
+ 			cout << probs[i] << " ";
+ 		cout << endl;
 		
    		humap::softmax(probs, this->reducers[level].sigmas().size());
 
+   		cout << "probs after" << endl;
+ 		for( int i = 0; i < 30; ++i )
+ 			cout << probs[i] << " ";
+ 		cout << endl;
+
+
 		py::module np = py::module::import("numpy");
 		py::object choice = np.attr("random");
+		cout << "probs size: " << probs.size() << endl;
+		cout << "n_elements: " << n_elements << endl;
 		py::object indices_candidate = choice.attr("choice")(py::cast(probs.size()), py::cast(n_elements), py::cast(false),	py::cast(probs));
 		vector<int> possible_indices = indices_candidate.cast<vector<int>>();
 
@@ -698,6 +749,9 @@ void humap::HierarchicalUMAP::fit(py::array_t<float> X, py::array_t<int> y)
    				cout << "OLHA ACHEI UM REPETIDO :)" << endl;
    			}
    		}
+
+   		vector<int> g_indices = utils::argsort(this->reducers[level].sigmas());
+
 
 		vector<int> greatest = possible_indices;
 
@@ -741,7 +795,7 @@ void humap::HierarchicalUMAP::fit(py::array_t<float> X, py::array_t<int> y)
 
 
 			data = umap::Matrix(dense);
-			reducer = umap::UMAP("euclidean", this->n_neighbors, this->knn_algorithm);
+			reducer = umap::UMAP("euclidean", this->n_neighbors, this->min_dist, this->knn_algorithm);
 
 
 
@@ -766,11 +820,11 @@ void humap::HierarchicalUMAP::fit(py::array_t<float> X, py::array_t<int> y)
 			cout << endl;
 
 			data = umap::Matrix(sparse, greatest.size());
-			reducer = umap::UMAP("precomputed", this->n_neighbors, this->knn_algorithm);
+			reducer = umap::UMAP("precomputed", this->n_neighbors, this->min_dist, this->knn_algorithm);
 		} else {
 
 
-			reducer = umap::UMAP("euclidean", this->n_neighbors, this->knn_algorithm);
+			reducer = umap::UMAP("euclidean", this->n_neighbors, this->min_dist, this->knn_algorithm);
 
 
 		}
@@ -1293,12 +1347,15 @@ py::array_t<float> humap::HierarchicalUMAP::project(int level, py::array_t<int> 
 	if( this->hierarchy_X[level-1].is_sparse() ) {
 		umap::Matrix X = this->hierarchy_X[level-1];
 		vector<utils::SparseData> new_X;
-
+		int min_neighbors = 39993;
 		for( int i = 0; i < indices_next_level.size(); ++i ) {
 
 			utils::SparseData sd = X.sparse_matrix[indices_next_level[i]];
 			vector<float> data = sd.data;
 			vector<int> indices = sd.indices;
+
+			vector<int> assigned(indices_next_level.size(), 0);
+
 
 			vector<float> new_data;
 			vector<int> new_indices;
@@ -1308,9 +1365,20 @@ py::array_t<float> humap::HierarchicalUMAP::project(int level, py::array_t<int> 
 				if( mapper.count(indices[j]) > 0 ) {
 					new_data.push_back(data[j]);
 					new_indices.push_back(mapper[indices[j]]);
+					assigned[mapper[indices[j]]] = 1;
 				}
 			}
 
+			for( int j = 0; j < assigned.size(); ++j ) {
+				if( !assigned[j] ) {
+					new_data.push_back(1.0);
+					new_indices.push_back(j);
+				}
+			}
+
+			cout << indices_next_level.size() << " - Number of neighbors " << new_indices.size() << endl;
+
+			min_neighbors = min(min_neighbors, (int)new_indices.size());
 			new_X.push_back(utils::SparseData(new_data, new_indices));
 		}
 
@@ -1324,7 +1392,7 @@ py::array_t<float> humap::HierarchicalUMAP::project(int level, py::array_t<int> 
 			// cout<<i<<endl;
 			int k = indices_next_level[i];
 			for( Eigen::SparseMatrix<float, Eigen::RowMajor>::InnerIterator it(graph, k); it; ++it ) {
-				if( mapper.count(it.col()) >0 ) {
+				if( mapper.count(it.col()) > 0 ) {
 					new_graph.insert(i, mapper[it.col()]) = it.value();
 				
 				}
@@ -1337,13 +1405,20 @@ py::array_t<float> humap::HierarchicalUMAP::project(int level, py::array_t<int> 
 
 		umap::Matrix nX = umap::Matrix(new_X, indices_next_level.size());
 
+		return py::cast(this->embed_data(level-1, new_graph, nX));
+
 		// auto projection = clock::now();
-		// umap::UMAP reducer = umap::UMAP("precomputed", min_neighbors, this->knn_algorithm);
+		// cout << "NEIGHBORS: " << min_neighbors << endl;
+		// // umap::UMAP reducer = umap::UMAP("precomputed", min_neighbors, this->min_dist, this->knn_algorithm);
+		// //umap::UMAP reducer = umap::UMAP("precomputed", this->n_neighbors, this->min_dist, this->knn_algorithm);
+
+		// umap::UMAP reducer = umap::UMAP("precomputed", 15, this->min_dist, this->knn_algorithm);
 		// reducer.fit_hierarchy(nX);
 		// sec projection_duration = clock::now() - projection;
 		// cout << "duration of projection " << projection_duration.count() << endl;
+		// return py::cast(this->embed_data(level-1, reducer.get_graph(), nX));
 
-		return py::cast(this->embed_data(level-1, new_graph, nX));
+		
 	} else {
 
 
@@ -1395,14 +1470,18 @@ py::array_t<float> humap::HierarchicalUMAP::project(int level, py::array_t<int> 
 		cout << "duration of manipulation " << manipulation_duration.count() << endl;
 
 		umap::Matrix nX = umap::Matrix(new_X);
-		cout << "passei 5" << endl;
-		// auto projection = clock::now();
-		// umap::UMAP reducer = umap::UMAP("precomputed", min_neighbors, this->knn_algorithm);
-		// reducer.fit_hierarchy(nX);
-		// sec projection_duration = clock::now() - projection;
-		// cout << "duration of projection " << projection_duration.count() << endl;
 
-		return py::cast(this->embed_data(level-1, new_graph, nX));
+		//return py::cast(this->embed_data(level-1, new_graph, nX));
+
+
+		cout << "passei 5" << endl;
+		auto projection = clock::now();
+		umap::UMAP reducer = umap::UMAP("euclidean", 15, this->min_dist, this->knn_algorithm);
+		reducer.fit_hierarchy(nX);
+		sec projection_duration = clock::now() - projection;
+		cout << "duration of projection " << projection_duration.count() << endl;
+		return py::cast(this->embed_data(level-1, reducer.get_graph(), nX));
+		
 
 
 

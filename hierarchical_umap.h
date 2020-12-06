@@ -82,8 +82,8 @@ class HierarchicalUMAP
 {
 
 public:
-	HierarchicalUMAP(string similarity_method_, py::array_t<float> percents_, int n_neighbors_=15, string knn_algorithm_="FAISS_IVFFlat", bool verbose_=false) 
-	: similarity_method(similarity_method_), n_neighbors(n_neighbors_), knn_algorithm(knn_algorithm_), verbose(verbose_) {
+	HierarchicalUMAP(string similarity_method_, py::array_t<float> percents_, int n_neighbors_=15, float min_dist_=0.15,string knn_algorithm_="FAISS_IVFFlat", bool verbose_=false) 
+	: similarity_method(similarity_method_), n_neighbors(n_neighbors_), min_dist(min_dist_), knn_algorithm(knn_algorithm_), verbose(verbose_) {
 
 		percents = vector<float>((float*)percents_.request().ptr, (float*)percents_.request().ptr + percents_.request().shape[0]);
 
@@ -128,8 +128,9 @@ private:
 
 	int n_neighbors;
 	bool verbose;
-	int n_epochs = 500;
+	int n_epochs = 1000;
 	int n_components = 2;
+	float min_dist = 0.15;
 
 	int random_state = 0;
 

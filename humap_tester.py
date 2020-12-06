@@ -287,7 +287,7 @@ print("Num points in scale %d: %d" % (0, len(embedding0)))
 
 
 
-values =  hUmap.project(2, np.array([0, 1, 2, 3, 4, 5, 6,  7, 8, 9]))
+values =  hUmap.project(2, np.array([5, 7, 9]))
 labels = hUmap.get_labels_selected()
 influence = hUmap.get_influence_selected()
 indices_selected = hUmap.get_indices_selected()

@@ -224,13 +224,15 @@ public:
 		knn_args["R"] = "50";
 	}
 
-	UMAP(string metric_, int n_neighbors_, string knn_algorithm="FAISS_IVFFlat"): 
+	UMAP(string metric_, int n_neighbors_, float min_dist_=0.15, string knn_algorithm="FAISS_IVFFlat"): 
 		metric(metric_), 
 		verbose(true),
 		n_neighbors(n_neighbors_),
+		min_dist(min_dist_),
 		local_connectivity(1.0)
 	{
 		cout << "Constructor 3: " << knn_algorithm << endl;
+		cout << "min_dist: " << min_dist << endl;
 
 		knn_args["knn_algorithm"] = knn_algorithm;
 
@@ -319,7 +321,7 @@ private:
 	bool _sparse_data;
 
 	float a = -1.0, b = -1.0;
-	float spread = 1.0, min_dist = 0.1;
+	float spread = 1.0, min_dist = 0.001;
 
 	Matrix dataset;
 

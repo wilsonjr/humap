@@ -964,7 +964,7 @@ tuple<vector<vector<int>>, vector<vector<float>>> umap::nearest_neighbors(umap::
 			py::array_t<float> data = py::cast(X.dense_matrix);
 			py::object result = flann.attr("nn")(
 				data, data, n_neighbors,
-				py::arg("checks")=64
+				py::arg("checks")=128
 				,
 				py::arg("trees")=3
 				,
@@ -1443,7 +1443,8 @@ tuple<float, float> umap::find_ab_params(float spread, float min_dist)
 	// py::finalize_interpreter();
 
 
-	return make_tuple(vals[0], vals[1]);
+	// return make_tuple(vals[0], vals[1]);
+	return make_tuple(1.0, 1.0);
 }
 
 

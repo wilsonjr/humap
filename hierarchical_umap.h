@@ -7,6 +7,7 @@
 #include <vector>
 #include <algorithm>
 #include <chrono>
+#include <time.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
 #include <pybind11/stl.h>
@@ -25,12 +26,12 @@ namespace humap {
 
 struct Metadata {
 
-	 // Metadata(vector<int> indices_, vector<int> owners_, vector<float> strength_)
+	 // Metadata(vector<int> indices_, vector<int> owners_, vector<double> strength_)
 	 // : indices(indices_), owners(owners_), strength(strength_)
 	 // {	 	
 	 // }
 
-	  Metadata(vector<int> indices_, vector<int> owners_, vector<float> strength_, vector<vector<int>> association_, int size_)
+	  Metadata(vector<int> indices_, vector<int> owners_, vector<double> strength_, vector<vector<int>> association_, int size_)
 	 : indices(indices_), owners(owners_), strength(strength_), association(association_), size(size_)
 	 {	 	
 	 	cout << "METADATA SIZE: " << size << endl;
@@ -38,7 +39,7 @@ struct Metadata {
 
  	 vector<int> indices;
 	 vector<int> owners;
-	 vector<float> strength;
+	 vector<double> strength;
 	 int size;
 	 vector<vector<int>> association;
 	 vector<int> count_influence;
@@ -46,7 +47,7 @@ struct Metadata {
 
 	 // vector<int> indices;
 	 // vector<int> owners;
-	 // vector<float> strength;
+	 // vector<double> strength;
 };
 
 class StringRef
@@ -68,13 +69,13 @@ public:
 
 struct SparseComponents
 {
-	SparseComponents(vector<int> rows_, vector<int> cols_, vector<float> vals_): rows(rows_), cols(cols_), vals(vals_) {
+	SparseComponents(vector<int> rows_, vector<int> cols_, vector<double> vals_): rows(rows_), cols(cols_), vals(vals_) {
 
 	}
 
 	vector<int> cols;
 	vector<int> rows;
-	vector<float> vals;
+	vector<double> vals;
 
 };
 
@@ -82,10 +83,10 @@ class HierarchicalUMAP
 {
 
 public:
-	HierarchicalUMAP(string similarity_method_, py::array_t<float> percents_, int n_neighbors_=15, float min_dist_=0.15,string knn_algorithm_="FAISS_IVFFlat", bool verbose_=false) 
-	: similarity_method(similarity_method_), n_neighbors(n_neighbors_), min_dist(min_dist_), knn_algorithm(knn_algorithm_), verbose(verbose_) {
+	HierarchicalUMAP(string similarity_method_, py::array_t<double> percents_, int n_neighbors_=15, double min_dist_=0.15,string knn_algorithm_="FAISS_IVFFlat", double percent_glue_ = 0.0,bool verbose_=false) 
+	: similarity_method(similarity_method_), n_neighbors(n_neighbors_), min_dist(min_dist_), knn_algorithm(knn_algorithm_), percent_glue(percent_glue_), verbose(verbose_) {
 
-		percents = vector<float>((float*)percents_.request().ptr, (float*)percents_.request().ptr + percents_.request().shape[0]);
+		percents = vector<double>((double*)percents_.request().ptr, (double*)percents_.request().ptr + percents_.request().shape[0]);
 
 	}
 
@@ -93,16 +94,16 @@ public:
 		cout << "Consegui instanciar" << endl;
 	}
 
-	void fit(py::array_t<float> X, py::array_t<int> y);
+	void fit(py::array_t<double> X, py::array_t<int> y);
 	py::array_t<int> get_labels(int level);
-	Eigen::SparseMatrix<float, Eigen::RowMajor> get_data(int level);
-	py::array_t<float> get_embedding(int level);
+	Eigen::SparseMatrix<double, Eigen::RowMajor> get_data(int level);
+	py::array_t<double> get_embedding(int level);
 	py::array_t<int> get_indices(int level);
-	py::array_t<float> get_sigmas(int level);
+	py::array_t<double> get_sigmas(int level);
 	py::array_t<int> get_influence(int level);
 	py::array_t<int> get_original_indices(int level);
 
-	py::array_t<float> project(int level, py::array_t<int> c);	
+	py::array_t<double> project(int level, py::array_t<int> c);	
 
 	py::array_t<int> get_labels_selected() { return py::cast(this->labels_selected); }
 	py::array_t<int> get_influence_selected() { return py::cast(this->influence_selected); }
@@ -114,13 +115,14 @@ public:
 
 private:
 
-	vector<vector<vector<float>>> embeddings;
+	vector<vector<vector<double>>> embeddings;
 	vector<umap::UMAP> reducers;
 	vector<umap::Matrix> hierarchy_X;
+	vector<umap::Matrix> dense_backup;
 	vector<vector<int>> hierarchy_y;
 	vector<Metadata> metadata;
 
-	vector<float> percents;
+	vector<double> percents;
 	string similarity_method;
 	string knn_algorithm;
 
@@ -128,15 +130,17 @@ private:
 
 	int n_neighbors;
 	bool verbose;
-	int n_epochs = 1000;
+	int n_epochs = 500;
 	int n_components = 2;
-	float min_dist = 0.15;
+	double min_dist = 0.15;
+
+	double percent_glue =0.0;
 
 	int random_state = 0;
 
 	vector<vector<int>> original_indices;
 	vector<vector<int>> _indices;
-	vector<vector<float>> _sigmas;
+	vector<vector<double>> _sigmas;
 	vector<int> labels_selected;
 	vector<int> influence_selected;
 	vector<int> indices_selected;
@@ -144,45 +148,64 @@ private:
 	int influenced_by(int level, int index);
 	
 	void add_similarity(int index, int i, int n_neighbors, vector<int>& cols,  
-					Eigen::SparseMatrix<float, Eigen::RowMajor>& graph, vector<vector<float>>& knn_dists,
-					std::vector<std::vector<float> >& membership_strength, std::vector<std::vector<int> >& indices,
-					std::vector<std::vector<float> >& distance, int* mapper, 
-					float* elements, vector<vector<int>>& indices_nzeros, int n);
+					Eigen::SparseMatrix<double, Eigen::RowMajor>& graph, vector<vector<double>>& knn_dists,
+					std::vector<std::vector<double> >& membership_strength, std::vector<std::vector<int> >& indices,
+					std::vector<std::vector<double> >& distance, int* mapper, 
+					double* elements, vector<vector<int>>& indices_nzeros, int n);
 	
-	SparseComponents create_sparse(int n, int n_neighbors, float* elements, vector<vector<int>>& indices_nzeros);
+	SparseComponents create_sparse(int n, int n_neighbors, double* elements, vector<vector<int>>& indices_nzeros);
 
-	SparseComponents sparse_similarity(int n, int n_neighbors, vector<int>& greatest, vector<int> &cols, 
+	void add_similarity2(int index, int i, int n_neighbors, vector<int>& cols, vector<double>& vals,
+					Eigen::SparseMatrix<double, Eigen::RowMajor>& graph, vector<vector<double>>& knn_dists,
+					std::vector<std::vector<double> >& membership_strength, std::vector<std::vector<int> >& indices,
+					std::vector<std::vector<double> >& distance, int* mapper, 
+					double* elements, vector<vector<int>>& indices_nzeros, int n);
+	
+	SparseComponents create_sparse2(int level, int n, int n_neighbors, double* elements, vector<vector<int>>& indices_nzeros);
 
-									   Eigen::SparseMatrix<float, Eigen::RowMajor>& graph, vector<vector<float>>& knn_dists);
 
-	vector<float> update_position(int i, int n_neighbors, vector<int>& cols, vector<float>& vals, umap::Matrix& X, 
-		                          Eigen::SparseMatrix<float, Eigen::RowMajor>& graph);
-
-	vector<vector<float>> embed_data(int level, Eigen::SparseMatrix<float, Eigen::RowMajor>& graph, umap::Matrix& X);
+	void add_similarity3(int index, int i, vector<vector<int>>& neighborhood, vector<vector<double>>& rw_distances,
+											  std::vector<std::vector<int> >& indices, std::vector<std::vector<double> >& distance, 
+											  int* mapper, double* elements, vector<vector<int>>& indices_nzeros, int n, double max_incidence);
 
 
-	void associate_to_landmarks(int n, int n_neighbors, int* indices, vector<int>& cols, const vector<float>& sigmas,
-								   vector<float>& strength, vector<int>& owners, vector<int>& indices_landmark, vector<vector<int>>& association, vector<int>& count_influence, vector<int>& is_landmark, 
-								   Eigen::SparseMatrix<float, Eigen::RowMajor>& graph, vector<vector<float>>& knn_dists);
+	SparseComponents sparse_similarity(int level, int n, int n_neighbors, vector<int>& greatest,  
+									vector<vector<int>>& neighborhood, vector<vector<double>>& rw_distances,
+									double max_incidence);
+
+	SparseComponents sparse_similarity(int level, int n, int n_neighbors, vector<int>& greatest, vector<int> &cols, vector<double>& vals,
+
+									   Eigen::SparseMatrix<double, Eigen::RowMajor>& graph, vector<vector<double>>& knn_dists);
+
+	vector<double> update_position(int i, int n_neighbors, vector<int>& cols, vector<double>& vals, umap::Matrix& X, 
+		                          Eigen::SparseMatrix<double, Eigen::RowMajor>& graph);
+	vector<double> update_position(int i, vector<int>& neighbors, umap::Matrix& X);
+
+	vector<vector<double>> embed_data(int level, Eigen::SparseMatrix<double, Eigen::RowMajor>& graph, umap::Matrix& X);
+
+
+	void associate_to_landmarks(int n, int n_neighbors, int* indices, vector<int>& cols, const vector<double>& sigmas,
+								   vector<double>& strength, vector<int>& owners, vector<int>& indices_landmark, vector<vector<int>>& association, vector<int>& count_influence, vector<int>& is_landmark, 
+								   Eigen::SparseMatrix<double, Eigen::RowMajor>& graph, vector<vector<double>>& knn_dists);
 	void associate_to_landmarks(int n, int n_neighbors, vector<int>& landmarks, vector<int>& cols, 
-		vector<float>& strength, vector<int>& owners, vector<int>& indices, vector<vector<int>>& association, vector<int>& count_influence, vector<int>& is_landmark, vector<vector<float>>& knn_dists );
-	int depth_first_search(int n_neighbors, int* neighbors, vector<int>& cols, const vector<float>& sigmas,
-								  vector<float>& strength, vector<int>& owners, vector<int>& is_landmark);
-	int dfs(int u, int n_neighbors, bool* visited, vector<int>& cols, const vector<float>& sigmas,
-				   vector<float>& strength, vector<int>& owners, vector<int>& is_landmark);
+		vector<double>& strength, vector<int>& owners, vector<int>& indices, vector<vector<int>>& association, vector<int>& count_influence, vector<int>& is_landmark, vector<vector<double>>& knn_dists );
+	int depth_first_search(int n_neighbors, int* neighbors, vector<int>& cols, const vector<double>& sigmas,
+								  vector<double>& strength, vector<int>& owners, vector<int>& is_landmark);
+	int dfs(int u, int n_neighbors, bool* visited, vector<int>& cols, const vector<double>& sigmas,
+				   vector<double>& strength, vector<int>& owners, vector<int>& is_landmark);
 
 	vector<int> get_influence_by_indices(int level, vector<int> indices);
 
-	// void associate_to_landmarks(int n, int n_neighbors, int* indices, vector<int>& cols, const vector<float>& sigmas,
-	// 							   float* strength, int* owners, int* indices_landmark, vector<vector<int>>& association, vector<int>& is_landmark, 
-	// 							   Eigen::SparseMatrix<float, Eigen::RowMajor>& graph, vector<vector<float>>& knn_dists);
-	// int depth_first_search(int n_neighbors, int* neighbors, vector<int>& cols, const vector<float>& sigmas,
-	// 							  float* strength, int* owners, vector<int>& is_landmark);
-	// int dfs(int u, int n_neighbors, bool* visited, vector<int>& cols, const vector<float>& sigmas,
-	// 			   float* strength, int* owners, vector<int>& is_landmark);
+	// void associate_to_landmarks(int n, int n_neighbors, int* indices, vector<int>& cols, const vector<double>& sigmas,
+	// 							   double* strength, int* owners, int* indices_landmark, vector<vector<int>>& association, vector<int>& is_landmark, 
+	// 							   Eigen::SparseMatrix<double, Eigen::RowMajor>& graph, vector<vector<double>>& knn_dists);
+	// int depth_first_search(int n_neighbors, int* neighbors, vector<int>& cols, const vector<double>& sigmas,
+	// 							  double* strength, int* owners, vector<int>& is_landmark);
+	// int dfs(int u, int n_neighbors, bool* visited, vector<int>& cols, const vector<double>& sigmas,
+	// 			   double* strength, int* owners, vector<int>& is_landmark);
 
 
-	// void associate_to_landmarks(int n, int n_neighbors, vector<int>& landmarks, vector<int>& cols, float* strength, int* owners, int* indices, vector<vector<int>>& association, vector<int>& is_landmark, vector<vector<float>>& knn_dists );
+	// void associate_to_landmarks(int n, int n_neighbors, vector<int>& landmarks, vector<int>& cols, double* strength, int* owners, int* indices, vector<vector<int>>& association, vector<int>& is_landmark, vector<vector<double>>& knn_dists );
 
 
 
@@ -191,13 +214,66 @@ private:
 
 
 
-std::map<std::string, float> convert_dict_to_map(py::dict dictionary);
+std::map<std::string, double> convert_dict_to_map(py::dict dictionary);
 void split_string( string const& str, vector<StringRef> &result, char delimiter = ' ');
 void tokenize(std::string &str, char delim, std::vector<std::string> &out);
-vector<vector<float>> convert_to_vector(const py::array_t<float>& v);
-vector<utils::SparseData> create_sparse(int n, const vector<int>& rows, const vector<int>& cols, const vector<float>& vals);
+vector<vector<double>> convert_to_vector(const py::array_t<double>& v);
+vector<utils::SparseData> create_sparse(int n, 
+										const vector<int>& rows, 
+										const vector<int>& cols, 
+										const vector<double>& vals);
 void softmax(vector<double>& input, size_t size);
 double sigmoid(double input);
+
+
+vector<int> markov_chain(vector<vector<int>>& knn_indices, 
+						 Eigen::SparseMatrix<double, Eigen::RowMajor>& graph, 
+						 int num_walks, int walk_length, vector<double> sum_vals); 
+
+int random_walk(int vertex, vector<vector<int>>& knn_indices, 
+				Eigen::SparseMatrix<double, Eigen::RowMajor>& graph, 
+				int current_step, int walk_length, vector<int>& endpoint, 
+				std::uniform_real_distribution<double>& unif, 
+				std::default_random_engine& rng, vector<double>sum_vals);
+
+
+
+tuple<vector<vector<int>>, vector<vector<double>>, double> markov_chain(vector<vector<int>>& knn_indices, vector<vector<double>>& knn_dists, 
+	Eigen::SparseMatrix<double, Eigen::RowMajor>& graph, int num_walks, int walk_length, vector<double> sum_vals,
+	vector<int> landmarks);
+
+tuple<int, double> random_walk(int vertex, vector<vector<int>>& knn_indices, vector<vector<double>>& knn_dists, Eigen::SparseMatrix<double, Eigen::RowMajor>& graph,
+														int current_step, int walk_length, uniform_real_distribution<double>& unif, 
+														mt19937& rng, vector<double> sum_vals, vector<int> is_landmark);
+
+
+class RandomGenerator
+{
+public:
+    static RandomGenerator& Instance() {
+        static RandomGenerator s;
+        return s;
+    }
+    std::mt19937 & get() {
+        return mt;
+    }
+
+private:
+    RandomGenerator() {
+        std::random_device rd;
+
+        auto seed = std::chrono::high_resolution_clock::now().time_since_epoch().count();
+        mt.seed(seed);
+    }
+    ~RandomGenerator() {}
+
+    RandomGenerator(RandomGenerator const&) = delete;
+    RandomGenerator& operator= (RandomGenerator const&) = delete;
+
+    std::mt19937 mt;
+};
+
+
 
 }
 

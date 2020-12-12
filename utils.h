@@ -22,26 +22,26 @@ struct SparseData
 {
   SparseData() {}
 
-  SparseData(vector<float> data_, vector<int> indices_): data(data_), indices(indices_) {} 
+  SparseData(vector<double> data_, vector<int> indices_): data(data_), indices(indices_) {} 
 
-  void push(int index, float value) {
+  void push(int index, double value) {
     data.push_back(value);
     indices.push_back(index);
   }
 
-  vector<float> data;
+  vector<double> data;
   vector<int> indices;
 };
 
 template<typename T>
-std::vector<float> linspace(T start_in, T end_in, int num_in)
+std::vector<double> linspace(T start_in, T end_in, int num_in)
 {
 
-  std::vector<float> linspaced;
+  std::vector<double> linspaced;
 
-  float start = static_cast<float>(start_in);
-  float end = static_cast<float>(end_in);
-  float num = static_cast<float>(num_in);
+  double start = static_cast<double>(start_in);
+  double end = static_cast<double>(end_in);
+  double num = static_cast<double>(num_in);
 
   if (num == 0) { return linspaced; }
   if (num == 1) 
@@ -50,7 +50,7 @@ std::vector<float> linspace(T start_in, T end_in, int num_in)
       return linspaced;
     }
 
-  float delta = (end - start) / (num - 1);
+  double delta = (end - start) / (num - 1);
 
   for(int i=0; i < num-1; ++i)
     {
@@ -86,13 +86,13 @@ std::vector<T> arrange_by_indices(const std::vector<T>& data, std::vector<int>& 
 
 
 
-std::tuple<std::vector<int>, std::vector<int>, std::vector<float>> to_row_format(const Eigen::SparseMatrix<float, Eigen::RowMajor>& M);
-Eigen::SparseMatrix<float, Eigen::RowMajor> create_sparse(vector<int>& rows, vector<int>& cols, vector<float>& vals, int size, int density);
-Eigen::SparseMatrix<float, Eigen::RowMajor> create_sparse(const vector<SparseData>& X, int size, int density);
-float rdist(const vector<float>& x, const vector<float>& y);
-float clip(float value);
+std::tuple<std::vector<int>, std::vector<int>, std::vector<double>> to_row_format(const Eigen::SparseMatrix<double, Eigen::RowMajor>& M);
+Eigen::SparseMatrix<double, Eigen::RowMajor> create_sparse(vector<int>& rows, vector<int>& cols, vector<double>& vals, int size, int density);
+Eigen::SparseMatrix<double, Eigen::RowMajor> create_sparse(const vector<SparseData>& X, int size, int density);
+double rdist(const vector<double>& x, const vector<double>& y);
+double clip(double value);
 long tau_rand_int(vector<long>& state);
-vector<vector<float>> pairwise_distances(vector<vector<float>>& X);
+vector<vector<double>> pairwise_distances(vector<vector<double>>& X);
 
 
 }

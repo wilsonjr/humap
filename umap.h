@@ -36,8 +36,8 @@ using namespace efanna2e;
 namespace umap {
 
 
-static float SMOOTH_K_TOLERANCE = 1e-5;
-static float MIN_K_DIST_SCALE = 1e-3;
+static double SMOOTH_K_TOLERANCE = 1e-5;
+static double MIN_K_DIST_SCALE = 1e-3;
 
 
 
@@ -60,7 +60,7 @@ public:
 	// 	this->dense_matrix = a.dense_matrix;
 	// 	this->py_matrix = a.py_matrix;
 	// }
-	Matrix(Eigen::SparseMatrix<float, Eigen::RowMajor> eigen_sparse_): eigen_sparse(eigen_sparse_), sparse(true)
+	Matrix(Eigen::SparseMatrix<double, Eigen::RowMajor> eigen_sparse_): eigen_sparse(eigen_sparse_), sparse(true)
 	{
 		shape_.push_back(eigen_sparse_.rows());
 		shape_.push_back(eigen_sparse_.cols());
@@ -69,7 +69,7 @@ public:
 	}
 
 
-	Matrix(vector<vector<float>> dense_matrix_): dense_matrix(dense_matrix_), sparse(false) {
+	Matrix(vector<vector<double>> dense_matrix_): dense_matrix(dense_matrix_), sparse(false) {
 		shape_.push_back(dense_matrix_.size());
 		shape_.push_back(dense_matrix_[0].size());
 	}
@@ -86,16 +86,16 @@ public:
 	}
 
 
-	// Matrix(py::array_t<float> dense_matrix_): py_matrix(dense_matrix_), sparse(false) {
+	// Matrix(py::array_t<double> dense_matrix_): py_matrix(dense_matrix_), sparse(false) {
 	// 	Matrix();
 	// 	matrix_buffer = dense_matrix_.request();
-	// 	matrix_ptr = (float*) matrix_buffer.ptr;
+	// 	matrix_ptr = (double*) matrix_buffer.ptr;
 	// 	shape_.push_back(matrix_buffer.shape[0]);
 	// 	shape_.push_back(matrix_buffer.shape[1]);
 
 	// }
 
-	vector<float> get_row(int i) {
+	vector<double> get_row(int i) {
 		
 
 
@@ -108,7 +108,7 @@ public:
 
 
 
-			vector<float> row(shape_[1], 0.0);
+			vector<double> row(shape_[1], 0.0);
 
 			// cout << "creating matrix" << endl;
 			for( int count = 0; count < sparse_matrix[i].indices.size(); ++count ) {
@@ -133,11 +133,11 @@ public:
 		return shape_[index];
 	}
 
-	float* data() {
+	double* data() {
 		if( sparse )
 			return nullptr;
 
-		float* d = new float[dense_matrix.size()*dense_matrix[0].size()];
+		double* d = new double[dense_matrix.size()*dense_matrix[0].size()];
 
 		for( int i = 0; i < dense_matrix.size(); ++i )
 			for( int j = 0; j < dense_matrix[0].size(); ++j )
@@ -149,7 +149,7 @@ public:
 
 	 bool is_sparse() const { return sparse; }
 
-	// float operator[](int index) {
+	// double operator[](int index) {
 	// 	if( sparse )
 	// 		throw runtime_error("[] operator not supported for sparse matrix.");
 
@@ -160,9 +160,9 @@ public:
 	
 	vector<utils::SparseData> sparse_matrix;
 
-	Eigen::SparseMatrix<float, Eigen::RowMajor> eigen_sparse;
+	Eigen::SparseMatrix<double, Eigen::RowMajor> eigen_sparse;
 	
-	vector<vector<float>> dense_matrix;
+	vector<vector<double>> dense_matrix;
 
 
 	
@@ -224,7 +224,7 @@ public:
 		knn_args["R"] = "50";
 	}
 
-	UMAP(string metric_, int n_neighbors_, float min_dist_=0.15, string knn_algorithm="FAISS_IVFFlat"): 
+	UMAP(string metric_, int n_neighbors_, double min_dist_=0.15, string knn_algorithm="FAISS_IVFFlat"): 
 		metric(metric_), 
 		verbose(true),
 		n_neighbors(n_neighbors_),
@@ -254,11 +254,11 @@ public:
 
 	string getName() { return name; }
 
-	Eigen::SparseMatrix<float, Eigen::RowMajor>& get_graph() {
+	Eigen::SparseMatrix<double, Eigen::RowMajor>& get_graph() {
 		return this->graph_;
 	}
 
-	vector<vector<float>>& knn_dists() {
+	vector<vector<double>>& knn_dists() {
 		return _knn_dists;
 	}
 
@@ -266,37 +266,40 @@ public:
 		return _knn_indices;
 	}
 
-	vector<float> sigmas() {
+	vector<double> sigmas() {
 		return this->_sigmas;
 	}
 
-	vector<float> rhos() {
+	vector<double> rhos() {
 		return this->_rhos;
 	}
 	
 
 	void fit_hierarchy_sparse(const vector<utils::SparseData>& X);
-	void fit_hierarchy_sparse(const Eigen::SparseMatrix<float, Eigen::RowMajor>& X);
-	// void fit_hierarchy_dense(py::array_t<float> X);
-	void fit_hierarchy_dense(vector<vector<float>> X);
+	void fit_hierarchy_sparse(const Eigen::SparseMatrix<double, Eigen::RowMajor>& X);
+	// void fit_hierarchy_dense(py::array_t<double> X);
+	void fit_hierarchy_dense(vector<vector<double>> X);
 	void fit_hierarchy(const Matrix& X);
 
 	void prepare_for_fitting(Matrix& X);
-	void fit(py::array_t<float> X);
-	vector<vector<float>> fit_transform(py::array_t<float> X);
+	void fit(py::array_t<double> X);
+	vector<vector<double>> fit_transform(py::array_t<double> X);
 
 	vector<int>    rows;
 	vector<int>    cols;
-	vector<float>  vals;
+	vector<double>  vals;
+	vector<double> sum_vals;
 
 	map<string, string> knn_args;
 
-	vector<vector<float>> spectral_layout(Matrix& data, const Eigen::SparseMatrix<float, Eigen::RowMajor>& graph, int dim);
-	vector<float> make_epochs_per_sample(const vector<float>& weights, int n_epochs);
+	Eigen::SparseMatrix<double, Eigen::RowMajor> transition_matrix;
 
-	vector<vector<float>> optimize_layout_euclidean(vector<vector<float>>& head_embedding, vector<vector<float>>& tail_embedding,
+	vector<vector<double>> spectral_layout(Matrix& data, const Eigen::SparseMatrix<double, Eigen::RowMajor>& graph, int dim);
+	vector<double> make_epochs_per_sample(const vector<double>& weights, int n_epochs);
+
+	vector<vector<double>> optimize_layout_euclidean(vector<vector<double>>& head_embedding, vector<vector<double>>& tail_embedding,
 								   const vector<int>& head, const vector<int>& tail, int n_epochs, int n_vertices, 
-								   const vector<float>& epochs_per_sample, vector<long>& rng_state);
+								   const vector<double>& epochs_per_sample, vector<long>& rng_state);
 
 
 
@@ -304,34 +307,35 @@ public:
 
 private:
 
-	float _a, _b;
+	double _a, _b;
 	
 	string metric;
 	int n_neighbors, _n_neighbors;
 	vector<vector<int>> _knn_indices;
-	vector<vector<float>> _knn_dists;
+	vector<vector<double>> _knn_dists;
 	bool angular_rp_forest;
-	float set_op_mix_ratio;
-	float local_connectivity;
+	double set_op_mix_ratio;
+	double local_connectivity;
 	bool verbose;
-	Eigen::SparseMatrix<float, Eigen::RowMajor> graph_; 
-	vector<float> _sigmas; 
-	vector<float> _rhos; 
+	Eigen::SparseMatrix<double, Eigen::RowMajor> graph_; 
+
+	vector<double> _sigmas; 
+	vector<double> _rhos; 
 
 	bool _sparse_data;
 
-	float a = -1.0, b = -1.0;
-	float spread = 1.0, min_dist = 0.001;
+	double a = -1.0, b = -1.0;
+	double spread = 1.0, min_dist = 0.001;
 
 	Matrix dataset;
 
 	Matrix pairwise_distance;
 
-	vector<vector<float>> embedding_;
+	vector<vector<double>> embedding_;
 	int n_components;
-	float _initial_alpha = 1.0;
-	float repulsion_strength = 1.0;
-	float negative_sample_rate = 5.0;
+	double _initial_alpha = 1.0;
+	double repulsion_strength = 1.0;
+	double negative_sample_rate = 5.0;
 	int n_epochs;
 
 	bool force_approximation_algorithm = false;
@@ -344,18 +348,18 @@ private:
 	string name = "C++ implementation of UMAP";
 
 
-	vector<vector<float>> component_layout(umap::Matrix& data, int n_components, 
+	vector<vector<double>> component_layout(umap::Matrix& data, int n_components, 
 														 vector<int>& component_labels, int dim);
-	vector<vector<float>> multi_component_layout(umap::Matrix& data, 
-	const Eigen::SparseMatrix<float, Eigen::RowMajor>& graph, int n_components, 
+	vector<vector<double>> multi_component_layout(umap::Matrix& data, 
+	const Eigen::SparseMatrix<double, Eigen::RowMajor>& graph, int n_components, 
 	vector<int>& component_labels, int dim);
 
 
-	void optimize_euclidean_epoch(vector<vector<float>>& head_embedding, vector<vector<float>>& tail_embedding,
+	void optimize_euclidean_epoch(vector<vector<double>>& head_embedding, vector<vector<double>>& tail_embedding,
 										   const vector<int>& head, const vector<int>& tail, int n_vertices, 
-										   const vector<float>& epochs_per_sample, float a, float b, vector<long>& rng_state, 
-										   float gamma, int dim, bool move_other, float alpha, vector<float>& epochs_per_negative_sample,
-										   vector<float>& epoch_of_next_negative_sample, vector<float>& epoch_of_next_sample, int n);
+										   const vector<double>& epochs_per_sample, double a, double b, vector<long>& rng_state, 
+										   double gamma, int dim, bool move_other, double alpha, vector<double>& epochs_per_negative_sample,
+										   vector<double>& epoch_of_next_negative_sample, vector<double>& epoch_of_next_sample, int n);
 
 };
 
@@ -363,25 +367,25 @@ private:
 
 
 
-tuple<float, float> find_ab_params(float spread, float min_dist);
+tuple<double, double> find_ab_params(double spread, double min_dist);
 
-tuple<Eigen::SparseMatrix<float, Eigen::RowMajor>, vector<float>, vector<float>> fuzzy_simplicial_set(
-	umap::Matrix& X, int n_neighbors, float random_state, string metric, 
-	vector<vector<int>>& knn_indices, vector<vector<float>>& knn_dists,
-	bool angular=false, float set_op_mix_ratio=1.0, float local_connectivity=1.0,
+tuple<Eigen::SparseMatrix<double, Eigen::RowMajor>, vector<double>, vector<double>> fuzzy_simplicial_set(
+	umap::Matrix& X, int n_neighbors, double random_state, string metric, 
+	vector<vector<int>>& knn_indices, vector<vector<double>>& knn_dists,
+	bool angular=false, double set_op_mix_ratio=1.0, double local_connectivity=1.0,
 	bool apply_set_operations=true, bool verbose=false, umap::UMAP* obj=0);
 
-tuple<vector<float>, vector<float>> smooth_knn_dist(vector<vector<float>>& distances,
-	float k, int n_iter=64, float local_connectivity=1.0, float bandwidth=1.0);
+tuple<vector<double>, vector<double>> smooth_knn_dist(vector<vector<double>>& distances,
+	double k, int n_iter=64, double local_connectivity=1.0, double bandwidth=1.0);
 
-tuple<vector<vector<int>>, vector<vector<float>>> nearest_neighbors(umap::Matrix& X,
-	int n_neighbors, string metric, bool angular, float random_state, map<string, string> knn_args, bool verbose=false);
+tuple<vector<vector<int>>, vector<vector<double>>> nearest_neighbors(umap::Matrix& X,
+	int n_neighbors, string metric, bool angular, double random_state, map<string, string> knn_args, bool verbose=false);
 
-tuple<vector<int>, vector<int>, vector<float>> compute_membership_strenghts(
-	vector<vector<int>>& knn_indices, vector<vector<float>>& knn_dists, 
-	vector<float>& sigmas, vector<float>& rhos);
+tuple<vector<int>, vector<int>, vector<double>, vector<double>> compute_membership_strenghts(
+	vector<vector<int>>& knn_indices, vector<vector<double>>& knn_dists, 
+	vector<double>& sigmas, vector<double>& rhos);
 
-std::vector<std::vector<float>> pairwise_distances(Matrix& X, string metric="euclidean");
+std::vector<std::vector<double>> pairwise_distances(Matrix& X, string metric="euclidean");
 
 
 

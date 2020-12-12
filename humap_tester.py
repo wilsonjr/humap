@@ -146,7 +146,8 @@ print(X.shape)
 # end = time.time()
 # print("time: %.5fs" % (end-start))
 
-hUmap = h_umap.HUMAP("precomputed", np.array([0.186083333, 0.177698164]), 15, "FLANN", True)
+hUmap = h_umap.HUMAP("precomputed", np.array([0.186083333, 0.177698164]), 
+	15, "FLANN", True)
 hUmap.fit(X, y)
 
 
@@ -296,7 +297,8 @@ print("selected:")
 print(indices_selected.shape, high_selected.shape, values.shape)
 s = transform_sizes(influence, 1, maxValue, rightMin=8, rightMax=300)
 # plt.scatter(values[:, 0], values[:, 1], c = labels, cmap='Spectral',  alpha=0.7, s = s)
-plt.scatter(values[:, 0], values[:, 1], c = labels, cmap='Spectral',  alpha=0.7, s = s)
+plt.scatter(values[:, 0], values[:, 1], c = labels, cmap='Spectral',  
+	alpha=0.7, s = s)
 # plt.savefig("humap_drilling_down.svg")
 plt.show()
 

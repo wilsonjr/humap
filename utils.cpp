@@ -1,13 +1,13 @@
 #include "utils.h"
 
-std::tuple<std::vector<int>, std::vector<int>, std::vector<float>> utils::to_row_format(const Eigen::SparseMatrix<float, Eigen::RowMajor>& M)
+std::tuple<std::vector<int>, std::vector<int>, std::vector<double>> utils::to_row_format(const Eigen::SparseMatrix<double, Eigen::RowMajor>& M)
 {
   std::vector<int> rows;
   std::vector<int> cols;
-  std::vector<float> vals;
+  std::vector<double> vals;
 
   for( int i = 0; i < M.outerSize(); ++i )
-    for( typename Eigen::SparseMatrix<float, Eigen::RowMajor>::InnerIterator it(M, i); it; ++it ) {
+    for( typename Eigen::SparseMatrix<double, Eigen::RowMajor>::InnerIterator it(M, i); it; ++it ) {
       rows.push_back(it.row());
       cols.push_back(it.col());
       vals.push_back(it.value());
@@ -17,11 +17,11 @@ std::tuple<std::vector<int>, std::vector<int>, std::vector<float>> utils::to_row
 }
 
 
-Eigen::SparseMatrix<float, Eigen::RowMajor> utils::create_sparse(vector<int>& rows, vector<int>& cols, vector<float>& vals, int size, int density)
+Eigen::SparseMatrix<double, Eigen::RowMajor> utils::create_sparse(vector<int>& rows, vector<int>& cols, vector<double>& vals, int size, int density)
 {
     
 
-  Eigen::SparseMatrix<float, Eigen::RowMajor> result(size, size);
+  Eigen::SparseMatrix<double, Eigen::RowMajor> result(size, size);
   result.reserve(Eigen::VectorXi::Constant(size, density)); // TODO: verificar se é assim (ou com int)
 
   for( int i = 0; i < vals.size(); ++i )
@@ -32,10 +32,10 @@ Eigen::SparseMatrix<float, Eigen::RowMajor> utils::create_sparse(vector<int>& ro
 }
 
 
-Eigen::SparseMatrix<float, Eigen::RowMajor> utils::create_sparse(const vector<utils::SparseData>& X, int size, int density)
+Eigen::SparseMatrix<double, Eigen::RowMajor> utils::create_sparse(const vector<utils::SparseData>& X, int size, int density)
 {
 
-  Eigen::SparseMatrix<float, Eigen::RowMajor> result(size, size);
+  Eigen::SparseMatrix<double, Eigen::RowMajor> result(size, size);
   result.reserve(Eigen::VectorXi::Constant(size, density));
 
   for( int i = 0; i < X.size(); ++i )
@@ -59,20 +59,20 @@ long utils::tau_rand_int(vector<long>& state)
 
 }
 
-float utils::rdist(const vector<float>& x, const vector<float>& y)
+double utils::rdist(const vector<double>& x, const vector<double>& y)
 {
-    float result = 0.0;
+    double result = 0.0;
     int dim = x.size();
 
     for( int i = 0; i < dim; ++i ) {
-        float diff = x[i]-y[i];
+        double diff = x[i]-y[i];
         result += diff*diff;
     }
 
     return result;
 }
 
-float utils::clip(float value)
+double utils::clip(double value)
 {
     if( value > 4.0 )
       return 4.0;
@@ -83,14 +83,14 @@ float utils::clip(float value)
 }
 
 
-vector<vector<float>> utils::pairwise_distances(vector<vector<float>>& X)
+vector<vector<double>> utils::pairwise_distances(vector<vector<double>>& X)
 {
 
   int n = X.size();
   int d = X[0].size();
 
 
-  vector<vector<float>> pd(n, vector<float>(n, 0.0));
+  vector<vector<double>> pd(n, vector<double>(n, 0.0));
 
 
   // TODO: add possibility for other distance functions
@@ -98,7 +98,7 @@ vector<vector<float>> utils::pairwise_distances(vector<vector<float>>& X)
   for( int i = 0; i < n; ++i ) {
     for( int j = i+1; j < n; ++j ) {
 
-      float distance = 0;
+      double distance = 0;
 
       for( int k = 0; k < d; ++k ) {
        // distance += (X[i*d + k]-X[j*d + k])*(X[i*d + k]-X[j*d + k]);

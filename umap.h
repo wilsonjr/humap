@@ -133,6 +133,19 @@ public:
 		return shape_[index];
 	}
 
+	float* data_f() {
+		if( sparse )
+			return nullptr;
+
+		float* d = new float[dense_matrix.size()*dense_matrix[0].size()];
+
+		for( int i = 0; i < dense_matrix.size(); ++i )
+			for( int j = 0; j < dense_matrix[0].size(); ++j )
+				*(d + i*dense_matrix[0].size() + j) = (float) dense_matrix[i][j];
+
+		return d;
+	}
+
 	double* data() {
 		if( sparse )
 			return nullptr;
@@ -289,6 +302,7 @@ public:
 	vector<int>    cols;
 	vector<double>  vals;
 	vector<double> sum_vals;
+	string metric;
 
 	map<string, string> knn_args;
 
@@ -309,7 +323,7 @@ private:
 
 	double _a, _b;
 	
-	string metric;
+	
 	int n_neighbors, _n_neighbors;
 	vector<vector<int>> _knn_indices;
 	vector<vector<double>> _knn_dists;

@@ -1117,7 +1117,17 @@ tuple<vector<vector<int>>, vector<vector<double>>> umap::nearest_neighbors(umap:
 			py::object index_ivf = faiss.attr("IndexIVFFlat")(quantizer, X.shape(1), nlist, faiss.attr("METRIC_L2"));
 			py::object gpu_index_ivf = faiss.attr("index_cpu_to_gpu")(faiss.attr("StandardGpuResources")(), 0, index_ivf);
 
-			py::array_t<double> data = py::cast(X.dense_matrix);
+			vector<vector<float>> values;
+
+			for( int i = 0; i < X.dense_matrix.size(); ++i ) {
+				vector<float> row; 
+				for( int j = 0; j < X.dense_matrix[i].size(); ++j )
+					row.push_back((float) X.dense_matrix[i][j]);
+				values.push_back(row);
+			}
+
+
+			py::array_t<float> data = py::cast(values);
 
 			gpu_index_ivf.attr("train")(data);
 			gpu_index_ivf.attr("add")(data);
@@ -1134,10 +1144,10 @@ tuple<vector<vector<int>>, vector<vector<double>>> umap::nearest_neighbors(umap:
 			knn_indices = knn_indices_.cast<vector<vector<int>>>();
 
 		} else if( algorithm == "NNDescent" ) {
-			// cout << "L: " << knn_args["L"] << endl;
-			// cout << "iter: " << knn_args["iter"] << endl;
-			// cout << "S: " << knn_args["S"] << endl;
-			// cout << "R: " << knn_args["R"] << endl;
+			cout << "L: " << knn_args["L"] << endl;
+			cout << "iter: " << knn_args["iter"] << endl;
+			cout << "S: " << knn_args["S"] << endl;
+			cout << "R: " << knn_args["R"] << endl;
 			unsigned L = (unsigned) stoi(knn_args["L"]);
 			unsigned iter = (unsigned) stoi(knn_args["iter"]);
 			unsigned S = (unsigned) stoi(knn_args["S"]);
@@ -1145,39 +1155,39 @@ tuple<vector<vector<int>>, vector<vector<double>>> umap::nearest_neighbors(umap:
 			unsigned K = (unsigned) n_neighbors-1;
 
 
-			// efanna2e::IndexRandom init_index(X.shape(1), X.shape(0));
-			// efanna2e::IndexGraph index(X.shape(1), X.shape(0), efanna2e::L2, (efanna2e::Index*)(&init_index));
+			efanna2e::IndexRandom init_index(X.shape(1), X.shape(0));
+			efanna2e::IndexGraph index(X.shape(1), X.shape(0), efanna2e::L2, (efanna2e::Index*)(&init_index));
 
-			// efanna2e::Parameters params;
-			// params.Set<unsigned>("K", K); // the number of neighbors to construct the neighbor graph
-			// params.Set<unsigned>("L", L); // how many neighbors will I check for refinement?
-			// params.Set<unsigned>("iter", iter); // the number of iterations
-			// params.Set<unsigned>("S", S); // how many numbers of points in the leaf node; candidate pool size
-			// params.Set<unsigned>("R", R); 
+			efanna2e::Parameters params;
+			params.Set<unsigned>("K", K); // the number of neighbors to construct the neighbor graph
+			params.Set<unsigned>("L", L); // how many neighbors will I check for refinement?
+			params.Set<unsigned>("iter", iter); // the number of iterations
+			params.Set<unsigned>("S", S); // how many numbers of points in the leaf node; candidate pool size
+			params.Set<unsigned>("R", R); 
 
-			// auto before = clock::now();
-			// double* data = X.data();
-			// sec duration = clock::now() - before;
-			// cout << "Constructing array time: " << duration.count() << endl;
-			// index.Build(X.shape(0), data, params);
+			auto before = clock::now();
+			float* data = X.data_f();
+			sec duration = clock::now() - before;
+			cout << "Constructing array time: " << duration.count() << endl;
+			index.Build(X.shape(0), data, params);
 
-			// delete data;
+			delete data;
 
-			// knn_indices = vector<vector<int>>(X.size(), vector<int>(n_neighbors, 0));
-			// knn_dists = vector<vector<double>>(X.size(), vector<double>(n_neighbors, 0.0));
+			knn_indices = vector<vector<int>>(X.size(), vector<int>(n_neighbors, 0));
+			knn_dists = vector<vector<double>>(X.size(), vector<double>(n_neighbors, 0.0));
 
-			// for( int i = 0; i < X.shape(0); ++i ) 
-			// {
+			for( int i = 0; i < X.shape(0); ++i ) 
+			{
 
-			// 	knn_dists[i][0] = 0.0;
-			// 	knn_indices[i][0] = i;
+				knn_dists[i][0] = 0.0;
+				knn_indices[i][0] = i;
 
-			// 	for( int j = 0; j < K; ++j ) {
-			// 		knn_dists[i][j+1] = index.graph_[i].pool[j].distance;
-			// 		knn_indices[i][j+1] = index.graph_[i].pool[j].id;
+				for( int j = 0; j < K; ++j ) {
+					knn_dists[i][j+1] = (double) index.graph_[i].pool[j].distance;
+					knn_indices[i][j+1] = index.graph_[i].pool[j].id;
 
-			// 	}	
-			// }
+				}	
+			}
 
 
 
@@ -1194,73 +1204,73 @@ tuple<vector<vector<int>>, vector<vector<double>>> umap::nearest_neighbors(umap:
 
 
 
-			double* data = X.data();
+			float* data = X.data_f();
 			unsigned ndims = (unsigned) X.shape(1);
 			unsigned nsamples = (unsigned) X.shape(0);
 
 
-			// cout << "ndims: " << ndims << endl;
-			// cout << "nsamples: " << nsamples << endl;
+			cout << "ndims: " << ndims << endl;
+			cout << "nsamples: " << nsamples << endl;
 
-			// cout << "nTrees: " << knn_args["nTrees"] << endl;
-			// cout << "mLevel: " << knn_args["mLevel"] << endl;
+			cout << "nTrees: " << knn_args["nTrees"] << endl;
+			cout << "mLevel: " << knn_args["mLevel"] << endl;
 
-			// cout << "L: " << knn_args["L"] << endl;
-			// cout << "iter: " << knn_args["iter"] << endl;
-			// cout << "S: " << knn_args["S"] << endl;
-			// cout << "R: " << knn_args["R"] << endl;
-
-
-
-			// double* data_aligned = efanna2e::data_align(data, nsamples, ndims);
-			// efanna2e::IndexKDtree index_kdtree(ndims, nsamples, efanna2e::L2, nullptr);
-
-			// efanna2e::Parameters params_kdtree;
-			// params_kdtree.Set<unsigned>("K", K);
-			// params_kdtree.Set<unsigned>("nTrees", nTrees);
-			// params_kdtree.Set<unsigned>("mLevel", mLevel);
-
-			// index_kdtree.Build(nsamples, data_aligned, params_kdtree);
+			cout << "L: " << knn_args["L"] << endl;
+			cout << "iter: " << knn_args["iter"] << endl;
+			cout << "S: " << knn_args["S"] << endl;
+			cout << "R: " << knn_args["R"] << endl;
 
 
-			// efanna2e::IndexRandom init_index(ndims, nsamples);
-			// efanna2e::IndexGraph index_nndescent(ndims, nsamples, efanna2e::L2, (efanna2e::Index*)(&init_index));
 
-			// index_nndescent.final_graph_ = index_kdtree.final_graph_;
-			// // index_kdtree.Save("mnist.graph");
-			// // index_nndescent.Load("mnist.graph");
+			float* data_aligned = efanna2e::data_align(data, nsamples, ndims);
+			efanna2e::IndexKDtree index_kdtree(ndims, nsamples, efanna2e::L2, nullptr);
+
+			efanna2e::Parameters params_kdtree;
+			params_kdtree.Set<unsigned>("K", K);
+			params_kdtree.Set<unsigned>("nTrees", nTrees);
+			params_kdtree.Set<unsigned>("mLevel", mLevel);
+
+			index_kdtree.Build(nsamples, data_aligned, params_kdtree);
 
 
-			// efanna2e::Parameters params_nndescent;
-			// params_nndescent.Set<unsigned>("K", K);
-			// params_nndescent.Set<unsigned>("L", L);
-			// params_nndescent.Set<unsigned>("iter", iter);
-			// params_nndescent.Set<unsigned>("S", S);
-			// params_nndescent.Set<unsigned>("R", R);
+			efanna2e::IndexRandom init_index(ndims, nsamples);
+			efanna2e::IndexGraph index_nndescent(ndims, nsamples, efanna2e::L2, (efanna2e::Index*)(&init_index));
 
-			// index_nndescent.RefineGraph(data_aligned, params_nndescent);
+			index_nndescent.final_graph_ = index_kdtree.final_graph_;
+			// index_kdtree.Save("mnist.graph");
+			// index_nndescent.Load("mnist.graph");
+
+
+			efanna2e::Parameters params_nndescent;
+			params_nndescent.Set<unsigned>("K", K);
+			params_nndescent.Set<unsigned>("L", L);
+			params_nndescent.Set<unsigned>("iter", iter);
+			params_nndescent.Set<unsigned>("S", S);
+			params_nndescent.Set<unsigned>("R", R);
+
+			index_nndescent.RefineGraph(data_aligned, params_nndescent);
 
 		
 
 
-			// knn_indices = vector<vector<int>>(X.size(), vector<int>(n_neighbors, 0));
-			// knn_dists = vector<vector<double>>(X.size(), vector<double>(n_neighbors, 0.0));
+			knn_indices = vector<vector<int>>(X.size(), vector<int>(n_neighbors, 0));
+			knn_dists = vector<vector<double>>(X.size(), vector<double>(n_neighbors, 0.0));
 
-			// // #pragma omp parallel for
-			// for( int i = 0; i < nsamples; ++i ) 
-			// {
+			// #pragma omp parallel for
+			for( int i = 0; i < nsamples; ++i ) 
+			{
 
-			// 	knn_dists[i][0] = 0.0;
-			// 	knn_indices[i][0] = i;
-			// 	for( int j = 0; j < K-1; ++j ) {
-			// 		knn_dists[i][j+1] = index_nndescent.graph_[i].pool[j].distance;
-			// 		knn_indices[i][j+1] = index_nndescent.graph_[i].pool[j].id;
+				knn_dists[i][0] = 0.0;
+				knn_indices[i][0] = i;
+				for( int j = 0; j < K-1; ++j ) {
+					knn_dists[i][j+1] = (double) index_nndescent.graph_[i].pool[j].distance;
+					knn_indices[i][j+1] = index_nndescent.graph_[i].pool[j].id;
 
-			// 	}	
-			// 	// cout << endl;
+				}	
+				// cout << endl;
 
-			// }
-			// free(data_aligned);
+			}
+			free(data_aligned);
 		}
 
 	}
@@ -1455,8 +1465,8 @@ tuple<double, double> umap::find_ab_params(double spread, double min_dist)
 	// py::finalize_interpreter();
 
 
-	// return make_tuple(vals[0], vals[1]);
-	return make_tuple(1.0, 1.0);
+	return make_tuple(vals[0], vals[1]);
+	// return make_tuple(1.0, 1.0);
 }
 
 

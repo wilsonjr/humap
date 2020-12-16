@@ -109,8 +109,10 @@ public:
 	py::array_t<int> get_influence_selected() { return py::cast(this->influence_selected); }
 	py::array_t<int> get_indices_selected() { return py::cast(this->indices_selected); }
 
-
-
+	void set_landmarks_nwalks(int value) { this->landmarks_nwalks = value; }
+	void set_landmarks_wl(int value) { this->landmarks_wl = value; }
+	void set_influence_nwalks(int value) { this->influence_nwalks = value; }
+	void set_influence_wl(int value) { this->influence_wl = value; }
 
 
 private:
@@ -127,6 +129,10 @@ private:
 	string knn_algorithm;
 
 
+	int landmarks_nwalks = 10;
+	int landmarks_wl = 10;
+	int influence_nwalks = 20;
+	int influence_wl = 30;
 
 	int n_neighbors;
 	bool verbose;
@@ -168,6 +174,8 @@ private:
 											  std::vector<std::vector<int> >& indices, std::vector<std::vector<double> >& distance, 
 											  int* mapper, double* elements, vector<vector<int>>& indices_nzeros, int n, double max_incidence);
 
+
+	SparseComponents create_sparse3(int n, int n_neighbors, double* elements, vector<vector<int>>& indices_nzeros);
 
 	SparseComponents sparse_similarity(int level, int n, int n_neighbors, vector<int>& greatest,  
 									vector<vector<int>>& neighborhood, vector<vector<double>>& rw_distances,
@@ -226,13 +234,13 @@ void softmax(vector<double>& input, size_t size);
 double sigmoid(double input);
 
 
-vector<int> markov_chain(vector<vector<int>>& knn_indices, 
+tuple<vector<int>, vector<double>>  markov_chain(vector<vector<int>>& knn_indices, 
 						 Eigen::SparseMatrix<double, Eigen::RowMajor>& graph, 
 						 int num_walks, int walk_length, vector<double> sum_vals); 
 
 int random_walk(int vertex, vector<vector<int>>& knn_indices, 
 				Eigen::SparseMatrix<double, Eigen::RowMajor>& graph, 
-				int current_step, int walk_length, vector<int>& endpoint, 
+				int current_step, int walk_length, vector<int>& endpoint, vector<double>& PR, 
 				std::uniform_real_distribution<double>& unif, 
 				std::default_random_engine& rng, vector<double>sum_vals);
 

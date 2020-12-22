@@ -4,4 +4,5 @@ __pycache__/
 /data/*
 /__pycache__/*
 *.so
-
+figs_experiments/
+experiments/

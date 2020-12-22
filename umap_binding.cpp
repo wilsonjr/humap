@@ -35,6 +35,9 @@ PYBIND11_MODULE(hierarchical_umap, m) {
 		.def("set_landmarks_wl", &humap::HierarchicalUMAP::set_landmarks_wl)
 		.def("set_influence_nwalks", &humap::HierarchicalUMAP::set_influence_nwalks)
 		.def("set_influence_wl", &humap::HierarchicalUMAP::set_influence_wl)
+		.def("set_influence_neighborhood", &humap::HierarchicalUMAP::set_influence_neighborhood)
+		.def("set_distance_similarity", &humap::HierarchicalUMAP::set_distance_similarity)
+		.def("set_path_increment", &humap::HierarchicalUMAP::set_path_increment)
 		.def("__repr__",
 			[](humap::HierarchicalUMAP& a) {
 				return "<class.HierarchicalUMAP>";

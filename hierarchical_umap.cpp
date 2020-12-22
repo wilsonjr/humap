@@ -502,7 +502,7 @@ void humap::HierarchicalUMAP::add_similarity2(int index, int i, int n_neighbors,
 
 void humap::HierarchicalUMAP::add_similarity3(int index, int i, vector<vector<int>>& neighborhood, vector<vector<double>>& rw_distances,
 											  std::vector<std::vector<int> >& indices, std::vector<std::vector<double> >& distance, 
-											  int* mapper, double* elements, vector<vector<int>>& indices_nzeros, int n, double max_incidence)
+											  int* mapper, double* elements, vector<vector<int>>& indices_nzeros, int n, double max_incidence, vector<vector<int>>& association)
 {
 	using clock = chrono::system_clock;
 	using sec = chrono::duration<double>;
@@ -539,7 +539,10 @@ void humap::HierarchicalUMAP::add_similarity3(int index, int i, vector<vector<in
 				// cout << "add_similarity3 9" << endl;
 				// double s = std::min(d1, d2)/std::max(d1, d2) / max_incidence;
 				// double s = d1+d2;
-				double s = 1.0 / max_incidence;
+				// 
+			
+				
+
 
 				// cout << "olha esse s: " << s << endl;
 				// cout << "add_similarity3 10" << endl;
@@ -549,6 +552,21 @@ void humap::HierarchicalUMAP::add_similarity3(int index, int i, vector<vector<in
 
 					int u = *(mapper + ind1);
 					int v = *(mapper + ind2);
+
+				// 		cout << "neighbor: " << neighbor << endl;
+				// cout << "ind1: " << ind1 << endl;
+				// cout << "ind2: " << ind2 << endl;
+				// cout << "association.shape: " << association.size() << " x " << association[0].size() << endl;
+
+					//double s = (1.0 / max_incidence);
+
+					double s = 0.0;
+					if( this->distance_similarity ) {
+						s = (std::min(association[u][neighbor], association[v][neighbor])/std::max(association[u][neighbor], association[v][neighbor]))/max_incidence;
+					} else {
+						s = (1.0 / max_incidence);
+					}
+						
 
 					// cout << "ind1: " << ind1 << endl;
 					// cout << "ind2: " << ind2 << endl;
@@ -785,7 +803,7 @@ humap::SparseComponents humap::HierarchicalUMAP::create_sparse3(int n, int n_nei
 
 humap::SparseComponents humap::HierarchicalUMAP::sparse_similarity(int level, int n, int n_neighbors, vector<int>& greatest,  
 																vector<vector<int>>& neighborhood, vector<vector<double>>& rw_distances,
-																double max_incidence) 
+																double max_incidence, vector<vector<int>>& association) 
 {
 
 	using clock = chrono::system_clock;
@@ -817,10 +835,8 @@ humap::SparseComponents humap::HierarchicalUMAP::sparse_similarity(int level, in
 	// cout << "sparse_similarity 3" << endl;
 
 	for( int i = 0; i < greatest.size(); ++i ) {
-
-
 		this->add_similarity3(i, greatest[i], neighborhood, rw_distances, indices_sim,
-								distance_sim, mapper, elements, indices_nzeros, greatest.size(), max_incidence);
+								distance_sim, mapper, elements, indices_nzeros, greatest.size(), max_incidence, association);
 	}
 
 	cout << "creating sparse" << endl;
@@ -899,6 +915,8 @@ humap::SparseComponents humap::HierarchicalUMAP::sparse_similarity(int level, in
 			// indices_sim, distance_sim, mapper, elements, indices_nzeros, greatest.size());
 
 		// data_dict[std::to_string(i)+'_'+std::to_string(i)] = 1.0;
+
+		
 	}
 
 	cout << "creating sparse" << endl;
@@ -925,6 +943,9 @@ humap::SparseComponents humap::HierarchicalUMAP::sparse_similarity(int level, in
 
 	return sc;
 }
+
+
+
 
 
 vector<double> humap::HierarchicalUMAP::update_position(int i, int n_neighbors, vector<int>& cols, vector<double>& vals,
@@ -1015,7 +1036,8 @@ void humap::softmax(vector<double>& input, size_t size) {
 
 int humap::random_walk(int vertex, vector<vector<int>>& knn_indices, Eigen::SparseMatrix<double, Eigen::RowMajor>& graph, 
 						int current_step, int walk_length, vector<int>& endpoint, vector<double>& PR, 
-						std::uniform_real_distribution<double>& unif, std::default_random_engine& rng, vector<double> sum_vals) 
+						std::uniform_real_distribution<double>& unif, std::default_random_engine& rng, 
+						vector<double> sum_vals, bool path_increment) 
 {
 	// cout << "random_walk: sai de " << vertex << endl;
 	// cout << "------------------------------------" << endl;
@@ -1030,14 +1052,14 @@ int humap::random_walk(int vertex, vector<vector<int>>& knn_indices, Eigen::Spar
 		// cout << "2" << endl;
 		double incremental_prob = 0.0;
 
-		double pr = (1.0 - 0.15)/knn_indices.size();
-		PR[vertex] = pr;
-		for( int i = 1; i < knn_indices[vertex].size(); ++i ) {
+		// double pr = (1.0 - 0.15)/knn_indices.size();
+		// PR[vertex] = pr;
+		// for( int i = 1; i < knn_indices[vertex].size(); ++i ) {
 
-			PR[vertex] += (0.15*(PR[knn_indices[vertex][i]]/((double)knn_indices[vertex].size()-1.0)));
+		// 	PR[vertex] += (0.15*(PR[knn_indices[vertex][i]]/((double)knn_indices[vertex].size()-1.0)));
 
 
-		}
+		// }
 
 
 		for( Eigen::SparseMatrix<double, Eigen::RowMajor>::InnerIterator it(graph, vertex); it; ++it ) {
@@ -1057,7 +1079,7 @@ int humap::random_walk(int vertex, vector<vector<int>>& knn_indices, Eigen::Spar
 			return vertex;
 		}		
 
-		if( step < walk_length-1 )
+		if( path_increment && step < walk_length-1 )
 			endpoint[next_vertex]++;
 		vertex = next_vertex;
 
@@ -1067,8 +1089,9 @@ int humap::random_walk(int vertex, vector<vector<int>>& knn_indices, Eigen::Spar
 }
 
 
-tuple<vector<int>, vector<double>> humap::markov_chain(vector<vector<int>>& knn_indices, Eigen::SparseMatrix<double, Eigen::RowMajor>& graph, 
-							 	int num_walks, int walk_length, vector<double> sum_vals) 
+tuple<vector<int>, vector<double>> humap::markov_chain(vector<vector<int>>& knn_indices, 
+								Eigen::SparseMatrix<double, Eigen::RowMajor>& graph, 
+							 	int num_walks, int walk_length, vector<double> sum_vals, bool path_increment) 
 {
 
 	vector<int> endpoint(knn_indices.size(), 0);
@@ -1087,7 +1110,7 @@ tuple<vector<int>, vector<double>> humap::markov_chain(vector<vector<int>>& knn_
 
 		// perform num_walks random walks for this vertex
 		for( int walk = 0; walk < num_walks; ++walk ) {
-			int vertex = humap::random_walk(i, knn_indices, graph, 0, walk_length, endpoint, PR, unif, rng, sum_vals);
+			int vertex = humap::random_walk(i, knn_indices, graph, 0, walk_length, endpoint, PR, unif, rng, sum_vals, path_increment);
 			if( vertex != i )
 				endpoint[vertex]++;
 		}
@@ -1133,9 +1156,9 @@ tuple<int, double> humap::random_walk(int vertex, vector<vector<int>>& knn_indic
 	return make_tuple(-1, -1);
 }
 
-tuple<vector<vector<int>>, vector<vector<double>>, double> humap::markov_chain(vector<vector<int>>& knn_indices, vector<vector<double>>& knn_dists, 
+tuple<vector<vector<int>>, vector<vector<double>>, double, vector<vector<int>>> humap::markov_chain(vector<vector<int>>& knn_indices, vector<vector<double>>& knn_dists, 
 	Eigen::SparseMatrix<double, Eigen::RowMajor>& graph, int num_walks, int walk_length, vector<double> sum_vals,
-	vector<int> landmarks)
+	vector<int> landmarks, int influence_neighborhood)
 {
 	map<int, int> mapper;
 	vector<int> is_landmark(knn_indices.size(), -1);
@@ -1150,27 +1173,40 @@ tuple<vector<vector<int>>, vector<vector<double>>, double> humap::markov_chain(v
 
 	std::mt19937& rng = RandomGenerator::Instance().get();
 	std::uniform_real_distribution<double> unif(0.0, 1.0);
-
-	// for( int i = 0; i < knn_indices.size(); ++i ) {
-
-	// 	if( is_landmark[i] == -1 )
-	// 		continue;
-
-	// 	int index = is_landmark[i];
-
-	// 	for(int j = 1; j < knn_indices[i].size(); ++i ) {
-
-	// 		neighborhood[index].push_back(j);
-	// 		max_neighborhood = max(neighborhood, (int) neighborhood[index].size());
-
-	// 		distances[index].push_back(knn_dists[i][j]);
-	// 		association[index][j] = 1;
-	// 	}
-
-
-	// }
-
 	int max_neighborhood = -1;
+
+
+	cout << "adding neighborhood: " << influence_neighborhood << endl;
+	for( int i = 0; i < knn_indices.size(); ++i ) {
+
+		if( is_landmark[i] != -1 )
+			continue;
+
+		
+
+		for(int j = 1; j < influence_neighborhood; ++j ) {
+			if( is_landmark[knn_indices[i][j]] != -1 ) {
+
+				int index = is_landmark[knn_indices[i][j]];
+
+				neighborhood[index].push_back(i);
+				max_neighborhood = max(max_neighborhood, (int) neighborhood[index].size());
+
+				distances[index].push_back(knn_dists[i][j]);
+				association[index][i] = 1;
+
+			}
+
+			
+		}
+
+
+	}
+
+
+	cout << "finished adding neighborhood" << endl;
+
+	
 	for( int i = 0; i < knn_indices.size(); ++i ) {
 
 		// cout << "Passei 1: " << i << endl;
@@ -1203,14 +1239,16 @@ tuple<vector<vector<int>>, vector<vector<double>>, double> humap::markov_chain(v
 
 				} else {
 
-					for( int j = 0; j < neighborhood[index].size(); ++j )
-						if( neighborhood[index][j] == i && distance < distances[index][j] ) {
-							distances[index][j] = distance;
-							break;
-						}
+					
+
+					// for( int j = 0; j < neighborhood[index].size(); ++j )
+					// 	if( neighborhood[index][j] == i && distance < distances[index][j] ) {
+					// 		distances[index][j] = distance;
+					// 		break;
+					// 	}
 
 					association[index][i]++;
-					mean_distances[index][i] += distance;
+					// mean_distances[index][i] += distance;
 
 				}
 
@@ -1224,20 +1262,20 @@ tuple<vector<vector<int>>, vector<vector<double>>, double> humap::markov_chain(v
 
 	}
 
+	int max_n = -1, min_n = knn_indices.size() + 10;
+	double mean_n = 0.0;
+	for( int i = 0; i < neighborhood.size(); ++i ) {
+		max_n = max(max_n,(int)neighborhood[i].size());
+		min_n = min(min_n,(int)neighborhood[i].size());
+		mean_n += neighborhood[i].size();
+	}
 
-	// for( int i = 0; i < neighborhood.size(); ++i ) {
-
-	// 	for( int j = 0; j < neighborhood[i].size(); ++j ) 
-	// 		distances[i].push_back(mean_distances[i][neighborhood[i][j]] / association[i][neighborhood[i][j]]);
-
-
-	// }
-
-
-
+	cout << "min_n: " << min_n <<  ", max_n: " << max_n << ", mean_n: " << (mean_n/neighborhood.size()) << endl;
 
 
-	return make_tuple(neighborhood, distances, max_neighborhood);
+
+
+	return make_tuple(neighborhood, distances, max_neighborhood, association);
 
 }
 
@@ -1418,7 +1456,8 @@ void humap::HierarchicalUMAP::fit(py::array_t<double> X, py::array_t<int> y)
  		vector<int> landmarks;
  		tie(landmarks, PR) = humap::markov_chain(this->reducers[level].knn_indices(), 
  													this->reducers[level].transition_matrix, 
- 													this->landmarks_nwalks, this->landmarks_wl, this->reducers[level].sum_vals);
+ 													this->landmarks_nwalks, this->landmarks_wl, 
+ 													this->reducers[level].sum_vals, this->path_increment);
  		sec end_random_walk = clock::now() - begin_random_walk;
  		cout << "Computed in " << end_random_walk.count() << " seconds." << endl;
  		vector<int> inds_lands;
@@ -1488,13 +1527,14 @@ void humap::HierarchicalUMAP::fit(py::array_t<double> X, py::array_t<int> y)
  			
  		vector<vector<int>> neighborhood;
  		vector<vector<double>> rw_distances;
+ 		vector<vector<int>> association;
  		double max_incidence;
  		cout << "computing random walk neighborhood" << endl;
- 		tie(neighborhood, rw_distances, max_incidence) = humap::markov_chain(this->reducers[level].knn_indices(),
+ 		tie(neighborhood, rw_distances, max_incidence, association) = humap::markov_chain(this->reducers[level].knn_indices(),
  																	  this->reducers[level].knn_dists(),
  																	  this->reducers[level].transition_matrix,
  																	  this->influence_nwalks, this->influence_wl,  this->reducers[level].sum_vals,
- 																	  inds_lands);
+ 																	  inds_lands, this->influence_neighborhood);
 
  		// for( int i = 0; i < 50; ++i ) {
 
@@ -1504,7 +1544,7 @@ void humap::HierarchicalUMAP::fit(py::array_t<double> X, py::array_t<int> y)
  		// 	cout << endl;
  		// }
  		cout << "max_incidence: " << max_incidence << endl;
- 		max_incidence = (double) (this->reducers[level].sigmas().size() - inds_lands.size());
+ 		// max_incidence = (double) (this->reducers[level].sigmas().size() - inds_lands.size());
  		cout << "max_incidence2 : " << max_incidence << endl;
  		cout << "done computing random walk neighborhood" << endl;
 
@@ -1606,7 +1646,7 @@ void humap::HierarchicalUMAP::fit(py::array_t<double> X, py::array_t<int> y)
 
 
 			SparseComponents triplets = this->sparse_similarity(level+1, this->hierarchy_X[level].size(), this->n_neighbors,
-																greatest, neighborhood, rw_distances, max_incidence); 
+																greatest, neighborhood, rw_distances, max_incidence, association); 
 
 
 			sec sparse_duration = clock::now() - sparse_before;

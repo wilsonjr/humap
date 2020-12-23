@@ -1129,30 +1129,33 @@ tuple<int, double> humap::random_walk(int vertex, vector<vector<int>>& knn_indic
 {
 
 	double distance = 0;
-
+// cout << "random_walk 1" << endl;
 	for( int step = 0;  step < walk_length; ++step ) {
-
+		// cout << "random_walk 2" << endl;
 		double c = unif(rng);
 		int next_vertex = vertex;
 		double incremental_prob = 0.0;
-
+		int index_nextvertex = 0;
+		// cout << "random_walk 3: " << sum_vals.size() << ", " << vertex  << endl;
 		for( Eigen::SparseMatrix<double, Eigen::RowMajor>::InnerIterator it(graph, vertex); it; ++it ) {
 			incremental_prob += (it.value()/sum_vals[vertex]);
 			if( c < incremental_prob ) {
 				next_vertex = it.col();
 				break;
 			}
+			index_nextvertex += 1;
 		}  
-
-		distance += knn_dists[vertex][next_vertex];
+		// cout << "random_walk 4: " << vertex << ", " << next_vertex << endl;
+		distance += knn_dists[vertex][index_nextvertex];
 		if( next_vertex == vertex )
 			return make_tuple(-1, -1);
+		// cout << "random_walk 5" << endl;
 		if( is_landmark[next_vertex] != -1 )
 			return make_tuple(next_vertex, distance);
-
+		// cout << "random_walk 6" << endl;
 		vertex = next_vertex;
 	}
-
+	// cout << "random_walk 7" << endl;
 	return make_tuple(-1, -1);
 }
 
@@ -1169,7 +1172,6 @@ tuple<vector<vector<int>>, vector<vector<double>>, double, vector<vector<int>>> 
 	vector<vector<int>> neighborhood(landmarks.size(), vector<int>());
 	vector<vector<double>> distances(landmarks.size(), vector<double>());
 	vector<vector<int>> association(landmarks.size(), vector<int>(knn_indices.size(), 0));
-	vector<vector<double>> mean_distances(landmarks.size(), vector<double>(knn_indices.size(), 0));
 
 	std::mt19937& rng = RandomGenerator::Instance().get();
 	std::uniform_real_distribution<double> unif(0.0, 1.0);
@@ -1209,33 +1211,33 @@ tuple<vector<vector<int>>, vector<vector<double>>, double, vector<vector<int>>> 
 	
 	for( int i = 0; i < knn_indices.size(); ++i ) {
 
-		// cout << "Passei 1: " << i << endl;
+		 // cout << "Passei 1: " << i << endl;
 		if( is_landmark[i] != -1 ) 
 			continue;
-		// cout << "Passei 2: " << i << endl;
+		 // cout << "Passei 2: " << i << endl;
 
 		for( int walk = 0; walk < num_walks; ++walk ) {
 
 			int vertex;
 			double distance;
-			// cout << "Passei 3: " << i << endl;
+			 // cout << "Passei 3: " << i << endl;
 			tie(vertex, distance) = humap::random_walk(i, knn_indices, knn_dists, graph, 0, walk_length, unif, rng, sum_vals, is_landmark);
-			// cout << "Passei 4: " << i << endl; 
+			 // cout << "Passei 4: " << i << " " << vertex <<  endl; 
 			if( vertex != i && vertex != -1 && is_landmark[vertex] != -1 && !association[is_landmark[vertex]][i] ) {
-				// cout << "passei 6.0: " << i << endl;
+				 // cout << "passei 6.0: " << i << endl;
 				int index = is_landmark[vertex];
 
 				if( !association[is_landmark[vertex]][i] ) {
 
-					// cout << "Passei 6.1: " << i << endl;
+					 // cout << "Passei 6.1: " << i << endl;
 					neighborhood[index].push_back(i);
-					// cout << "Passei 5.2: " << i << endl;
+					 // cout << "Passei 6.2: " << i << endl;
 					max_neighborhood = max(max_neighborhood, (int) neighborhood[index].size());
-					// cout << "Passei 5.3: " << i << endl;
+					 // cout << "Passei 6.3: " << i << endl;
 					distances[index].push_back(distance);
-					// cout << "Passei 5.4: " << i << endl;
+					 // cout << "Passei 6.4: " << i << endl;
 					association[index][i] = 1;
-					// cout << "Passei 5.5: " << i << endl;
+					 // cout << "Passei 6.5: " << i << endl;
 
 				} else {
 
@@ -1246,8 +1248,9 @@ tuple<vector<vector<int>>, vector<vector<double>>, double, vector<vector<int>>> 
 					// 		distances[index][j] = distance;
 					// 		break;
 					// 	}
-
+					// cout << "Passei 7" << endl;
 					association[index][i]++;
+					// cout << "Passei 8" << endl;
 					// mean_distances[index][i] += distance;
 
 				}
@@ -1262,15 +1265,8 @@ tuple<vector<vector<int>>, vector<vector<double>>, double, vector<vector<int>>> 
 
 	}
 
-	int max_n = -1, min_n = knn_indices.size() + 10;
-	double mean_n = 0.0;
-	for( int i = 0; i < neighborhood.size(); ++i ) {
-		max_n = max(max_n,(int)neighborhood[i].size());
-		min_n = min(min_n,(int)neighborhood[i].size());
-		mean_n += neighborhood[i].size();
-	}
+	
 
-	cout << "min_n: " << min_n <<  ", max_n: " << max_n << ", mean_n: " << (mean_n/neighborhood.size()) << endl;
 
 
 
@@ -1718,20 +1714,22 @@ void humap::HierarchicalUMAP::fit(py::array_t<double> X, py::array_t<int> y)
 				n++;
 		}
 		cout << "NUMBER OF ELEMENTS WITH NO OWNER: " << n << endl;
-		int* indices_not_associated = new int[sizeof(int)*n];
-		for( int i = 0, j = 0; i < this->metadata[level].size; ++i )
-			if( this->metadata[level].owners[i] == -1.0 )
-				*(indices_not_associated + j++) = i;
 
-		this->associate_to_landmarks(n, this->n_neighbors, indices_not_associated, this->reducers[level].cols,
-									  this->reducers[level].sigmas(), this->metadata[level].strength,
-									  this->metadata[level].owners, this->metadata[level].indices, 
-									  this->metadata[level].association, this->metadata[level].count_influence, 
-									  is_landmark, this->reducers[level].get_graph(), this->reducers[level].knn_dists());
+		// TODO change search to iteractive process
+		// int* indices_not_associated = new int[sizeof(int)*n];
+		// for( int i = 0, j = 0; i < this->metadata[level].size; ++i )
+		// 	if( this->metadata[level].owners[i] == -1.0 )
+		// 		*(indices_not_associated + j++) = i;
 
-		sec use_duration = clock::now() - use_before;
-		cout << "Use landmark: " << use_duration.count() << endl;
-		cout << endl;
+		// this->associate_to_landmarks(n, this->n_neighbors, indices_not_associated, this->reducers[level].cols,
+		// 							  this->reducers[level].sigmas(), this->metadata[level].strength,
+		// 							  this->metadata[level].owners, this->metadata[level].indices, 
+		// 							  this->metadata[level].association, this->metadata[level].count_influence, 
+		// 							  is_landmark, this->reducers[level].get_graph(), this->reducers[level].knn_dists());
+
+		// sec use_duration = clock::now() - use_before;
+		// cout << "Use landmark: " << use_duration.count() << endl;
+		// cout << endl;
 
 
 		// cout << "I have " << this->metadata[level].size << " owners" << endl;

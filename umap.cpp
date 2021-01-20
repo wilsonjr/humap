@@ -835,6 +835,7 @@ tuple<vector<double>, vector<double>> umap::smooth_knn_dist(vector<vector<double
 
 	double mean_distances = 0.0;
 
+	#pragma omp parallel for
 	for (int i = 0; i < distances.size(); ++i)
 	{
 		mean_distances += accumulate( distances[i].begin(), distances[i].end(), 0.0);
@@ -843,7 +844,7 @@ tuple<vector<double>, vector<double>> umap::smooth_knn_dist(vector<vector<double
 
 	// cout << "target: " << target << endl;
 	// cout << "mean_distances: " << mean_distances << endl;
-
+	#pragma omp parallel for
 	for( int i = 0; i < distances.size(); ++i ) {
 
 		double lo = 0.0;
@@ -914,7 +915,7 @@ tuple<vector<double>, vector<double>> umap::smooth_knn_dist(vector<vector<double
 		result[i] = mid;
 
 		if( rho[i] > 0.0 ) {
-			double mean_ith_distances = accumulate(ith_distances.begin(), ith_distances.end(), 0)/ith_distances.size();
+			double mean_ith_distances = accumulate(ith_distances.begin(), ith_distances.end(), 0.0)/ith_distances.size();
 			if( result[i] < umap::MIN_K_DIST_SCALE*mean_ith_distances )
 				result[i] = umap::MIN_K_DIST_SCALE*mean_ith_distances;
 
@@ -1144,6 +1145,7 @@ tuple<vector<vector<int>>, vector<vector<double>>> umap::nearest_neighbors(umap:
 			knn_indices = knn_indices_.cast<vector<vector<int>>>();
 
 		} else if( algorithm == "NNDescent" ) {
+			auto prep_before = clock::now();
 			cout << "L: " << knn_args["L"] << endl;
 			cout << "iter: " << knn_args["iter"] << endl;
 			cout << "S: " << knn_args["S"] << endl;
@@ -1164,21 +1166,25 @@ tuple<vector<vector<int>>, vector<vector<double>>> umap::nearest_neighbors(umap:
 			params.Set<unsigned>("iter", iter); // the number of iterations
 			params.Set<unsigned>("S", S); // how many numbers of points in the leaf node; candidate pool size
 			params.Set<unsigned>("R", R); 
-
+			sec preparation = clock::now() - prep_before;
+			cout << "Preparation time: " << preparation.count() << endl;
 			auto before = clock::now();
 			float* data = X.data_f();
 			sec duration = clock::now() - before;
 			cout << "Constructing array time: " << duration.count() << endl;
+			before = clock::now();
 			index.Build(X.shape(0), data, params);
+			duration = clock::now() - before;
+			
 
 			delete data;
 
 			knn_indices = vector<vector<int>>(X.size(), vector<int>(n_neighbors, 0));
 			knn_dists = vector<vector<double>>(X.size(), vector<double>(n_neighbors, 0.0));
 
+			#pragma omp parallel for
 			for( int i = 0; i < X.shape(0); ++i ) 
 			{
-
 				knn_dists[i][0] = 0.0;
 				knn_indices[i][0] = i;
 
@@ -1189,7 +1195,7 @@ tuple<vector<vector<int>>, vector<vector<double>>> umap::nearest_neighbors(umap:
 				}	
 			}
 
-
+			cout << "Building and Creating time: " << duration.count() << endl;
 
 		} else if( algorithm == "KDTree_NNDescent" ) {
 
@@ -1286,7 +1292,8 @@ tuple<Eigen::SparseMatrix<double, Eigen::RowMajor>, vector<double>, vector<doubl
 	bool apply_set_operations, bool verbose, umap::UMAP* obj)
 {
 
-
+	using clock = chrono::system_clock;
+	using sec = chrono::duration<double>;
 
 	if( knn_indices.size() == 0 || knn_dists.size() == 0 ) {
 		tie(knn_indices, knn_dists) = umap::nearest_neighbors(X, n_neighbors, metric, angular, random_state, obj->knn_args, verbose);
@@ -1314,9 +1321,10 @@ tuple<Eigen::SparseMatrix<double, Eigen::RowMajor>, vector<double>, vector<doubl
 
 
 	vector<double> sigmas, rhos;
-
+	auto tic = clock::now();
 	tie(sigmas, rhos) = umap::smooth_knn_dist(knn_dists, (double) n_neighbors, 64, local_connectivity);
-
+	sec toc = clock::now() - tic;
+	cout << "Smooth knn dist: " << toc.count() << endl;
 	// cout << "sigmas" << endl;
 	// for (int i = 0; i < 20; ++i)
 	// {
@@ -1336,8 +1344,10 @@ tuple<Eigen::SparseMatrix<double, Eigen::RowMajor>, vector<double>, vector<doubl
 
 	vector<int> rows, cols;
 	vector<double> vals, sum_vals;
-
+	tic = clock::now();
 	tie(rows, cols, vals, sum_vals) = umap::compute_membership_strenghts(knn_indices, knn_dists, sigmas, rhos);
+	toc = clock::now() - tic;
+	cout << "Compute membership strenghts: " << toc.count() << endl;
 
 	if( obj ) {
 
@@ -1346,6 +1356,7 @@ tuple<Eigen::SparseMatrix<double, Eigen::RowMajor>, vector<double>, vector<doubl
 		obj->vals = vals;
 		obj->sum_vals = sum_vals;
 	}
+	vector<double> vals_transition(vals.begin(), vals.end());
 
 	// cout << "rows: " << endl;
 	// for( int i = 0; i < 20; ++i ) {
@@ -1368,43 +1379,37 @@ tuple<Eigen::SparseMatrix<double, Eigen::RowMajor>, vector<double>, vector<doubl
 	// cout << endl << endl;
 
 	// TODO: evaluate the complexity of this method
+
+
+	tic = clock::now();
 	Eigen::SparseMatrix<double, Eigen::RowMajor> result(X.size(), X.size());
 	result.reserve(Eigen::VectorXi::Constant(X.size(), 2*n_neighbors)); // TODO: verificar se é assim (ou com int)
 	// result.reserve(rows*2*n_neighbors);
-	cout << "ADDING ELEMENTS, START" << endl;
+	
+	#pragma omp parallel for
 	for( int i = 0; i < vals.size(); ++i ) {
-
-		// try {
-
-			result.insert(rows[i], cols[i]) = vals[i];
-
-		// } catch(...) {
-		// 	cout << "using coeffRef " << endl;
-		// 	result.coeffRef(rows[i], cols[i]) = vals[i];						
-		// }
+		result.insert(rows[i], cols[i]) = vals[i];
+		vals_transition[i] = vals_transition[i]/sum_vals[rows[i]];
 	}
-	cout << "ADDING ELEMENTS, DONE" << endl;
+	obj->vals_transition = vals_transition;
 	result.makeCompressed();
 
+	toc = clock::now() - tic;
+	cout << "Creating sparse matrix (result): " << toc.count() << endl;
 
 
-
+	tic = clock::now();
 	obj->transition_matrix = 1.0*result;//Eigen::SparseMatrix<double, Eigen::RowMajor>(result);
+	toc = clock::now() - tic;
+	cout << "Creating transition_matrix: " << toc.count() << endl;
+
 	if( apply_set_operations ) {
 
+		tic = clock::now();
 		Eigen::SparseMatrix<double, Eigen::RowMajor> transpose = result.transpose();
-
-		// Eigen::SparseMatrix<double, Eigen::RowMajor> prod_matrix = result * transpose;
-
 		result = 0.5 * (result + transpose);
-
-		// result = (set_op_mix_ratio * (result + transpose - prod_matrix) + (1.0 - set_op_mix_ratio)*prod_matrix);
-
-
-        // # result = (
-        // #     set_op_mix_ratio * (result + transpose - prod_matrix)
-        // #     + (1.0 - set_op_mix_ratio) * prod_matrix
-        // # )
+		toc = clock::now() - tic;
+		cout << "Applying set operations: " << toc.count() << endl;
 	}
 
 

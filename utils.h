@@ -62,12 +62,15 @@ std::vector<double> linspace(T start_in, T end_in, int num_in)
 }
 
 template<typename T>
-std::vector<int> argsort(const std::vector<T>& data) {
+std::vector<int> argsort(const std::vector<T>& data, bool reverse=false) {
 
   std::vector<int> v(data.size());
 
   std::iota(v.begin(), v.end(), 0);
-  std::sort(v.begin(), v.end(), [&](int i, int j){ return data[i] < data[j]; });
+  if( reverse ) 
+    std::sort(v.begin(), v.end(), [&](int i, int j){ return data[i] > data[j]; });
+  else
+    std::sort(v.begin(), v.end(), [&](int i, int j){ return data[i] < data[j]; });
 
   return v;
 }

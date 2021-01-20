@@ -1,7 +1,10 @@
 #ifndef HIERARCHICAL_UMAP_H
 #define HIERARCHICAL_UMAP_H
 
+#include <omp.h>
 #include <map>
+#include <stack>
+#include <queue>
 #include <string>
 #include <iostream>
 #include <vector>
@@ -34,7 +37,6 @@ struct Metadata {
 	  Metadata(vector<int> indices_, vector<int> owners_, vector<double> strength_, vector<vector<int>> association_, int size_)
 	 : indices(indices_), owners(owners_), strength(strength_), association(association_), size(size_)
 	 {	 	
-	 	cout << "METADATA SIZE: " << size << endl;
 	 }
 
  	 vector<int> indices;
@@ -98,6 +100,7 @@ public:
 	py::array_t<int> get_labels(int level);
 	Eigen::SparseMatrix<double, Eigen::RowMajor> get_data(int level);
 	py::array_t<double> get_embedding(int level);
+	py::array_t<double> transform(int level);
 	py::array_t<int> get_indices(int level);
 	py::array_t<double> get_sigmas(int level);
 	py::array_t<int> get_influence(int level);
@@ -116,6 +119,9 @@ public:
 	void set_influence_neighborhood(int value) { this->influence_neighborhood = value; }
 	void set_distance_similarity(bool value) { this->distance_similarity = value; }
 	void set_path_increment(bool value) { this->path_increment = value; }
+
+
+	tuple<py::array_t<double>, py::array_t<double>> explain(int n_walks, int walk_length, int max_hops, py::array_t<int> indices);
 	
 private:
 
@@ -176,15 +182,14 @@ private:
 	SparseComponents create_sparse2(int level, int n, int n_neighbors, double* elements, vector<vector<int>>& indices_nzeros);
 
 
-	void add_similarity3(int index, int i, vector<vector<int>>& neighborhood, vector<vector<double>>& rw_distances,
-											  std::vector<std::vector<int> >& indices, std::vector<std::vector<double> >& distance, 
-											  int* mapper, double* elements, vector<vector<int>>& indices_nzeros, int n, double max_incidence, vector<vector<int>>& association);
+	void add_similarity3(int index, int i, vector<vector<int>>& neighborhood, std::vector<std::vector<int> >& indices, 
+						 int* mapper, double* elements, vector<vector<int>>& indices_nzeros, int n, double max_incidence, vector<vector<int>>& association);
 
 
 	SparseComponents create_sparse3(int n, int n_neighbors, double* elements, vector<vector<int>>& indices_nzeros);
 
 	SparseComponents sparse_similarity(int level, int n, int n_neighbors, vector<int>& greatest,  
-									vector<vector<int>>& neighborhood, vector<vector<double>>& rw_distances,
+									vector<vector<int>>& neighborhood,
 									double max_incidence, vector<vector<int>>& association);
 
 	SparseComponents sparse_similarity(int level, int n, int n_neighbors, vector<int>& greatest, vector<int> &cols, vector<double>& vals,
@@ -240,26 +245,59 @@ void softmax(vector<double>& input, size_t size);
 double sigmoid(double input);
 
 
-tuple<vector<int>, vector<double>>  markov_chain(vector<vector<int>>& knn_indices, 
-						 Eigen::SparseMatrix<double, Eigen::RowMajor>& graph, 
-						 int num_walks, int walk_length, vector<double> sum_vals, bool path_increment); 
+vector<int>  markov_chain(vector<vector<int>>& knn_indices, 
+						 vector<double>& vals, vector<int>& cols, 
+						 int num_walks, int walk_length, vector<double>& sum_vals, bool path_increment); 
 
-int random_walk(int vertex, vector<vector<int>>& knn_indices, 
-				Eigen::SparseMatrix<double, Eigen::RowMajor>& graph, 
-				int current_step, int walk_length, vector<int>& endpoint, vector<double>& PR, 
+int random_walk(int vertex, int n_neighbors,
+				vector<double>& vals, vector<int>& cols, 
+				int current_step, int walk_length, vector<int>& endpoint,
 				std::uniform_real_distribution<double>& unif, 
-				std::default_random_engine& rng, vector<double>sum_vals, bool path_increment);
+				std::default_random_engine& rng, vector<double>& sum_vals, bool path_increment);
 
 
 
-tuple<vector<vector<int>>, vector<vector<double>>, double, vector<vector<int>>> markov_chain(vector<vector<int>>& knn_indices, vector<vector<double>>& knn_dists, 
-	Eigen::SparseMatrix<double, Eigen::RowMajor>& graph, int num_walks, int walk_length, vector<double> sum_vals,
-	vector<int> landmarks, int influence_neighborhood);
+int markov_chain(vector<vector<int>>& knn_indices, vector<vector<double>>& knn_dists, 
+	vector<double>& vals, vector<int>& cols, Eigen::SparseMatrix<double, Eigen::RowMajor>& graph, 
+	int num_walks, int walk_length, vector<double>& sum_vals,
+	vector<int>& landmarks, int influence_neighborhood, vector<vector<int>>& neighborhood, vector<vector<int>>& association);
 
-tuple<int, double> random_walk(int vertex, vector<vector<int>>& knn_indices, vector<vector<double>>& knn_dists, Eigen::SparseMatrix<double, Eigen::RowMajor>& graph,
-														int current_step, int walk_length, uniform_real_distribution<double>& unif, 
-														mt19937& rng, vector<double> sum_vals, vector<int> is_landmark);
+int random_walk(int vertex, 
+				   int n_neighbors, vector<double>& vals, vector<int>& cols, Eigen::SparseMatrix<double, Eigen::RowMajor>& graph,
+				int current_step, int walk_length, uniform_real_distribution<double>& unif, 
+														mt19937& rng, vector<double>& sum_vals, vector<int>& is_landmark);
 
+
+vector<vector<double>> explain_neighborhoods(vector<vector<int>>& knn_indices, 
+													Eigen::SparseMatrix<double, Eigen::RowMajor>& graph,
+												    int num_walks, int walk_length, 
+												    vector<double>& sum_vals, 
+												    vector<vector<double>>& X);
+
+void random_walk_explain(int vertex, vector<vector<int>>& knn_indices, 
+								Eigen::SparseMatrix<double, Eigen::RowMajor>& graph,
+								int current_step, int walk_length, 
+								std::uniform_real_distribution<double>& unif,
+								std::default_random_engine& rng, 
+								vector<double>& sum_vals, 
+								vector<vector<double>>& X,
+								vector<vector<double>>& result);
+
+vector<vector<double>> explain_neighborhoods(int index, vector<vector<int>>& knn_indices, 
+													Eigen::SparseMatrix<double, Eigen::RowMajor>& graph,
+												    int num_walks, int walk_length, 
+												    vector<double>& sum_vals, 
+												    vector<vector<double>>& X);
+
+
+
+tuple<vector<vector<double>>, vector<double>> explain_neighborhoods(int index, int max_hops, vector<vector<int>>& knn_indices, 
+													Eigen::SparseMatrix<double, Eigen::RowMajor>& graph,
+												    int num_walks, int walk_length, 
+												    vector<double>& sum_vals, 
+												    vector<vector<double>>& X);
+
+bool has(vector<int>& indices, int index);
 
 class RandomGenerator
 {

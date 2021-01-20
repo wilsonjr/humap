@@ -20,6 +20,7 @@ PYBIND11_MODULE(hierarchical_umap, m) {
 		.def(py::init<string, py::array_t<double>, int, double, string, double, bool>())
 		.def(py::init<>())
 		.def("fit", &humap::HierarchicalUMAP::fit)
+		.def("transform", &humap::HierarchicalUMAP::transform)
 		.def("get_influence", &humap::HierarchicalUMAP::get_influence)
 		.def("get_labels", &humap::HierarchicalUMAP::get_labels)
 		.def("get_sigmas", &humap::HierarchicalUMAP::get_sigmas)
@@ -38,6 +39,7 @@ PYBIND11_MODULE(hierarchical_umap, m) {
 		.def("set_influence_neighborhood", &humap::HierarchicalUMAP::set_influence_neighborhood)
 		.def("set_distance_similarity", &humap::HierarchicalUMAP::set_distance_similarity)
 		.def("set_path_increment", &humap::HierarchicalUMAP::set_path_increment)
+		.def("explain", &humap::HierarchicalUMAP::explain)
 		.def("__repr__",
 			[](humap::HierarchicalUMAP& a) {
 				return "<class.HierarchicalUMAP>";

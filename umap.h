@@ -257,9 +257,9 @@ public:
 		knn_args["mLevel"] = "8";
 
 		knn_args["L"] = "100";
-		knn_args["iter"] = "15";
-		knn_args["S"] = "50";
-		knn_args["R"] = "50";
+		knn_args["iter"] = "3";
+		knn_args["S"] = "30";
+		knn_args["R"] = "30";
 	}
 
 
@@ -302,6 +302,7 @@ public:
 	vector<int>    cols;
 	vector<double>  vals;
 	vector<double> sum_vals;
+	vector<double> vals_transition;
 	string metric;
 
 	map<string, string> knn_args;

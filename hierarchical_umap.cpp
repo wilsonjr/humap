@@ -2255,32 +2255,53 @@ vector<vector<double>> humap::HierarchicalUMAP::embed_data(int level, Eigen::Spa
 	return result;
 }	
 
+py::array_t<double> humap::HierarchicalUMAP::project_indices(int level, py::array_t<int> indices)
+{
+	
+	py::buffer_info bf = indices.request();
+	int* inds = (int*) bf.ptr;
+
+	vector<int> selected_indices(inds, inds+bf.shape[0]);
+	cout << "Number of indices: " << selected_indices.size() << endl;
+
+	return this->project_data(level, selected_indices);
+}
+
 py::array_t<double> humap::HierarchicalUMAP::project(int level, py::array_t<int> c)
 {
-	using clock = chrono::system_clock;
-	using sec = chrono::duration<double>;
 	py::buffer_info bf = c.request();
 	int* classes = (int*) bf.ptr;
 	cout << "classes 1" << endl;
 
 	vector<int> selected_indices;
+	cout << "Passei " << this->hierarchy_y.size() << ", " << level << endl;
 	for( int i = 0; i < this->hierarchy_y[level].size(); ++i ) {
 		bool flag = false;
-		for( int j = 0; j < bf.shape[0]; ++j )
+		cout << "passei 2>  " << bf.shape[0] << endl;
+		for( int j = 0; j < bf.shape[0]; ++j ) {
+			cout << "passei 3> " << this->hierarchy_y[level].size() << ", " <<  i << ", " << j << endl; 
 			if( this->hierarchy_y[level][i] == classes[j] ) {
 				flag = true;
 				break;
 			}
-
+		}
 		if( flag )
 			selected_indices.push_back(i);
 	}	
-	cout << "classes: " << endl;
+	cout << "classes: " <<  bf.shape[0] << endl;
 	for( int i = 0; i < bf.shape[0]; ++i )
 		cout << classes[i] << endl;
-
+	cout << "passei" << endl;
 	cout << endl;
 	cout << "selected indices :) " << selected_indices.size() << endl;
+	return this->project_data(level, selected_indices);
+}
+
+py::array_t<double> humap::HierarchicalUMAP::project_data(int level, vector<int> selected_indices)
+{
+	using clock = chrono::system_clock;
+	using sec = chrono::duration<double>;
+	
 
 
 	vector<bool> is_in_it(this->metadata[level-1].size, false);

@@ -107,6 +107,8 @@ public:
 	py::array_t<int> get_original_indices(int level);
 
 	py::array_t<double> project(int level, py::array_t<int> c);	
+	py::array_t<double> project_indices(int level, py::array_t<int> indices);
+	py::array_t<double> project_data(int level, vector<int> selected_indices);
 
 	py::array_t<int> get_labels_selected() { return py::cast(this->labels_selected); }
 	py::array_t<int> get_influence_selected() { return py::cast(this->influence_selected); }

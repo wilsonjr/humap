@@ -1,4 +1,4 @@
 c++ -O3 -Wall -shared -std=c++11 -fPIC -fopenmp -DEIGEN_DONT_PARALLELIZE -march=native -DINFO ./efanna/index.cpp ./efanna/index_graph.cpp ./efanna/index_kdtree.cpp ./efanna/index_random.cpp `python3 -m pybind11 --includes` utils.cpp umap.cpp hierarchical_umap.cpp umap_binding.cpp -o hierarchical_umap`python3-config --extension-suffix`
 
 
-c++ -O3 -shared -std=c++11 -fPIC -fopenmp -DEIGEN_DONT_PARALLELIZE -march=native -DINFO ./efanna/index.cpp ./efanna/index_graph.cpp ./efanna/index_kdtree.cpp ./efanna/index_random.cpp `python3 -m pybind11 --includes` utils.cpp umap.cpp hierarchical_umap.cpp umap_binding.cpp -o hierarchical_umap`python3-config --extension-suffix`
+c++ -O3 -shared -std=c++11 -fPIC -fopenmp -DEIGEN_DONT_PARALLELIZE -march=native -DINFO ./src/cpp/external/efanna/index.cpp ./src/cpp/external/efanna/index_graph.cpp ./src/cpp/external/efanna/index_kdtree.cpp ./src/cpp/external/efanna/index_random.cpp `python3 -m pybind11 --includes` ./src/cpp/utils.cpp ./src/cpp/umap.cpp ./src/cpp/hierarchical_umap.cpp ./src/cpp/umap_binding.cpp -o ./umap/hierarchical_umap`python3-config --extension-suffix`

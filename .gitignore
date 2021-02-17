@@ -1,4 +1,7 @@
+build/
+dist/
 data/
+humap.egg-info/
 figs/
 __pycache__/
 /data/*

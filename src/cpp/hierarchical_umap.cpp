@@ -1225,7 +1225,7 @@ bool humap::has(vector<int>& indices, int index)
 		if( indices[i] == index ) {
 			flag = true;
 			// i += indices.size();
-			break;
+			// break;
 		}
 
 	return flag;

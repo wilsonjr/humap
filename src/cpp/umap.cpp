@@ -10,71 +10,113 @@ void umap::UMAP::optimize_euclidean_epoch(vector<vector<double>>& head_embedding
 										   double gamma, int dim, bool move_other, double alpha, vector<double>& epochs_per_negative_sample,
 										   vector<double>& epoch_of_next_negative_sample, vector<double>& epoch_of_next_sample, int n)
 {
+	std::random_device seeder;
+	std::mt19937 engine(seeder());
+	std::uniform_int_distribution<int> dist(0, head_embedding.size());
+
+
+
 	#pragma omp parallel for
 	for( int i = 0; i < epochs_per_sample.size(); ++i ) {
-
+		// printf("2\n");
 		if( epoch_of_next_sample[i] <= n ) {
-
+			// printf("3\n");
+				
 
 			int j = head[i];
+
+			// printf("4\n");
+			
 			int k = tail[i];
+			// printf("5\n");
 
 			vector<double>* current = &head_embedding[j];
+			// printf("6\n");
+			
 			vector<double>* other = &tail_embedding[k];
+			// printf("7\n");
 			
 
 			double dist_squared = utils::rdist((*current), (*other));
+			// printf("8\n");
 
 			double grad_coeff = 0.0;
 
 			if( dist_squared > 0.0 ) {
+				// printf("9\n");
 				grad_coeff = -2.0 * a * b * pow(dist_squared, b-1.0);
+				// printf("10\n");
 				grad_coeff /= a * pow(dist_squared, b) + 1.0;
+				// printf("11\n");
 
 			}
 
+			// printf("12\n");
 			for( int d = 0; d < dim; ++d ) {
-
+				// printf("13\n");
 				double grad_d = utils::clip(grad_coeff * ((*current)[d] - (*other)[d]));
+				// printf("14\n");
 				(*current)[d] += (grad_d * alpha);
-				if( move_other )
+				// printf("15\n");
+				if( move_other ) {
+					// printf("16\n");
 					(*other)[d] += (-grad_d * alpha);
-			}
-
-
-			epoch_of_next_sample[i] += epochs_per_sample[i];
-
-			int n_neg_samples = (int) ((n-epoch_of_next_negative_sample[i])/epochs_per_negative_sample[i]);
-
-			for( int p = 0; p < n_neg_samples; ++p ) {
-				int k = utils::tau_rand_int(rng_state) % n_vertices;
-
-				other = &tail_embedding[k];
-
-				dist_squared = utils::rdist(*current, *other);
-
-				if( dist_squared > 0.0 ) {
-					grad_coeff = 2.0 * gamma * b;
-					grad_coeff /= (0.001 + dist_squared) * (a * pow(dist_squared, b) + 1.0);
-				} else if( j == k ) {
-					continue;
-				} else 
-					grad_coeff = 0.0;
-
-				for( int d = 0; d < dim; ++d ) {
-					double grad_d = 0.0;
-					if( grad_coeff > 0.0 )
-						grad_d = utils::clip(grad_coeff * ((*current)[d] - (*other)[d]));
-					else
-						grad_d = 4.0;
-					(*current)[d] += (grad_d * alpha);
 				}
 
 			}
 
+			// printf("17\n");
+			epoch_of_next_sample[i] += epochs_per_sample[i];
+			// printf("18\n");
+			int n_neg_samples = (int) ((n-epoch_of_next_negative_sample[i])/epochs_per_negative_sample[i]);
+			// printf("19\n");
+			for( int p = 0; p < n_neg_samples; ++p ) {
+				// int k = utils::tau_rand_int(rng_state);
+				int k = dist(engine);
+				// if( k < 0 )
+				// 	k *= -1;
+				// printf("21\n");
+				k = k % n_vertices;
+				// printf("22 > %d\n", k);
+				other = &tail_embedding[k];
+				// printf("23\n");
+				dist_squared = utils::rdist(*current, *other);
+				// printf("24\n");
+				if( dist_squared > 0.0 ) {
+					// printf("25\n");
+					grad_coeff = 2.0 * gamma * b;
+					// printf("26\n");
+					grad_coeff /= (0.001 + dist_squared) * (a * pow(dist_squared, b) + 1.0);
+					// printf("27\n");
+				} else if( j == k ) {
+					// printf("28\n");
+					continue;
+				} else {
+					// printf("29\n");
+					grad_coeff = 0.0;
+				}
+				// printf("30\n");
+				for( int d = 0; d < dim; ++d ) {
+					// printf("31\n");
+					double grad_d = 0.0;
+					// printf("32\n");
+					if( grad_coeff > 0.0 ) {
+						// printf("33\n");
+						grad_d = utils::clip(grad_coeff * ((*current)[d] - (*other)[d]));
+					}
+					else {
+						// printf("34\n");
+						grad_d = 4.0;
+					}
+					// printf("35\n");
+					(*current)[d] += (grad_d * alpha);
+					// printf("36\n");
+				}
 
-
+			}
+			// printf("37\n");
 			epoch_of_next_negative_sample[i] += (n_neg_samples * epochs_per_negative_sample[i]);
+			// printf("38\n");
 		}
 	}
 }
@@ -394,7 +436,7 @@ vector<vector<double>> umap::UMAP::multi_component_layout(umap::Matrix& data,
 
 			py::module scipy_random = py::module::import("numpy.random");
 			py::object randomState = scipy_random.attr("RandomState")(this->random_state);
-			vector<int> size = {component_graph.rows(), dim};
+			vector<int> size = {(int)component_graph.rows(), dim};
 			py::object noiseObj = randomState.attr("uniform")(py::arg("low")=-data_range, py::arg("high")=data_range, 
 														     py::arg("size")=size);
 			vector<vector<double>> noise = noiseObj.cast<vector<vector<double>>>();
@@ -507,7 +549,7 @@ vector<vector<double>> umap::UMAP::multi_component_layout(umap::Matrix& data,
 
 			py::module scipy_random = py::module::import("numpy.random");
 			py::object randomState = scipy_random.attr("RandomState")(this->random_state);
-			vector<int> size = {component_graph.rows(), dim};
+			vector<int> size = {(int)component_graph.rows(), dim};
 			py::object noiseObj = randomState.attr("uniform")(py::arg("low")=-data_range, py::arg("high")=data_range, 
 														     py::arg("size")=size);
 			vector<vector<double>> noise = noiseObj.cast<vector<vector<double>>>();
@@ -571,7 +613,7 @@ vector<vector<double>> umap::UMAP::spectral_layout(umap::Matrix& data,
 
 		py::module scipy_random = py::module::import("numpy.random");
 		py::object randomState = scipy_random.attr("RandomState")(this->random_state);
-		vector<int> size = {graph.rows(), n_components};
+		vector<int> size = {(int)graph.rows(), n_components};
 		py::object noiseObj = randomState.attr("normal")(py::arg("scale")=0.0001, py::arg("size")=size);
 
 		vector<vector<double>> noise = noiseObj.cast<vector<vector<double>>>();
@@ -703,7 +745,7 @@ vector<vector<double>> umap::UMAP::spectral_layout(umap::Matrix& data,
 
 		py::module scipy_random = py::module::import("numpy.random");
 		py::object randomState = scipy_random.attr("RandomState")(this->random_state);
-		vector<int> size = {graph.rows(), n_components};
+		vector<int> size = {(int)graph.rows(), n_components};
 		py::object noiseObj = randomState.attr("normal")(py::arg("scale")=0.0001, py::arg("size")=size);
 // cout << "spectral 25" << endl;
 		vector<vector<double>> noise = noiseObj.cast<vector<vector<double>>>();
@@ -742,7 +784,7 @@ vector<vector<double>> umap::UMAP::spectral_layout(umap::Matrix& data,
                 
 		py::module scipy_random = py::module::import("numpy.random");
 		py::object randomState = scipy_random.attr("RandomState")(this->random_state);
-		vector<int> size = {graph.rows(), dim};
+		vector<int> size = {(int)graph.rows(), dim};
 		py::object noiseObj = randomState.attr("uniform")(py::arg("low")=-10, py::arg("high")=10, py::arg("size")=size);
 		return noiseObj.cast<vector<vector<double>>>();
 	}
@@ -1367,7 +1409,7 @@ void umap::UMAP::prepare_for_fitting(umap::Matrix& X)
 	// TODO X = check_array(X)
 	// What does check_array do?
 
-	if( this->a == -1.0 or this->b == -1.0 ) {
+	if( this->a == -1.0 || this->b == -1.0 ) {
 		tie(this->_a, this->_b) = umap::find_ab_params(this->spread, this->min_dist);
 	} else {
 		this->_a = this->a;

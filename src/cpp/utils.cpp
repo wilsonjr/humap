@@ -68,7 +68,6 @@ double utils::rdist(const vector<double>& x, const vector<double>& y)
         double diff = x[i]-y[i];
         result += diff*diff;
     }
-
     return result;
 }
 

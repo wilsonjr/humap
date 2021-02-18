@@ -21,7 +21,7 @@ IndexGraph::~IndexGraph() {}
 
 void IndexGraph::join() {
 #pragma omp parallel for default(shared) schedule(dynamic, 100)
-  for (unsigned n = 0; n < nd_; n++) {
+  for (int n = 0; n < nd_; n++) {
     graph_[n].join([&](unsigned i, unsigned j) {
       if(i != j){
         float dist = distance_->compare(data_ + i * dimension_, data_ + j * dimension_, dimension_);
@@ -36,7 +36,7 @@ void IndexGraph::update(const Parameters &parameters) {
   unsigned R = parameters.Get<unsigned>("R");
   unsigned L = parameters.Get<unsigned>("L");
 #pragma omp parallel for
-  for (unsigned i = 0; i < nd_; i++) {
+  for (int i = 0; i < nd_; i++) {
     std::vector<unsigned>().swap(graph_[i].nn_new);
     std::vector<unsigned>().swap(graph_[i].nn_old);
     //std::vector<unsigned>().swap(graph_[i].rnn_new);
@@ -47,7 +47,7 @@ void IndexGraph::update(const Parameters &parameters) {
     //graph_[i].rnn_old.clear();
   }
 #pragma omp parallel for
-  for (unsigned n = 0; n < nd_; ++n) {
+  for (int n = 0; n < nd_; ++n) {
     auto &nn = graph_[n];
     std::sort(nn.pool.begin(), nn.pool.end());
     if(nn.pool.size()>L)nn.pool.resize(L);
@@ -64,7 +64,7 @@ void IndexGraph::update(const Parameters &parameters) {
     nn.M = l;
   }
 #pragma omp parallel for
-  for (unsigned n = 0; n < nd_; ++n) {
+  for (int n = 0; n < nd_; ++n) {
     auto &nnhd = graph_[n];
     auto &nn_new = nnhd.nn_new;
     auto &nn_old = nnhd.nn_old;
@@ -98,18 +98,28 @@ void IndexGraph::update(const Parameters &parameters) {
     std::make_heap(nnhd.pool.begin(), nnhd.pool.end());
   }
 #pragma omp parallel for
-  for (unsigned i = 0; i < nd_; ++i) {
+  for (int i = 0; i < nd_; ++i) {
     auto &nn_new = graph_[i].nn_new;
     auto &nn_old = graph_[i].nn_old;
     auto &rnn_new = graph_[i].rnn_new;
     auto &rnn_old = graph_[i].rnn_old;
     if (R && rnn_new.size() > R) {
-      std::random_shuffle(rnn_new.begin(), rnn_new.end());
+      // #if __cplusplus > 201100L
+        std::random_device rd;
+        std::mt19937 g(rd());
+        std::shuffle(rnn_new.begin(), rnn_new.end(), g);
+      // #else
+      //       std::random_shuffle(rnn_new.begin(), rnn_new.end());
+      // #endif
+      
       rnn_new.resize(R);
     }
     nn_new.insert(nn_new.end(), rnn_new.begin(), rnn_new.end());
     if (R && rnn_old.size() > R) {
-      std::random_shuffle(rnn_old.begin(), rnn_old.end());
+      // std::random_shuffle(rnn_old.begin(), rnn_old.end());
+      std::random_device rd;
+      std::mt19937 g(rd());
+      std::shuffle(rnn_old.begin(), rnn_old.end(), g);
       rnn_old.resize(R);
     }
     nn_old.insert(nn_old.end(), rnn_old.begin(), rnn_old.end());
@@ -148,7 +158,7 @@ void IndexGraph::generate_control_set(std::vector<unsigned> &c,
                                       std::vector<std::vector<unsigned> > &v,
                                       unsigned N){
 #pragma omp parallel for
-  for(unsigned i=0; i<c.size(); i++){
+  for(int i=0; i<c.size(); i++){
     std::vector<Neighbor> tmp;
     for(unsigned j=0; j<N; j++){
       float dist = distance_->compare(data_ + c[i] * dimension_, data_ + j * dimension_, dimension_);
@@ -197,7 +207,7 @@ void IndexGraph::InitializeGraph(const Parameters &parameters) {
     graph_.push_back(nhood(L, S, rng, (unsigned) nd_));
   }
 #pragma omp parallel for
-  for (unsigned i = 0; i < nd_; i++) {
+  for (int i = 0; i < nd_; i++) {
     const float *query = data_ + i * dimension_;
     std::vector<unsigned> tmp(S + 1);
     initializer_->Search(query, data_, S + 1, parameters, tmp.data());
@@ -226,7 +236,7 @@ void IndexGraph::InitializeGraph_Refine(const Parameters &parameters) {
     graph_.push_back(nhood(L, S, rng, (unsigned) nd_));
   }
 #pragma omp parallel for
-  for (unsigned i = 0; i < nd_; i++) {
+  for (int i = 0; i < nd_; i++) {
     auto& ids = final_graph_[i];
     std::sort(ids.begin(), ids.end());
 
@@ -420,9 +430,7 @@ void IndexGraph::GraphAdd(const float* data, unsigned n_new, unsigned dim, const
     std::cout<< "omp paralel: "<< omp_get_thread_num() << std::endl;
 
 #pragma omp for
-    
-
-    for(unsigned i = 0; i < n_new; i++){
+    for(int i = 0; i < n_new; i++){
       std::vector<Neighbor> res;
       get_neighbor_to_add(data + i * dim, parameters, graph_tmp, rng, res, n_new);
 

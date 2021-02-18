@@ -1224,7 +1224,8 @@ bool humap::has(vector<int>& indices, int index)
 	for( int i = 0; i < indices.size(); ++i )
 		if( indices[i] == index ) {
 			flag = true;
-			i += indices.size();
+			// i += indices.size();
+			break;
 		}
 
 	return flag;
@@ -2273,15 +2274,15 @@ py::array_t<double> humap::HierarchicalUMAP::project(int level, py::array_t<int>
 {
 	py::buffer_info bf = c.request();
 	int* classes = (int*) bf.ptr;
-	cout << "classes 1" << endl;
+	// cout << "classes 1" << endl;
 
 	vector<int> selected_indices;
-	cout << "Passei " << this->hierarchy_y.size() << ", " << level << endl;
+	// cout << "Passei " << this->hierarchy_y.size() << ", " << level << endl;
 	for( int i = 0; i < this->hierarchy_y[level].size(); ++i ) {
 		bool flag = false;
-		cout << "passei 2>  " << bf.shape[0] << endl;
+		// cout << "passei 2>  " << bf.shape[0] << endl;
 		for( int j = 0; j < bf.shape[0]; ++j ) {
-			cout << "passei 3> " << this->hierarchy_y[level].size() << ", " <<  i << ", " << j << endl; 
+			// cout << "passei 3> " << this->hierarchy_y[level].size() << ", " <<  i << ", " << j << endl; 
 			if( this->hierarchy_y[level][i] == classes[j] ) {
 				flag = true;
 				break;
@@ -2290,12 +2291,12 @@ py::array_t<double> humap::HierarchicalUMAP::project(int level, py::array_t<int>
 		if( flag )
 			selected_indices.push_back(i);
 	}	
-	cout << "classes: " <<  bf.shape[0] << endl;
-	for( int i = 0; i < bf.shape[0]; ++i )
-		cout << classes[i] << endl;
-	cout << "passei" << endl;
-	cout << endl;
-	cout << "selected indices :) " << selected_indices.size() << endl;
+	// cout << "classes: " <<  bf.shape[0] << endl;
+	// for( int i = 0; i < bf.shape[0]; ++i )
+	// 	cout << classes[i] << endl;
+	// cout << "passei" << endl;
+	// cout << endl;
+	// cout << "selected indices :) " << selected_indices.size() << endl;
 	return this->project_data(level, selected_indices);
 }
 
@@ -2407,7 +2408,7 @@ py::array_t<double> humap::HierarchicalUMAP::project_data(int level, vector<int>
 
 		umap::Matrix X = this->hierarchy_X[level-1];
 		vector<vector<double>> new_X;
-		cout << "passei 1" << endl;
+		// cout << "passei 1" << endl;
 		for( int i = 0; i < indices_next_level.size(); ++i ) {
 
 			vector<double> dd = X.dense_matrix[indices_next_level[i]];
@@ -2429,17 +2430,17 @@ py::array_t<double> humap::HierarchicalUMAP::project_data(int level, vector<int>
 
 			// new_X.push_back(utils::SparseData(new_data, new_indices));
 		}
-		cout << "passei 2" << endl;
+		// cout << "passei 2" << endl;
 		auto manipulation = clock::now();
 
 		pair<int,int> max_neighbor = *std::max_element(mapper.begin(), mapper.end(), [](const pair<int,int>& a, const pair<int, int>& b) {
 			return a.second < b.second;
 		});
-		cout << "olha: " << max_neighbor.second << " "  << (this->n_neighbors*2+5) << endl;
+		// cout << "olha: " << max_neighbor.second << " "  << (this->n_neighbors*2+5) << endl;
 		Eigen::SparseMatrix<double, Eigen::RowMajor> graph = this->reducers[level-1].get_graph();
 		Eigen::SparseMatrix<double, Eigen::RowMajor> new_graph(indices_next_level.size(), indices_next_level.size());
 		new_graph.reserve(Eigen::VectorXi::Constant(indices_next_level.size(), max_neighbor.second+5));
-		cout << "passei 3" << endl;
+		// cout << "passei 3" << endl;
 		for( int i = 0; i < indices_next_level.size(); ++i ) {
 			// cout<<i<<endl;
 			int k = indices_next_level[i];
@@ -2447,19 +2448,19 @@ py::array_t<double> humap::HierarchicalUMAP::project_data(int level, vector<int>
 				if( mapper.count(it.col()) >0 ) {
 					new_graph.insert(i, mapper[it.col()]) = it.value();
 					if( i >= indices_next_level.size() )
-						cout << "ATENCAO, i >= indices_next_level.size()" << endl;
+						cout << "ATTENTION: i >= indices_next_level.size()" << endl;
 					if( mapper[it.col()] >= max_neighbor.second+5 )
-						cout << "ATENCAO, mapper[it.col()] >= this->n_neighbors*2+5" << endl;
+						cout << "ATTENTION: mapper[it.col()] >= this->n_neighbors*2+5" << endl;
 
 				}	
 			}
 
 		}
-		cout << "passei 3.5" << endl;
+		// cout << "passei 3.5" << endl;
 		new_graph.makeCompressed();
-		cout << "passei 4" << endl;
+		// cout << "passei 4" << endl;
 		sec manipulation_duration = clock::now() - manipulation;
-		cout << "duration of manipulation " << manipulation_duration.count() << endl;
+		// cout << "duration of manipulation " << manipulation_duration.count() << endl;
 
 		umap::Matrix nX = umap::Matrix(new_X);
 

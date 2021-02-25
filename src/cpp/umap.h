@@ -1,6 +1,7 @@
 #ifndef UMAP_H
 #define UMAP_H
 
+#include <cstdlib>
 #include <cstdio>
 #include <algorithm>
 #include <string>
@@ -256,10 +257,12 @@ public:
 		knn_args["nTrees"] = "50";
 		knn_args["mLevel"] = "8";
 
-		knn_args["L"] = "100";
+		// hard-coded
+		// TODO: find an intelligent way to define these parameters
+		knn_args["L"] = std::to_string(n_neighbors_); //"100";
 		knn_args["iter"] = "3";
-		knn_args["S"] = "30";
-		knn_args["R"] = "30";
+		knn_args["S"] = std::to_string((int)(0.3*n_neighbors_)); //"30";
+		knn_args["R"] = std::to_string((int)(0.3*n_neighbors_)); //"30";
 	}
 
 

@@ -14,17 +14,27 @@ class HUMAP(object):
 		self.knn_algorithm = knn_algorithm
 		self.verbose = verbose
 
+		self.h_umap = _hierarchical_umap.HUMAP('precomputed', self.levels, self.n_neighbors, self.min_dist, self.knn_algorithm, self.verbose)
+
 
 	def fit(self, X, y):
 
 		X = check_array(X, dtype=np.float32, accept_sparse='csr', order='C')
-		
-		self.h_umap = _hierarchical_umap.HUMAP('precomputed', self.levels, self.n_neighbors, self.min_dist, self.knn_algorithm, self.verbose)
-		
 		a, b = self.find_ab_params(1.0, self.min_dist)
 		self.h_umap.set_ab_parameters(a, b)
 
 		self.h_umap.fit(X, y)
+
+
+	def set_distance_similarity(self, activate):
+		self.h_umap.set_distance_similarity(activate)
+
+	def set_path_increment(self, activate):
+		self.h_umap.set_path_increment(activate)
+
+	def set_influence_neighborhood(self, n_neighbors):
+		self.h_umap.set_influence_neighborhood(n_neighbors)
+
 
 	def original_indices(self, level):
 		return self.h_umap.get_original_indices(level)

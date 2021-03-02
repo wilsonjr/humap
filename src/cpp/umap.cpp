@@ -65,7 +65,6 @@ void umap::UMAP::optimize_euclidean_epoch(vector<vector<double>>& head_embedding
 			int n_neg_samples = (int) ((n-epoch_of_next_negative_sample[i])/epochs_per_negative_sample[i]);
 			// printf("19\n");
 			for( int p = 0; p < n_neg_samples; ++p ) {
-				// int k = utils::tau_rand_int(rng_state);
 				int k = dist(engine);
 				// if( k < 0 )
 				// 	k *= -1;

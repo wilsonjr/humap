@@ -20,13 +20,7 @@ void umap::UMAP::optimize_euclidean_epoch(vector<vector<double>>& head_embedding
 	for( int i = 0; i < epochs_per_sample.size(); ++i ) {
 		// printf("2\n");
 		if( epoch_of_next_sample[i] <= n ) {
-			// printf("3\n");
-				
-
 			int j = head[i];
-
-			// printf("4\n");
-			
 			int k = tail[i];
 			// printf("5\n");
 
@@ -236,10 +230,10 @@ vector<vector<double>> umap::UMAP::component_layout(umap::Matrix& data, int n_co
 {
 
 
-	cout << "Entrei 1" << endl;
-	cout << "n_components " << n_components << endl;
-	cout << "data.is_sparse(): " << data.is_sparse() << endl;
-	cout << "data.shape(1) " << data.shape(1) << endl;
+	// cout << "Entrei 1" << endl;
+	// cout << "n_components " << n_components << endl;
+	// cout << "data.is_sparse(): " << data.is_sparse() << endl;
+	// cout << "data.shape(1) " << data.shape(1) << endl;
 
 	vector<vector<double>> component_centroids(n_components, vector<double>(data.shape(1), 0.0));
 
@@ -582,6 +576,32 @@ vector<vector<double>> umap::UMAP::multi_component_layout(umap::Matrix& data,
 vector<vector<double>> umap::UMAP::spectral_layout(umap::Matrix& data, 
 	const Eigen::SparseMatrix<double, Eigen::RowMajor>& graph, int dim)
 {
+	using clock = chrono::system_clock;
+	using sec = chrono::duration<double>;
+	// random initialization
+	cout << "init: " << this->init << endl;
+
+	if( this->init != "Spectral" ) {
+		cout << "Random initialization" << endl;
+		py::module scipy_random = py::module::import("numpy.random");
+		py::object randomState = scipy_random.attr("RandomState")(this->random_state);
+		vector<int> size = {(int)graph.rows(), dim};
+		py::object noiseObj = randomState.attr("uniform")(py::arg("low")=-10, py::arg("high")=10, py::arg("size")=size);
+
+
+		return noiseObj.cast<vector<vector<double>>>();
+	} 
+	// else {
+	// 	cout << "Spectral initialization" << endl;
+	// 	py::module sklearn_manifold = py::module::import("sklearn.manifold");
+
+	// 	py::object spectralEmbedding = sklearn_manifold.attr("SpectralEmbedding")(py::arg("n_components")=2, py::arg("affinity")="precomputed");
+	// 	py::object embedding = spectralEmbedding.attr("fit_transform")(Eigen::MatrixXd(graph));
+
+	// 	return embedding.cast<vector<vector<double>>>();
+	// }
+
+
 
 	int n_samples = graph.rows();
 
@@ -651,7 +671,7 @@ vector<vector<double>> umap::UMAP::spectral_layout(umap::Matrix& data,
 
 	// cout << "spectral 6" << endl;
 	vector<double> temp(diag_data.size(), 0.0);
-// cout << "spectral 7" << endl;
+	// cout << "spectral 7" << endl;
 	for( int i = 0; i < temp.size(); ++i )
 		temp[i] = 1.0/sqrt(diag_data[i]);
 	// cout << "spectral 8" << endl;
@@ -667,10 +687,10 @@ vector<vector<double>> umap::UMAP::spectral_layout(umap::Matrix& data,
 	Eigen::SparseMatrix<double, Eigen::RowMajor> I = Iobj.cast<Eigen::SparseMatrix<double, Eigen::RowMajor>>();
 	// cout << "spectral 12" << endl;
 	Eigen::SparseMatrix<double, Eigen::RowMajor> D = Dobj.cast<Eigen::SparseMatrix<double, Eigen::RowMajor>>();
-// cout << "spectral 13" << endl;
+	// cout << "spectral 13" << endl;
 	Eigen::SparseMatrix<double, Eigen::RowMajor> L = I-D*graph*D;
-// cout << "spectral 14" << endl;
-
+	// cout << "spectral 14" << endl;
+	
 
 	// for( int i = 0; i < 20; ++i ) {
 	// 	auto row = L.row(i);
@@ -682,7 +702,7 @@ vector<vector<double>> umap::UMAP::spectral_layout(umap::Matrix& data,
 
 	int k = dim+1;
 	int num_lanczos_vectors = max(2*k+1, (int)sqrt(graph.rows()));
-// cout << "spectral 15" << endl;
+	// cout << "spectral 15" << endl;
 	// cout << "k: " << k << endl;
 	// cout << "num_lanczos_vectors: " << num_lanczos_vectors << endl;
 
@@ -694,9 +714,32 @@ vector<vector<double>> umap::UMAP::spectral_layout(umap::Matrix& data,
 		// cout << "spectral 16" << endl;
 		if( L.rows() < 2000000 ) {
 
+			auto tic = clock::now();
+			// Eigen::MatrixXd dMat = Eigen::MatrixXd(L);
+			// cout << "rows: " << L.rows() << " x cols: "  << L.cols() << endl;
+			// Eigen::EigenSolver<Eigen::SparseMatrix<double, Eigen::RowMajor>> es(L);
+			// Eigen::MatrixXd A = Eigen::MatrixXd::Random(6,6);
+			// cout << "Here is a random 6x6 matrix, A:" << endl << A << endl << endl;
+			 
+			// Eigen::EigenSolver<Eigen::MatrixXd> es(L);
+			// cout << "The eigenvalues of A are:" << endl << es.eigenvalues() << endl;
+			// cout << "The matrix of eigenvectors, V, is:" << endl << es.eigenvectors() << endl << endl;
+			sec toc = clock::now() - tic;
+			// cout << "Sparse to dense with c++: " << toc.count() << endl;
+
+
+			tic = clock::now();
+
 			eigen = scipy_sparse_linalg.attr("eigsh")(L, k, //nullptr, nullptr, 
 				py::arg("which") ="SM", py::arg("v0") = py::cast(vector<int>(L.rows(), 1.0)), 
 				py::arg("ncv") = num_lanczos_vectors, py::arg("tol") = 1e-4, py::arg("maxiter") = graph.rows()*5);
+
+			toc = clock::now() - tic;
+			cout << "Eigen with python: " << toc.count() << endl;
+
+			
+			// cout << "The eigenvalues of A are:" << endl << es.eigenvalues() << endl;
+			// cout << "The matrix of eigenvectors, V, is:" << endl << es.eigenvectors() << endl << endl;
 
 			// cout << "spectral 17" << endl;
 		} else {
@@ -704,6 +747,9 @@ vector<vector<double>> umap::UMAP::spectral_layout(umap::Matrix& data,
 			throw new runtime_error("L.rows() >= 2000000. Not implemented yet.");
 
 		}
+
+
+
 
 // cout << "spectral 19" << endl;
 		py::object eigenval = eigen.attr("__getitem__")(0);

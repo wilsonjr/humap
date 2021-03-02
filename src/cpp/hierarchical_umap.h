@@ -85,8 +85,8 @@ class HierarchicalUMAP
 {
 
 public:
-	HierarchicalUMAP(string similarity_method_, py::array_t<double> percents_, int n_neighbors_=15, double min_dist_=0.15,string knn_algorithm_="FAISS_IVFFlat", bool verbose_=false) 
-	: similarity_method(similarity_method_), n_neighbors(n_neighbors_), min_dist(min_dist_), knn_algorithm(knn_algorithm_), percent_glue(0.0), verbose(verbose_) {
+	HierarchicalUMAP(string similarity_method_, py::array_t<double> percents_, int n_neighbors_=15, double min_dist_=0.15,string knn_algorithm_="FAISS_IVFFlat", string init_="Spectral", bool verbose_=false) 
+	: similarity_method(similarity_method_), n_neighbors(n_neighbors_), min_dist(min_dist_), knn_algorithm(knn_algorithm_), percent_glue(0.0), init(init_), verbose(verbose_) {
 
 		percents = vector<double>((double*)percents_.request().ptr, (double*)percents_.request().ptr + percents_.request().shape[0]);
 
@@ -148,6 +148,7 @@ private:
 	bool distance_similarity = false;
 	bool path_increment = false;
 
+	string init = "Spectral";
 	int n_neighbors;
 	bool verbose;
 	int n_epochs = 500;

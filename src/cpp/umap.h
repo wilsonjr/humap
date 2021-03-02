@@ -14,6 +14,7 @@
 #include <omp.h>
 #include <Eigen/Sparse>
 #include <Eigen/Dense>
+#include <Eigen/Eigenvalues>
 
 #include <pybind11/pybind11.h>
 #include <pybind11/embed.h>
@@ -238,11 +239,12 @@ public:
 		knn_args["R"] = "50";
 	}
 
-	UMAP(string metric_, int n_neighbors_, double min_dist_=0.15, string knn_algorithm="FAISS_IVFFlat"): 
+	UMAP(string metric_, int n_neighbors_, double min_dist_=0.15, string knn_algorithm="FAISS_IVFFlat", string init_="Spectral"): 
 		metric(metric_), 
 		verbose(true),
 		n_neighbors(n_neighbors_),
 		min_dist(min_dist_),
+		init(init_),
 		local_connectivity(1.0)
 	{
 		cout << "Constructor 3: " << knn_algorithm << endl;
@@ -366,7 +368,7 @@ private:
 	int random_state = 0;
 
 
-	string init = "spectral";
+	string init = "Spectral";
 
 	string name = "C++ implementation of UMAP";
 

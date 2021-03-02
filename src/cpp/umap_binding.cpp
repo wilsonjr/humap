@@ -5,19 +5,10 @@ namespace py = pybind11;
 
 PYBIND11_MODULE(_hierarchical_umap, m) {
 
-
-	// py::class_<umap::UMAP>(m, "UMAP")
-	// 	.def(py::init<>())
-	// 	.def(py::init<string, string>())
-	// 	// .def("fit_hierarchy_sparse", &umap::UMAP::fit_hierarchy_sparse)
-	// 	// .def("fit_hierarchy", &umap::UMAP::fit_hierarchy)
-	// 	.def("__repr__", 
-	// 		[](umap::UMAP& a) {
-	// 			return "<class.UMAP named "+a.getName()+">";
-	// 		});
-
+	
+	
 	py::class_<humap::HierarchicalUMAP>(m, "HUMAP")
-		.def(py::init<string, py::array_t<double>, int, double, string, bool>())
+		.def(py::init<string, py::array_t<double>, int, double, string, string, bool>())
 		.def(py::init<>())
 		.def("fit", &humap::HierarchicalUMAP::fit)
 		.def("transform", &humap::HierarchicalUMAP::transform)
@@ -46,10 +37,4 @@ PYBIND11_MODULE(_hierarchical_umap, m) {
 			[](humap::HierarchicalUMAP& a) {
 				return "<class.HierarchicalUMAP>";
 			});
-
-
-
-
-	// m.def("add", &umap::add);
-
 }

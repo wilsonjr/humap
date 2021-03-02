@@ -1574,7 +1574,7 @@ void humap::HierarchicalUMAP::fit(py::array_t<double> X, py::array_t<int> y)
 	// 	this->knn_algorithm = "FAISS_Flat";
 	// }
 
-	umap::UMAP reducer = umap::UMAP("euclidean", this->n_neighbors, this->min_dist, this->knn_algorithm);
+	umap::UMAP reducer = umap::UMAP("euclidean", this->n_neighbors, this->min_dist, this->knn_algorithm, this->init);
 	reducer.set_ab_parameters(this->a, this->b);
 	if( this->verbose ) {
 		cout << "\n\n*************************************************************************" << endl;
@@ -1846,7 +1846,7 @@ void humap::HierarchicalUMAP::fit(py::array_t<double> X, py::array_t<int> y)
 
 
 			data = umap::Matrix(dense);
-			reducer = umap::UMAP("euclidean", this->n_neighbors, this->min_dist, this->knn_algorithm);
+			reducer = umap::UMAP("euclidean", this->n_neighbors, this->min_dist, this->knn_algorithm, this->init);
 			reducer.set_ab_parameters(this->a, this->b);
 
 
@@ -1900,12 +1900,12 @@ void humap::HierarchicalUMAP::fit(py::array_t<double> X, py::array_t<int> y)
 			cout << endl;
 
 			data = umap::Matrix(sparse, greatest.size());
-			reducer = umap::UMAP("precomputed", this->n_neighbors, this->min_dist, this->knn_algorithm);
+			reducer = umap::UMAP("precomputed", this->n_neighbors, this->min_dist, this->knn_algorithm, this->init);
 			reducer.set_ab_parameters(this->a, this->b);
 		} else {
 
 
-			reducer = umap::UMAP("euclidean", this->n_neighbors, this->min_dist, this->knn_algorithm);
+			reducer = umap::UMAP("euclidean", this->n_neighbors, this->min_dist, this->knn_algorithm, this->init);
 			reducer.set_ab_parameters(this->a, this->b);
 
 
@@ -2122,7 +2122,7 @@ py::array_t<int> humap::HierarchicalUMAP::get_original_indices(int level)
 py::array_t<int> humap::HierarchicalUMAP::get_labels(int level)
 {
 	if( level == 0 )  
-		throw new runtime_error("Sorry, we won't me able to return all the labels!");
+		throw new runtime_error("Sorry, we won't be able to return all the labels!");
 
 	if( level >= this->hierarchy_X.size() || level < 0 )
 		throw new runtime_error("Level out of bounds.");
@@ -2165,42 +2165,26 @@ vector<vector<double>> humap::HierarchicalUMAP::embed_data(int level, Eigen::Spa
 			n_epochs = 200;
 
 	}
-	// cout << "chguei aqui 3 " << endl;
+	
 	if( !graph.isCompressed() )
 		graph.makeCompressed();
 	// graph = graph.pruned();
-	// cout << "chguei aqui 4 " << endl;
+	
 	double max_value = graph.coeffs().maxCoeff();
 	graph = graph.pruned(max_value/(double)n_epochs, 1.0);
 
-
-	// cout << "chguei aqui 5 " << endl;
-
-
+	auto tic = clock::now();
 	vector<vector<double>> embedding = this->reducers[level].spectral_layout(X, graph, this->n_components);
-
-
-	// cout << "chguei aqui 6 " << endl;
-	vector<int> rows, cols;
-	vector<double> data;
-
+	sec toc = clock::now() - tic; 
+	cout << "Spectral layout: " << toc.count() << endl;
 	
-	// cout << "chguei aqui 7 " << endl;
+	vector<int> rows, cols;
+	vector<double> data;	
 	tie(rows, cols, data) = utils::to_row_format(graph);
 
-	// cout << "chguei aqui 8 " << endl;
+	
 	vector<double> epochs_per_sample = this->reducers[level].make_epochs_per_sample(data, this->n_epochs);
-	// cout << "\n\nepochs_per_sample: " << epochs_per_sample.size() << endl;
-
-	// cout << "chguei aqui 9 " << endl;
-	// for( int j = 0; j < 20; ++j )
-	// 	printf("%.4f ", epochs_per_sample[j]);
-
-	// cout << endl << endl;
-
-
-
-	// cout << "chguei aqui 10 " << endl;
+	
 	vector<double> min_vec, max_vec;
 	// printf("min and max values:\n");
 	for( int j = 0; j < this->n_components; ++j ) {
@@ -2217,10 +2201,10 @@ vector<vector<double>> humap::HierarchicalUMAP::embed_data(int level, Eigen::Spa
 		// cout <<" ****** 3" << endl;
 
 	}
-	// cout << "chguei aqui 11 " << endl;
+	
 	vector<double> max_minus_min(this->n_components, 0.0);
 	std::transform(max_vec.begin(), max_vec.end(), min_vec.begin(), max_minus_min.begin(), [](double a, double b){ return a-b; });
-	// cout << "chguei aqui 12 " << endl;
+	
 
 	for( int j = 0; j < embedding.size(); ++j ) {
 

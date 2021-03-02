@@ -1,5 +1,12 @@
 #include "utils.h"
 
+/**
+* Converts a Eigen::SparseMatrix to row-based tuple format
+*
+* @param M Eigen::SparseMatrix with values
+* @return std::tuple containing three lists representing the row indices, column indices, and the respective non-zero values
+*
+*/
 std::tuple<std::vector<int>, std::vector<int>, std::vector<double>> utils::to_row_format(const Eigen::SparseMatrix<double, Eigen::RowMajor>& M)
 {
   std::vector<int> rows;
@@ -16,13 +23,23 @@ std::tuple<std::vector<int>, std::vector<int>, std::vector<double>> utils::to_ro
   return make_tuple(rows, cols, vals);
 }
 
-
+/**
+* Creates a Eigen::SparseMatrix from indices and values
+*
+* @param rows Container representing with the row indices of non-zero values
+* @param cols Container representing with the col indices of non-zero values
+* @param vals Container representing with the non-zero values
+* @param size int representing the matrix number of rows
+* @param density int representing the max number of non-zero values in a row
+* @return Eigen::SparseMatrix
+*
+*/
 Eigen::SparseMatrix<double, Eigen::RowMajor> utils::create_sparse(vector<int>& rows, vector<int>& cols, vector<double>& vals, int size, int density)
 {
     
 
   Eigen::SparseMatrix<double, Eigen::RowMajor> result(size, size);
-  result.reserve(Eigen::VectorXi::Constant(size, density)); // TODO: verificar se é assim (ou com int)
+  result.reserve(Eigen::VectorXi::Constant(size, density)); 
 
   for( int i = 0; i < vals.size(); ++i )
     result.insert(rows[i], cols[i]) = vals[i];
@@ -31,7 +48,15 @@ Eigen::SparseMatrix<double, Eigen::RowMajor> utils::create_sparse(vector<int>& r
   return result;
 }
 
-
+/**
+* Creates a Eigen::SparseMatrix from SparseData
+*
+* @param X SparseData with indices and non-zero values
+* @param size int representing the matrix number of rows
+* @param density int representing the max number of non-zero values in a row
+* @return Eigen::SparseMatrix
+*
+*/
 Eigen::SparseMatrix<double, Eigen::RowMajor> utils::create_sparse(const vector<utils::SparseData>& X, int size, int density)
 {
 
@@ -48,17 +73,14 @@ Eigen::SparseMatrix<double, Eigen::RowMajor> utils::create_sparse(const vector<u
   return result;
 }
 
-long utils::tau_rand_int(vector<long>& state)
-{
-
-    state[0] = (((state[0] & 4294967294) << 12) & 0xFFFFFFFF) ^ ((((state[0] << 13) & 0xFFFFFFFF) ^ state[0]) >> 19);
-    state[1] = (((state[1] & 4294967288) << 4) & 0xFFFFFFFF) ^ ((((state[1] << 2) & 0xFFFFFFFF) ^ state[1]) >> 25);
-    state[2] = (((state[2] & 4294967280) << 17) & 0xFFFFFFFF) ^ ((((state[2] << 3) & 0xFFFFFFFF) ^ state[2]) >> 11);
-
-    return state[0] ^ state[1] ^ state[2];
-
-}
-
+/**
+* Computes the distance between two points without squared root
+*
+* @param x Container representing the first point
+* @param y Container representing the second point
+* @return the squared distance between two points
+*
+*/
 double utils::rdist(const vector<double>& x, const vector<double>& y)
 {
     double result = 0.0;
@@ -71,6 +93,13 @@ double utils::rdist(const vector<double>& x, const vector<double>& y)
     return result;
 }
 
+/**
+* Clips a value between -4 and 4 (used in the embedding minimization)
+*
+* @param value A gradient value
+* @return the clipped value between -4 and 4
+*
+*/
 double utils::clip(double value)
 {
     if( value > 4.0 )
@@ -81,7 +110,13 @@ double utils::clip(double value)
       return value;
 }
 
-
+/**
+* Computes the pairwise distance for a matrix
+*
+* @param X Container with shape (n_samples, n_features)
+* @return Container with shape (n_samples, n_samples) representing the pairwise distance
+*
+*/
 vector<vector<double>> utils::pairwise_distances(vector<vector<double>>& X)
 {
 
@@ -100,7 +135,6 @@ vector<vector<double>> utils::pairwise_distances(vector<vector<double>>& X)
       double distance = 0;
 
       for( int k = 0; k < d; ++k ) {
-       // distance += (X[i*d + k]-X[j*d + k])*(X[i*d + k]-X[j*d + k]);
         distance += (X[i][k]-X[j][k])*(X[i][k]-X[j][k]);
       }
 

@@ -31,7 +31,7 @@ std::tuple<std::vector<int>, std::vector<int>, std::vector<double>> utils::to_ro
 * @param vals Container representing with the non-zero values
 * @param size int representing the matrix number of rows
 * @param density int representing the max number of non-zero values in a row
-* @return Eigen::SparseMatrix
+* @return Eigen::SparseMatrix containing the sparse matrix representing organized by rows
 *
 */
 Eigen::SparseMatrix<double, Eigen::RowMajor> utils::create_sparse(vector<int>& rows, vector<int>& cols, vector<double>& vals, int size, int density)

@@ -1583,7 +1583,7 @@ void humap::HierarchicalUMAP::fit(py::array_t<double> X, py::array_t<int> y)
 	}
 
 	before = clock::now();
-	reducer.fit_hierarchy(this->hierarchy_X[0]);
+	reducer.fit(this->hierarchy_X[0]);
 	duration = clock::now() - before;
 	cout << "Fitting for first level: " << duration.count() << endl;
 	cout << endl;
@@ -1920,7 +1920,7 @@ void humap::HierarchicalUMAP::fit(py::array_t<double> X, py::array_t<int> y)
 		this->metadata[level].count_influence = vector<int>(greatest.size(), 0);
 
 		auto fit_before = clock::now();
-		reducer.fit_hierarchy(data);
+		reducer.fit(data);
 		sec fit_duration = clock::now() - fit_before;
 		cout << "Fitting level " << (level+1) << ": " << fit_duration.count() << endl;
 		cout << endl;
@@ -2219,12 +2219,6 @@ vector<vector<double>> humap::HierarchicalUMAP::embed_data(int level, Eigen::Spa
 			});
 	}
 
-	py::module scipy_random = py::module::import("numpy.random");
-	py::object randomState = scipy_random.attr("RandomState")(this->random_state);
-
-	py::object rngStateObj = randomState.attr("randint")(numeric_limits<int>::min(), numeric_limits<int>::max(), 3);
-	vector<long> rng_state = rngStateObj.cast<vector<long>>();
-
 	printf("Embedding a level with %d data samples\n", embedding.size());
 	auto before = clock::now(); 
 	vector<vector<double>> result = this->reducers[level].optimize_layout_euclidean(
@@ -2234,8 +2228,7 @@ vector<vector<double>> humap::HierarchicalUMAP::embed_data(int level, Eigen::Spa
 		cols,
 		this->n_epochs,
 		n_vertices,
-		epochs_per_sample,
-		rng_state);
+		epochs_per_sample);
 	sec duration = clock::now() - before;
 	cout << endl << "It took " << duration.count() << " to embed." << endl;
 

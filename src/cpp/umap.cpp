@@ -1,3 +1,38 @@
+// Author: Wilson Estécio Marcílio Júnior <wilson_jr@outlook.com>
+
+/*
+ *
+ * Copyright (c) 2021, Wilson Estécio Marcílio Júnior (São Paulo State University)
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *  notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *  notice, this list of conditions and the following disclaimer in the
+ *  documentation and/or other materials provided with the distribution.
+ * 3. All advertising materials mentioning features or use of this software
+ *  must display the following acknowledgement:
+ *  This product includes software developed by the São Paulo State University.
+ * 4. Neither the name of the São Paulo State University nor the names of
+ *  its contributors may be used to endorse or promote products derived from
+ *  this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY WILSON ESTÉCIO MARCÍLIO JÚNIOR ''AS IS'' AND ANY EXPRESS
+ * OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO
+ * EVENT SHALL WILSON ESTÉCIO MARCÍLIO JÚNIOR BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
+ * BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING
+ * IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
+ * OF SUCH DAMAGE.
+ *
+ */
+
+
 #include "umap.h"
 #include "utils.h"
 
@@ -165,7 +200,8 @@ vector<vector<double>> umap::UMAP::optimize_layout_euclidean(vector<vector<doubl
 			printf("\tcompleted %d / %d epochs\n", epoch, n_epochs);
 
 	}
-	printf("\tcompleted %d epochs\n", n_epochs);
+	if( this->verbose )
+		printf("\tcompleted %d epochs\n", n_epochs);
 
 
 	return head_embedding;
@@ -218,7 +254,7 @@ vector<vector<double>> umap::UMAP::component_layout(umap::Matrix& data, int n_co
 	vector<vector<double>> distance_matrix;
 
 	if( this->metric == "precomputed" ) {
-		cout << "precomputed" << endl;
+		// cout << "precomputed" << endl;
 		distance_matrix = vector<vector<double>>(n_components, vector<double>(n_components, 0.0));
 
 
@@ -517,7 +553,7 @@ vector<vector<double>> umap::UMAP::spectral_layout(umap::Matrix& data,
 	// random initialization
 
 	if( this->init != "Spectral" ) {
-		cout << "Random initialization" << endl;
+		// cout << "Random initialization" << endl;
 		py::module scipy_random = py::module::import("numpy.random");
 		py::object randomState = scipy_random.attr("RandomState")(this->random_state);
 		vector<int> size = {(int)graph.rows(), dim};
@@ -536,9 +572,9 @@ vector<vector<double>> umap::UMAP::spectral_layout(umap::Matrix& data,
 	vector<int> labels = connected_components.attr("__getitem__")(1).cast<vector<int>>();
 	
 	if( n_components > 1) {
-		cout << "WARNING: found more than one component." << endl;
+		// cout << "WARNING: found more than one component." << endl;
 		vector<vector<double>> spectral_embedding = this->multi_component_layout(data, graph, n_components, labels, dim);
-		cout << "Consegui passar de multi_component_layout" << endl;
+		
 		double max_value = spectral_embedding[0][0];
 		for( int i = 0; i < spectral_embedding.size(); ++i )
 			for( int j = 0; j <spectral_embedding[i].size(); ++j )

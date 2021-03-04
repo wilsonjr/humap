@@ -1,3 +1,7 @@
+# Author: Wilson Estécio Marcílio Júnior <wilson_jr@outlook.com>
+#
+# License: BSD 3 clause
+
 from setuptools import setup, Extension, find_packages
 
 from pybind11.setup_helpers import Pybind11Extension, build_ext

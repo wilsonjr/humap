@@ -61,6 +61,8 @@ Usage examples
 
 HUMAP package follows the same idea of sklearn classes, in which you need to fit and transform data.
 
+** Fitting the hierarchy **
+
 .. code:: python
 
 	import humap
@@ -72,6 +74,8 @@ HUMAP package follows the same idea of sklearn classes, in which you need to fit
 	hUmap = humap.HUMAP()
 	hUmap.fit(X, y)
 
+.. image:: images/mnist_top.png
+	:alt: HUMAP embedding of top-level MNIST digits
 
 By now, you can control six parameters that are related to the hierarchy construction and the embedding performed by UMAP.
 
@@ -83,15 +87,48 @@ major ones are as follows:
 
  -  ``n_neighbors``: This parameter controls the number of neighbors for approximating the manifold structures. Larger values produce embedding that preserves more of the global relations. In HUMAP, we recommend and set the default value to be ``100``.
 
- -  ``min_dist``: This parameter, used in UMAP dimensionality reduction, controls the allowance	to cluster data points together. According to UMAP documentation, larger values allows evenly distributed embeddings, while smaller values encodes better the local structures. We set this parameter as 0.15 as default.
+ -  ``min_dist``: This parameter, used in UMAP dimensionality reduction, controls the allowance	to cluster data points together. According to UMAP documentation, larger values allows evenly distributed embeddings, while smaller values encodes better the local structures. We set this parameter as ``0.15`` as default.
 
- -  ``knn_algorithm``: Controls which knn approximation will be used, in which NNDescent is the default. Another options are ANNOY or FLANN if you have Python installations of these algorithms, at the expense of	slower run-time executions compared with NNDescent.
+ -  ``knn_algorithm``: Controls which knn approximation will be used, in which ``NNDescent`` is the default. Another options are ``ANNOY`` or ``FLANN`` if you have Python installations of these algorithms, at the expense of	slower run-time executions compared with NNDescent.
 
  -  ``init``: Controls the method for initing the low-dimensional representation. We set ``Spectral`` as default since it yields better global structures preservation. You can also use ``random`` initialization.
 
  -  ``verbose``: Controls the verbosity of the algorithm.
 
 
+** Embedding a hierarchical level **
+
+After fitting the dataset, you can generate the embedding for a hierarchical level by just specifying the level.
+
+.. code:: python
+
+	embedding_l2 = hUmap.transform(2)
+	y_l2 = hUmap.labels(2)
+
+Notice that the ``.labels()`` method only works for levels equal or greater than one.
+
+
+** Drilling down the hierarchy by embedding a subset of data points based on indices **
+
+When interested in a set of data samples, HUMAP allows for drilling down the hierarchy for those samples.
+
+
+.. code:: python
+
+	embedding, y, indices = hUmap.transform(2, indices=indices_of_interest)
+
+This method returns the ``embedding`` coordinades, the labels (``y``) and the ``indices`` of the data points in the current level. Notice that the current level is now level 1 since we used the hierarchy level 2 for drilling down operation.
+
+.. image:: images/example_drill.png
+	:alt: Embedding data subsets throughout HUMAP hierarchy
+
+** Drilling down the hierarchy by embedding a subset of data points based on labels **
+
+You can apply the same concept as above to embed data points based on labels. 
+
+.. code:: python	
+
+	embedding, y, indices = hUmap.transform(2, indices=np.array([4, 9]), class_based=True)
 
 --------
 Citation

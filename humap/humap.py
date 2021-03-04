@@ -17,7 +17,7 @@ class HUMAP(object):
 
 	Parameters
 	----------
-	levels : array, shape (n_levels-1)
+	levels : array, shape (n_levels-1) (optinal, default [0.2, 0.2])
 		A numpy array to inform the percentage of data points in each hierarchy level starting from the second .
 
 	n_neighbors : int (optional, default 100)
@@ -42,7 +42,7 @@ class HUMAP(object):
 		Controls logging.
 
 	"""
-	def __init__(self, levels, n_neighbors=100, min_dist=0.15, knn_algorithm='NNDescent', init="Spectral", verbose=True):
+	def __init__(self, levels=np.array([0.2, 0.2]), n_neighbors=100, min_dist=0.15, knn_algorithm='NNDescent', init="Spectral", verbose=True):
 		self.levels = levels
 		self.n_neighbors = n_neighbors
 		self.min_dist = min_dist

@@ -31,17 +31,28 @@ Requirements:
 * pybind11
 * Eigen (C++)
 
+If you have these requirements installed, use PyPI:
 
-For Windows:
+.. code:: bash
 
-The `Eigen <https://eigen.tuxfamily.org/>`_ library does not have to be installed. Just add the files to `C:\Eigen` or use the manual installation.
+    pip install umap-learn
 
-Manual instalation: 
+
+**For Windows**:
+
+The `Eigen <https://eigen.tuxfamily.org/>`_ library does not have to be installed. Just add the files to `C:\\Eigen` or use the manual installation.
+
+**Manual instalation**: 
 
 For manually installing HUMAP, download the project and proceed as follows:
 
- ``python setup.py bdist_wheel``
- ``pip install dist/humap*.whl``
+.. code:: bash
+ 	
+ 	python setup.py bdist_wheel
+
+.. code:: bash
+
+ 	pip install dist/humap*.whl
 
 
 --------------
@@ -54,6 +65,20 @@ Usage examples
 Citation
 --------
 
+Please, use the following reference to cite HUMAP in your work:
+
+.. code:: bibtex
+
+    @article{MarcilioJr2021_HUMAP,
+      title={Hierarchical Uniform Manifold Approximation and Projection},
+      author={Marcílio-Jr, W. E. and Eler, D. M. and Paulovich, F. V.},
+      journal={IEEE Transations on Visualization and Computer Graphics},
+      volume={},
+      number={},
+      pages={},
+      year={2021}
+    }
+
 
 -------
 License
@@ -62,8 +87,6 @@ License
 HUMAP follows the 3-clause BSD license.
 
 
-HUMAP uses the open-source NNDescent implementation from `EFANNA <https://github.com/ZJULearning/efanna>`_. 
-
-HUMAP uses `UMAP <http://github.com/lmcinnes/umap>`_ for embedding hierarchy levels, this project would not be possible 
+HUMAP uses the open-source NNDescent implementation from `EFANNA <https://github.com/ZJULearning/efanna>`_. It uses `UMAP <http://github.com/lmcinnes/umap>`_ for embedding hierarchy levels, this project would not be possible 
 without UMAP amazing technique and package.
 

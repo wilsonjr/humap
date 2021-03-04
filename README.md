@@ -61,7 +61,7 @@ Usage examples
 
 HUMAP package follows the same idea of sklearn classes, in which you need to fit and transform data.
 
-** Fitting the hierarchy **
+**Fitting the hierarchy**
 
 .. code:: python
 
@@ -76,6 +76,7 @@ HUMAP package follows the same idea of sklearn classes, in which you need to fit
 
 .. image:: images/mnist_top.png
 	:alt: HUMAP embedding of top-level MNIST digits
+	:align: center
 
 By now, you can control six parameters that are related to the hierarchy construction and the embedding performed by UMAP.
 
@@ -96,7 +97,7 @@ major ones are as follows:
  -  ``verbose``: Controls the verbosity of the algorithm.
 
 
-** Embedding a hierarchical level **
+**Embedding a hierarchical level**
 
 After fitting the dataset, you can generate the embedding for a hierarchical level by just specifying the level.
 
@@ -108,7 +109,10 @@ After fitting the dataset, you can generate the embedding for a hierarchical lev
 Notice that the ``.labels()`` method only works for levels equal or greater than one.
 
 
-** Drilling down the hierarchy by embedding a subset of data points based on indices **
+**Drilling down the hierarchy by embedding a subset of data points based on indices**
+
+.. image:: images/example_drill.png
+	:alt: Embedding data subsets throughout HUMAP hierarchy
 
 When interested in a set of data samples, HUMAP allows for drilling down the hierarchy for those samples.
 
@@ -119,10 +123,9 @@ When interested in a set of data samples, HUMAP allows for drilling down the hie
 
 This method returns the ``embedding`` coordinades, the labels (``y``) and the ``indices`` of the data points in the current level. Notice that the current level is now level 1 since we used the hierarchy level 2 for drilling down operation.
 
-.. image:: images/example_drill.png
-	:alt: Embedding data subsets throughout HUMAP hierarchy
 
-** Drilling down the hierarchy by embedding a subset of data points based on labels **
+
+**Drilling down the hierarchy by embedding a subset of data points based on labels**
 
 You can apply the same concept as above to embed data points based on labels. 
 

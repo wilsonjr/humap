@@ -1,3 +1,7 @@
+# Author: Wilson Estécio Marcílio Júnior <wilson_jr@outlook.com>
+#
+# License: BSD 3 clause
+
 import _hierarchical_umap
 import numpy as np 
 

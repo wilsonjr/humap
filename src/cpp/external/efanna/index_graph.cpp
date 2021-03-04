@@ -144,13 +144,13 @@ void IndexGraph::NNDescent(const Parameters &parameters) {
     float current_recall  = eval_recall(control_points, acc_eval_set);
 
     if( fabs(recall_before-current_recall) <= 1e-6 ) {
-      std::cout << "Finishing earlier, recall: " << current_recall << std::endl;
+      // std::cout << "Finishing earlier, recall: " << current_recall << std::endl;
       break;
     }
     recall_before = current_recall;
 
 
-    std::cout << "\titeration " << it << " / " << iter << std::endl;
+    // std::cout << "\titeration " << it << " / " << iter << std::endl;
   }
 }
 
@@ -298,7 +298,7 @@ void IndexGraph::Build(size_t n, const float *data, const Parameters &parameters
   //RefineGraph(parameters);
 
   final_graph_.reserve(nd_);
-  std::cout << nd_ << std::endl;
+  // std::cout << nd_ << std::endl;
   unsigned K = parameters.Get<unsigned>("K");
   for (unsigned i = 0; i < nd_; i++) {
     std::vector<unsigned> tmp;
@@ -427,7 +427,7 @@ void IndexGraph::GraphAdd(const float* data, unsigned n_new, unsigned dim, const
 #pragma omp parallel
   {
     std::mt19937 rng(seed ^ omp_get_thread_num());
-    std::cout<< "omp paralel: "<< omp_get_thread_num() << std::endl;
+    // std::cout<< "omp paralel: "<< omp_get_thread_num() << std::endl;
 
 #pragma omp for
     for(int i = 0; i < n_new; i++){
@@ -440,11 +440,11 @@ void IndexGraph::GraphAdd(const float* data, unsigned n_new, unsigned dim, const
       }
 
     }
-     std::cout<< "omp for" << std::endl;
+     // std::cout<< "omp for" << std::endl;
   };
 
 
-  std::cout<<"complete: "<<std::endl;
+  // std::cout<<"complete: "<<std::endl;
   nd_ = total;
   final_graph_.resize(total);
   for(unsigned i=0; i<total; i++){

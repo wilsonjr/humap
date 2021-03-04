@@ -79,27 +79,15 @@ By now, you can control six parameters that are related to the hierarchy constru
 There are a number of parameters that can be set for the UMAP class; the
 major ones are as follows:
 
- -  ``levels``: Controls the number of hierarchical levels + the first one (whole dataset).
- 	This parameters also controls how many data points are in each hierarchical level.
- 	The default is ``[0.2, 0.2]``, meaning the HUMAP will produce three levels: The first one
- 	with the whole dataset, the second one with 20% of the first level, and the third with 20%
- 	of the second level.
+ -  ``levels``: Controls the number of hierarchical levels + the first one (whole dataset). This parameters also controls how many data points are in each hierarchical level. The default is ``[0.2, 0.2]``, meaning the HUMAP will produce three levels: The first one  	with the whole dataset, the second one with 20% of the first level, and the third with 20% of the second level.
 
- -  ``n_neighbors``: This parameter controls the number of neighbors for approximating
- 	the manifold structures. Larger values produce embedding that preserves more of the 
- 	global relations. In HUMAP, we recommend and set the default value to be ``100``.
+ -  ``n_neighbors``: This parameter controls the number of neighbors for approximating the manifold structures. Larger values produce embedding that preserves more of the global relations. In HUMAP, we recommend and set the default value to be ``100``.
 
- -  ``min_dist``: This parameter, used in UMAP dimensionality reduction, controls the allowance
- 	to cluster data points together. According to UMAP documentation, larger values allows evenly
- 	distributed embeddings, while smaller values encodes better the local structures. 
- 	We set this parameter as 0.15 as default.
+ -  ``min_dist``: This parameter, used in UMAP dimensionality reduction, controls the allowance	to cluster data points together. According to UMAP documentation, larger values allows evenly distributed embeddings, while smaller values encodes better the local structures. We set this parameter as 0.15 as default.
 
- -  ``knn_algorithm``: Controls which knn approximation will be used, in which NNDescent is the default.
- 	Another options are ANNOY or FLANN if you have Python installations of these algorithms, at the expense of
- 	slower run-time executions compared with NNDescent.
+ -  ``knn_algorithm``: Controls which knn approximation will be used, in which NNDescent is the default. Another options are ANNOY or FLANN if you have Python installations of these algorithms, at the expense of	slower run-time executions compared with NNDescent.
 
- -  ``init``: Controls the method for initing the low-dimensional representation. We set ``Spectral`` as default 
- 	since it yields better global structures preservation. You can also use ``random`` initialization.
+ -  ``init``: Controls the method for initing the low-dimensional representation. We set ``Spectral`` as default since it yields better global structures preservation. You can also use ``random`` initialization.
 
  -  ``verbose``: Controls the verbosity of the algorithm.
 

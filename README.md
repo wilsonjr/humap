@@ -35,7 +35,7 @@ If you have these requirements installed, use PyPI:
 
 .. code:: bash
 
-    pip install umap-learn
+    pip install humap
 
 
 **For Windows**:
@@ -79,10 +79,6 @@ HUMAP package follows the same idea of sklearn classes, in which you need to fit
 	:align: center
 
 By now, you can control six parameters that are related to the hierarchy construction and the embedding performed by UMAP.
-
-
-There are a number of parameters that can be set for the UMAP class; the
-major ones are as follows:
 
  -  ``levels``: Controls the number of hierarchical levels + the first one (whole dataset). This parameters also controls how many data points are in each hierarchical level. The default is ``[0.2, 0.2]``, meaning the HUMAP will produce three levels: The first one  	with the whole dataset, the second one with 20% of the first level, and the third with 20% of the second level.
 

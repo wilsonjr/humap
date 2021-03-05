@@ -1,5 +1,8 @@
 .. -*- mode: rst -*-
 
+.. image:: images/fmnist-cover.png
+	:alt: HUMAP exploration on Fashion MNIST dataset
+
 =====
 HUMAP
 =====
@@ -76,7 +79,6 @@ HUMAP package follows the same idea of sklearn classes, in which you need to fit
 
 .. image:: images/mnist_top.png
 	:alt: HUMAP embedding of top-level MNIST digits
-	:align: center
 
 By now, you can control six parameters that are related to the hierarchy construction and the embedding performed by UMAP.
 

@@ -1380,8 +1380,11 @@ py::array_t<double> humap::HierarchicalUMAP::project_data(int level, vector<int>
 	this->labels_selected = labels;	
 	this->influence_selected = this->get_influence_by_indices(level-1, indices_next_level);
 	this->indices_selected = indices_next_level;
-	
-	if( this->hierarchy_X[level-1].is_sparse() ) {
+	cout << ">> FOCUS+CONTEXT: " << this->focus_context << endl;
+	if( this->hierarchy_X[level-1].is_sparse() && !this->focus_context  ) {
+
+		cout << "FOCUS CONTEXT FALSE" << endl;
+
 		umap::Matrix X = this->hierarchy_X[level-1];
 		vector<utils::SparseData> new_X;
 
@@ -1420,24 +1423,195 @@ py::array_t<double> humap::HierarchicalUMAP::project_data(int level, vector<int>
 
 		Eigen::SparseMatrix<double, Eigen::RowMajor> graph = this->reducers[level-1].get_graph();
 		Eigen::SparseMatrix<double, Eigen::RowMajor> new_graph(indices_next_level.size(), indices_next_level.size());
-		new_graph.reserve(Eigen::VectorXi::Constant(indices_next_level.size(), this->n_neighbors*2+5));
 
+
+		pair<int,int> max_neighbor = *std::max_element(mapper.begin(), mapper.end(), [](const pair<int,int>& a, const pair<int, int>& b) {
+			return a.second < b.second;
+		});
+
+		new_graph.reserve(Eigen::VectorXi::Constant(indices_next_level.size(), max_neighbor.second+5));
+	
 		for( int i = 0; i < indices_next_level.size(); ++i ) {
+	
 			int k = indices_next_level[i];
 			for( Eigen::SparseMatrix<double, Eigen::RowMajor>::InnerIterator it(graph, k); it; ++it ) {
-				if( mapper.count(it.col()) > 0 ) {
+				if( mapper.count(it.col()) >0 ) {
 					new_graph.insert(i, mapper[it.col()]) = it.value();
-				
-				}
+					if( i >= indices_next_level.size() )
+						cout << "ATTENTION: i >= indices_next_level.size()" << endl;
+					if( mapper[it.col()] >= max_neighbor.second+5 )
+						cout << "ATTENTION: mapper[it.col()] >= this->n_neighbors*2+5" << endl;
+
+				}	
 			}
 
 		}
+
+
+		// new_graph.reserve(Eigen::VectorXi::Constant(indices_next_level.size(), this->n_neighbors*2+5));
+
+		// for( int i = 0; i < indices_next_level.size(); ++i ) {
+		// 	int k = indices_next_level[i];
+		// 	for( Eigen::SparseMatrix<double, Eigen::RowMajor>::InnerIterator it(graph, k); it; ++it ) {
+		// 		if( mapper.count(it.col()) > 0 ) {
+		// 			new_graph.insert(i, mapper[it.col()]) = it.value();
+				
+		// 		}
+		// 	}
+
+		// }
 		new_graph.makeCompressed();
 
 		umap::Matrix nX = umap::Matrix(new_X, indices_next_level.size());
 
 		return py::cast(this->embed_data(level-1, new_graph, nX));
 		
+	} if( this->hierarchy_X[level-1].is_sparse() && this->focus_context ) {
+
+		cout << "FOCUS CONTEXT TRUE" << endl;
+
+		umap::Matrix X = this->hierarchy_X[level-1];
+		vector<utils::SparseData> new_X;
+
+		int min_neighbors = 99999;
+		for( int i = 0; i < indices_next_level.size(); ++i ) {
+
+			utils::SparseData sd = X.sparse_matrix[indices_next_level[i]];
+			vector<double> data = sd.data;
+			vector<int> indices = sd.indices;
+
+			vector<int> assigned(indices_next_level.size(), 0);
+
+
+			vector<double> new_data;
+			vector<int> new_indices;
+
+			for( int j = 0; j < indices.size(); ++j ) {
+
+				if( mapper.count(indices[j]) > 0 ) {
+					new_data.push_back(data[j]);
+					new_indices.push_back(mapper[indices[j]]);
+					assigned[mapper[indices[j]]] = 1;
+				}
+			}
+
+			for( int j = 0; j < assigned.size(); ++j ) {
+				if( !assigned[j] ) {
+					new_data.push_back(1.0);
+					new_indices.push_back(j);
+				}
+			}
+
+			min_neighbors = min(min_neighbors, (int)new_indices.size());
+			new_X.push_back(utils::SparseData(new_data, new_indices));
+		}
+
+
+
+		// preprocessing for current level
+		map<int, int> new_mapper;
+		vector<int> indices_to_iterate;
+		int N_level = this->hierarchy_y[level].size();
+		std::vector<int>::iterator it;
+
+		for( int i = 0, j = 0; i < N_level - selected_indices.size(); ++i ) {
+			it = find(selected_indices.begin(), selected_indices.end(), i);
+			if( it == selected_indices.end() ) {
+				new_mapper[i] = new_X.size() + j++;
+				indices_to_iterate.push_back(i);
+			}
+		}
+
+		for( int i = 0; i < indices_to_iterate.size(); ++i ) {
+
+			int index = indices_to_iterate[i];
+			utils::SparseData sd = this->hierarchy_X[level].sparse_matrix[index];
+
+			// verificar se precisa disso tudo out somente n_neighbors
+			vector<int> assigned(indices_to_iterate.size() + indices_next_level.size(), 0);
+
+			vector<double> data = sd.data;
+			vector<int> indices = sd.indices;
+
+			vector<double> new_data;
+			vector<int> new_indices;
+
+			for( int j = 0; j < indices.size(); ++j ) {
+
+				if( new_mapper.count(indices[j]) > 0 ) {
+					new_data.push_back(data[j]);
+					new_indices.push_back(new_mapper[indices[j]]);
+					assigned[new_mapper[indices[j]]] = 1;
+				}
+			}
+
+
+
+
+			for( int j = 0; j < assigned.size(); ++j ) {
+				if( !assigned[j] ) {
+					new_data.push_back(1.0);
+					new_indices.push_back(j);		
+				}
+			}
+
+			min_neighbors = min(min_neighbors, (int) new_indices.size());
+			new_X.push_back(utils::SparseData(new_data, new_indices));
+
+		}
+
+		Eigen::SparseMatrix<double, Eigen::RowMajor> graph = this->reducers[level-1].get_graph();
+		Eigen::SparseMatrix<double, Eigen::RowMajor> graph2 = this->reducers[level].get_graph();
+
+		Eigen::SparseMatrix<double, Eigen::RowMajor> new_graph(new_X.size(), new_X.size());
+
+		pair<int, int> max_neighbor = *std::max_element(new_mapper.begin(), new_mapper.end(), 
+		[](const pair<int, int>& a, const pair<int, int>& b) {
+			return a.second < b.second;
+		});
+
+		new_graph.reserve(Eigen::VectorXi::Constant(new_X.size(), max_neighbor.second+5));
+
+		for( int i = 0; i < indices_next_level.size(); ++i ) {
+
+			int k = indices_next_level[i];
+			
+			for( Eigen::SparseMatrix<double, Eigen::RowMajor>::InnerIterator it(graph, k); it; ++it ) {
+				if( mapper.count(it.col()) > 0 ) {
+					new_graph.insert(i, mapper[it.col()]) = it.value();
+					if( i >= new_X.size() )
+						cout << "ATTENTION: i >= new_X.size()" << endl;
+					if( mapper[it.col()] >= max_neighbor.second+5 )
+						cout << "ATTENTION: mapper[it.col()] >= max_neighbor.second+5" << endl;
+				}
+			}
+		}
+
+		for( int i = 0; i < indices_to_iterate.size(); ++i ) {
+			
+			int k = indices_to_iterate[i];
+
+			for( Eigen::SparseMatrix<double, Eigen::RowMajor>::InnerIterator it(graph2, k); it; ++it ) {
+				if( new_mapper.count(it.col()) > 0 ) {
+					new_graph.insert(indices_next_level.size() + i, new_mapper[it.col()]) = it.value();
+
+					if( i >= new_X.size() )
+						cout << "ATTENTION: i >= new_X.size()" << endl;
+					if( new_mapper[it.col()] >= max_neighbor.second+5 )
+						cout << "ATTENTION: new_mapper[it.col()] >= max_neighbor.second+5" << endl;					
+				}
+			}
+		}
+
+
+		new_graph.makeCompressed();
+
+		umap::Matrix nX = umap::Matrix(new_X, new_X.size());
+
+		return py::cast(this->embed_data(level-1, new_graph, nX));
+
+		
+
 	} else {
 
 

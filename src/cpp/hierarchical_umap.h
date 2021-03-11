@@ -223,6 +223,9 @@ public:
 
 	// sets the ab parameters computed using Python
 	void set_ab_parameters(double a, double b) { this->a = a; this->b = b; }
+
+	// defines how the embedding will be performed
+	void set_focus_context(bool value) { this->focus_context = value; }
 		
 private:
 
@@ -239,7 +242,7 @@ private:
 	int influence_neighborhood = 0;
 
 	bool verbose;
-
+	bool focus_context = false;
 	bool distance_similarity = false;
 	
 	double min_dist = 0.15;

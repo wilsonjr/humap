@@ -94,6 +94,20 @@ class HUMAP(object):
 
 		self.h_umap.fit(X, y)
 
+	def set_focus_context(self, focus_context):
+		r"""
+		Defines how th embedding will be performed in terms of visualization
+
+			Focus+Context (true) means that lower hierarchical levels will be projected
+		together with higher hierarchical levels
+
+	
+		Parameters
+		----------
+		focus_context : bool
+			Indicates how to perform embedding
+		"""
+		self.h_umap.set_focus_context(focus_context)
 
 
 	def set_influence_neighborhood(self, n_neighbors):

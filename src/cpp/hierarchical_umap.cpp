@@ -1380,6 +1380,7 @@ py::array_t<double> humap::HierarchicalUMAP::project_data(int level, vector<int>
 	this->labels_selected = labels;	
 	this->influence_selected = this->get_influence_by_indices(level-1, indices_next_level);
 	this->indices_selected = indices_next_level;
+
 	cout << ">> FOCUS+CONTEXT: " << this->focus_context << endl;
 	if( this->hierarchy_X[level-1].is_sparse() && !this->focus_context  ) {
 
@@ -1467,7 +1468,6 @@ py::array_t<double> humap::HierarchicalUMAP::project_data(int level, vector<int>
 		return py::cast(this->embed_data(level-1, new_graph, nX));
 		
 	} if( this->hierarchy_X[level-1].is_sparse() && this->focus_context ) {
-
 		cout << "FOCUS CONTEXT TRUE" << endl;
 
 		umap::Matrix X = this->hierarchy_X[level-1];
@@ -1512,15 +1512,19 @@ py::array_t<double> humap::HierarchicalUMAP::project_data(int level, vector<int>
 		map<int, int> new_mapper;
 		vector<int> indices_to_iterate;
 		int N_level = this->hierarchy_y[level].size();
+		vector<int> additional_y;
 		std::vector<int>::iterator it;
 
-		for( int i = 0, j = 0; i < N_level - selected_indices.size(); ++i ) {
+		for( int i = 0, j = 0; i < N_level; ++i ) {
 			it = find(selected_indices.begin(), selected_indices.end(), i);
 			if( it == selected_indices.end() ) {
 				new_mapper[i] = new_X.size() + j++;
 				indices_to_iterate.push_back(i);
+				additional_y.push_back(this->hierarchy_y[level][i]);
 			}
 		}
+
+		this->labels_selected.insert(this->labels_selected.end(), additional_y.begin(), additional_y.end());
 
 		for( int i = 0; i < indices_to_iterate.size(); ++i ) {
 
@@ -1609,9 +1613,6 @@ py::array_t<double> humap::HierarchicalUMAP::project_data(int level, vector<int>
 		umap::Matrix nX = umap::Matrix(new_X, new_X.size());
 
 		return py::cast(this->embed_data(level-1, new_graph, nX));
-
-		
-
 	} else {
 
 

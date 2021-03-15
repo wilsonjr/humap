@@ -259,6 +259,11 @@ public:
 		this->b = b;
 	} 
 
+	// set which datapoints are free during optimization
+	void set_free_datapoints(vector<bool> free_datapoints) {
+		this->_free_datapoints = free_datapoints;
+	}
+
 	// fit the dataset in fact
 	void prepare_for_fitting(Matrix& X);
 
@@ -309,6 +314,7 @@ private:
 	Matrix dataset;
 	Matrix pairwise_distance;
 
+	vector<bool>		   _free_datapoints;
 	vector<double> 		   _sigmas; 
 	vector<double>         _rhos; 
 	vector<vector<int>>    _knn_indices;

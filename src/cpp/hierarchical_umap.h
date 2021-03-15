@@ -256,11 +256,14 @@ private:
 	vector<int>                    labels_selected;
 	vector<int>                    influence_selected;
 	vector<int>                    indices_selected;
+	vector<int>                    indices_fixed;
+	vector<bool>                   free_datapoints;
 	vector<double> 				   percents;
 	vector<vector<int>>            hierarchy_y;
 	vector<vector<int>>            original_indices;
 	vector<vector<int>>            _indices;
 	vector<vector<double>> 		   _sigmas;
+	vector<vector<double>>         backup_embedding;
 	vector<vector<vector<double>>> embeddings;
 
 	vector<Metadata> metadata;

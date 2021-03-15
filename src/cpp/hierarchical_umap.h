@@ -60,6 +60,28 @@ namespace py = pybind11;
 
 namespace humap {
 
+// converts py array to dense representation
+vector<vector<double>> convert_to_vector(const py::array_t<double>& v);
+
+// creates a sparse object from rows, columns, and values
+vector<utils::SparseData> create_sparse(int n, const vector<int>& rows, const vector<int>& cols, const vector<double>& vals);
+
+// returns how many times each data point was an endpoint after a markov chain
+vector<int>  markov_chain(vector<vector<int>>& knn_indices, vector<double>& vals, vector<int>& cols, int num_walks, int walk_length); 
+
+// returns the endpoint after a random walk
+int random_walk(int vertex, int n_neighbors, vector<double>& vals, vector<int>& cols, int walk_length, 
+	            std::uniform_real_distribution<double>& unif, std::default_random_engine& rng);
+
+
+// returns the max neighborhood after markov chain
+int markov_chain(vector<vector<int>>& knn_indices, vector<double>& vals, vector<int>& cols, 
+	             int num_walks, int walk_length, vector<int>& landmarks, int influence_neighborhood, vector<vector<int>>& neighborhood, vector<vector<int>>& association);
+
+// returns the endpoint after a random walk
+int random_walk(int vertex, int n_neighbors, vector<double>& vals, vector<int>& cols, 
+				int walk_length, uniform_real_distribution<double>& unif, mt19937& rng, vector<int>& is_landmark);	
+
 
 /**
 * Metadata to store information of each hierarchy level during fitting
@@ -226,6 +248,9 @@ public:
 
 	// defines how the embedding will be performed
 	void set_focus_context(bool value) { this->focus_context = value; }
+
+	// fix datapoints
+	void set_fixed_datapoints(py::array_t<double> fixed) { this->fixed_datapoints = convert_to_vector(fixed); }
 		
 private:
 
@@ -263,7 +288,7 @@ private:
 	vector<vector<int>>            original_indices;
 	vector<vector<int>>            _indices;
 	vector<vector<double>> 		   _sigmas;
-	vector<vector<double>>         backup_embedding;
+	vector<vector<double>> 		   fixed_datapoints;
 	vector<vector<vector<double>>> embeddings;
 
 	vector<Metadata> metadata;
@@ -319,27 +344,7 @@ private:
 
 
 
-// converts py array to dense representation
-vector<vector<double>> convert_to_vector(const py::array_t<double>& v);
 
-// creates a sparse object from rows, columns, and values
-vector<utils::SparseData> create_sparse(int n, const vector<int>& rows, const vector<int>& cols, const vector<double>& vals);
-
-// returns how many times each data point was an endpoint after a markov chain
-vector<int>  markov_chain(vector<vector<int>>& knn_indices, vector<double>& vals, vector<int>& cols, int num_walks, int walk_length); 
-
-// returns the endpoint after a random walk
-int random_walk(int vertex, int n_neighbors, vector<double>& vals, vector<int>& cols, int walk_length, 
-	            std::uniform_real_distribution<double>& unif, std::default_random_engine& rng);
-
-
-// returns the max neighborhood after markov chain
-int markov_chain(vector<vector<int>>& knn_indices, vector<double>& vals, vector<int>& cols, 
-	             int num_walks, int walk_length, vector<int>& landmarks, int influence_neighborhood, vector<vector<int>>& neighborhood, vector<vector<int>>& association);
-
-// returns the endpoint after a random walk
-int random_walk(int vertex, int n_neighbors, vector<double>& vals, vector<int>& cols, 
-				int walk_length, uniform_real_distribution<double>& unif, mt19937& rng, vector<int>& is_landmark);
 
 }
 

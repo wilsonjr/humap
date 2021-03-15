@@ -10,6 +10,7 @@
 #include <cstddef>
 #include <vector>
 #include <mutex>
+#include <iterator>
 
 namespace efanna2e {
 

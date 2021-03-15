@@ -1295,6 +1295,11 @@ vector<vector<double>> humap::HierarchicalUMAP::embed_data(int level, Eigen::Spa
 		cout << endl << "It took " << duration.count() << " to embed." << endl;
 	}
 
+	this->backup_embedding = result;
+
+	// makes sure a level only influences on the level below it
+	this->free_datapoints = vector<bool>();
+
 	return result;
 }	
 
@@ -1363,6 +1368,8 @@ py::array_t<double> humap::HierarchicalUMAP::project_data(int level, vector<int>
 	vector<int> indices_next_level;
 	vector<int> labels;
 	map<int, int> mapper;
+
+	cout << "selected indices: " << selected_indices.size() << endl;
 	
 	for( int i = 0; i < this->metadata[level-1].size; ++i ) {
 		int landmark = this->metadata[level-1].indices[i];
@@ -1377,14 +1384,15 @@ py::array_t<double> humap::HierarchicalUMAP::project_data(int level, vector<int>
 			}
 	}
 
+	cout << "indices_next_level: " << indices_next_level.size() << endl;
+
 	this->labels_selected = labels;	
 	this->influence_selected = this->get_influence_by_indices(level-1, indices_next_level);
 	this->indices_selected = indices_next_level;
 
-	cout << ">> FOCUS+CONTEXT: " << this->focus_context << endl;
-	if( this->hierarchy_X[level-1].is_sparse() && !this->focus_context  ) {
+	cout << "indices_next_level: " << indices_next_level.size() << endl;
 
-		cout << "FOCUS CONTEXT FALSE" << endl;
+	if( this->hierarchy_X[level-1].is_sparse() && !this->focus_context  ) {
 
 		umap::Matrix X = this->hierarchy_X[level-1];
 		vector<utils::SparseData> new_X;
@@ -1436,7 +1444,7 @@ py::array_t<double> humap::HierarchicalUMAP::project_data(int level, vector<int>
 	
 			int k = indices_next_level[i];
 			for( Eigen::SparseMatrix<double, Eigen::RowMajor>::InnerIterator it(graph, k); it; ++it ) {
-				if( mapper.count(it.col()) >0 ) {
+				if( mapper.count(it.col()) > 0 ) {
 					new_graph.insert(i, mapper[it.col()]) = it.value();
 					if( i >= indices_next_level.size() )
 						cout << "ATTENTION: i >= indices_next_level.size()" << endl;
@@ -1468,7 +1476,9 @@ py::array_t<double> humap::HierarchicalUMAP::project_data(int level, vector<int>
 		return py::cast(this->embed_data(level-1, new_graph, nX));
 		
 	} if( this->hierarchy_X[level-1].is_sparse() && this->focus_context ) {
-		cout << "FOCUS CONTEXT TRUE" << endl;
+
+		if( this->verbose )
+			cout << "Using Focus+Context strategy" << endl;
 
 		umap::Matrix X = this->hierarchy_X[level-1];
 		vector<utils::SparseData> new_X;

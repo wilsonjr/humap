@@ -78,8 +78,7 @@ void umap::UMAP::optimize_euclidean_epoch(vector<vector<double>>& head_embedding
 			int j = head[i];
 			int k = tail[i];
 
-			vector<double>* current = &head_embedding[j];
-			
+			vector<double>* current = &head_embedding[j];			
 			vector<double>* other = &tail_embedding[k];
 			
 
@@ -94,8 +93,10 @@ void umap::UMAP::optimize_euclidean_epoch(vector<vector<double>>& head_embedding
 
 			for( int d = 0; d < dim; ++d ) {
 				double grad_d = utils::clip(grad_coeff * ((*current)[d] - (*other)[d]));
-				(*current)[d] += (grad_d * alpha);
-				if( move_other ) {
+				if( this->_free_datapoints[j] ) {
+					(*current)[d] += (grad_d * alpha);
+				}
+				if( move_other && this->_free_datapoints[k] ) {
 					(*other)[d] += (-grad_d * alpha);
 				}
 			}
@@ -126,7 +127,10 @@ void umap::UMAP::optimize_euclidean_epoch(vector<vector<double>>& head_embedding
 					else {
 						grad_d = 4.0;
 					}
-					(*current)[d] += (grad_d * alpha);
+
+					if( this->_free_datapoints[j] ) {
+						(*current)[d] += (grad_d * alpha);
+					}
 				}
 
 			}
@@ -171,6 +175,10 @@ vector<vector<double>> umap::UMAP::optimize_layout_euclidean(vector<vector<doubl
 
 	vector<double> epoch_of_next_negative_sample(epochs_per_negative_sample.begin(), epochs_per_negative_sample.end());
 	vector<double> epoch_of_next_sample(epochs_per_sample.begin(), epochs_per_sample.end());
+
+	if( this->_free_datapoints.size() == 0 ) {
+		this->_free_datapoints = vector<bool>(head_embedding.size(), true);
+	}
 
 
 	for( int epoch = 0; epoch < n_epochs; ++epoch ) {

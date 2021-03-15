@@ -1279,7 +1279,14 @@ vector<vector<double>> humap::HierarchicalUMAP::embed_data(int level, Eigen::Spa
 	}
 
 	this->reducers[level].verbose = this->verbose;
-	
+	this->reducers[level].set_free_datapoints(this->free_datapoints);
+
+	if( this->free_datapoints.size() != 0 ) {
+		for( int i = 0; i < this->indices_fixed.size(); ++i ) {
+			embedding[this->indices_fixed[i]] = this->fixed_datapoints[i];
+		}
+	}
+
 	vector<vector<double>> result = this->reducers[level].optimize_layout_euclidean(
 		embedding,
 		embedding,
@@ -1295,10 +1302,10 @@ vector<vector<double>> humap::HierarchicalUMAP::embed_data(int level, Eigen::Spa
 		cout << endl << "It took " << duration.count() << " to embed." << endl;
 	}
 
-	this->backup_embedding = result;
-
 	// makes sure a level only influences on the level below it
 	this->free_datapoints = vector<bool>();
+	this->fixed_datapoints = vector<vector<double>>();
+
 
 	return result;
 }	
@@ -1369,28 +1376,49 @@ py::array_t<double> humap::HierarchicalUMAP::project_data(int level, vector<int>
 	vector<int> labels;
 	map<int, int> mapper;
 
-	cout << "selected indices: " << selected_indices.size() << endl;
+	vector<int> correspond_values;
 	
 	for( int i = 0; i < this->metadata[level-1].size; ++i ) {
 		int landmark = this->metadata[level-1].indices[i];
 
-		for( int j = 0; j < selected_indices.size(); ++j )
+		for( int j = 0; j < selected_indices.size(); ++j ) {
+			
 			if( landmark == selected_indices[j] && !is_in_it[i] ) {
 				labels.push_back(this->hierarchy_y[level-1][i]);
 				indices_next_level.push_back(i);
 				mapper[i] = indices_next_level.size()-1;
 				is_in_it[i] = true;
+
+				if( this->original_indices[level-1][i] == this->original_indices[level][selected_indices[j]]) {
+					correspond_values.push_back(indices_next_level.size()-1);				
+				}
+
 				break;
 			}
+
+			// cout << "nao" << endl;
+
+		}
 	}
 
-	cout << "indices_next_level: " << indices_next_level.size() << endl;
+	if( this->fixed_datapoints.size() != 0 ) {
+
+		cout << "Fixed datapoints is not empty! " << endl;
+		cout << "I will have " << this->fixed_datapoints.size() << " data points in the next optimization. " << endl;
+		cout << "Correspond values has " << correspond_values.size() << "/" << selected_indices.size() << " indices, from " << indices_next_level.size() << " to be projected. " << endl;
+		
+		this->free_datapoints = vector<bool>(indices_next_level.size(), true);
+		
+		for( int i = 0; i < correspond_values.size(); ++i ) {
+			free_datapoints[correspond_values[i]] = false;
+		}
+
+		this->indices_fixed = correspond_values;
+	}
 
 	this->labels_selected = labels;	
 	this->influence_selected = this->get_influence_by_indices(level-1, indices_next_level);
 	this->indices_selected = indices_next_level;
-
-	cout << "indices_next_level: " << indices_next_level.size() << endl;
 
 	if( this->hierarchy_X[level-1].is_sparse() && !this->focus_context  ) {
 

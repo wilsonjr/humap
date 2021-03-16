@@ -877,7 +877,7 @@ void humap::HierarchicalUMAP::fit(py::array_t<double> X, py::array_t<int> y)
  		cout << "done in " << influence_time.count() << " seconds." << endl;
 
  			
-
+ 		level_landmarks.push_back(inds_lands);
 
 
  		/*
@@ -1044,6 +1044,16 @@ py::array_t<double> humap::HierarchicalUMAP::transform(int level)
 {
 	if( level >= this->hierarchy_X.size() || level < 0 )
 		throw new runtime_error("Level out of bounds.");
+
+	if( this->fixed_datapoints.size() != 0 && level < this->hierarchy_X.size()-1 ) {
+
+		this->indices_fixed = vector<int>(level_landmarks[level].begin(), level_landmarks[level].end());
+
+		this->free_datapoints = vector<bool>(this->metadata[level].indices.size(), true);
+		for( int i = 0; i < this->indices_fixed.size(); ++i ) {
+			this->free_datapoints[indices_fixed[i]] = false;
+		}
+	}
 
 	vector<vector<double>> result = this->embed_data(level, this->reducers[level].get_graph(), this->hierarchy_X[level]);
 

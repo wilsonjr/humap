@@ -297,6 +297,7 @@ private:
 	vector<vector<int>>            _indices;
 	vector<vector<double>> 		   _sigmas;
 	vector<vector<double>> 		   fixed_datapoints;
+	vector<vector<int>>            level_landmarks;
 	vector<vector<vector<double>>> embeddings;
 
 	vector<Metadata> metadata;

@@ -264,6 +264,11 @@ public:
 		this->_free_datapoints = free_datapoints;
 	}
 
+	// set how free is the fixing data points
+	void set_fixing_term(double fixing_term) {
+		this->_fixing_term = fixing_term;
+	}
+
 	// fit the dataset in fact
 	void prepare_for_fitting(Matrix& X);
 
@@ -304,6 +309,7 @@ private:
 	double _a, _b;
 	double local_connectivity;
 	double a = -1.0, b = -1.0;
+	double _fixing_term = 0.01;
 	double _initial_alpha = 1.0;
 	double repulsion_strength = 1.0;
 	double negative_sample_rate = 5.0;	

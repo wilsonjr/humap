@@ -65,6 +65,8 @@ PYBIND11_MODULE(_hierarchical_umap, m) {
 		.def("set_distance_similarity", &humap::HierarchicalUMAP::set_distance_similarity)
 		.def("set_focus_context", &humap::HierarchicalUMAP::set_focus_context)
 		.def("set_fixed_datapoints", &humap::HierarchicalUMAP::set_fixed_datapoints)
+		.def("set_fixing_term", &humap::HierarchicalUMAP::set_fixing_term)
+		.def("geomTrans", &humap::HierarchicalUMAP::geomTrans)
 		.def("__repr__",
 			[](humap::HierarchicalUMAP& a) {
 				return "<class.HierarchicalUMAP>";

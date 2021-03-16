@@ -249,8 +249,15 @@ public:
 	// defines how the embedding will be performed
 	void set_focus_context(bool value) { this->focus_context = value; }
 
+	// set how free is the fixed data points across level
+	void set_fixing_term(double fixing_term) { this->_fixing_term = fixing_term; }
+
 	// fix datapoints
 	void set_fixed_datapoints(py::array_t<double> fixed) { this->fixed_datapoints = convert_to_vector(fixed); }
+
+
+	Eigen::MatrixXd geomTrans(Eigen::MatrixXd const &pointsFrom,
+                                  Eigen::MatrixXd const &pointsTo);
 		
 private:
 
@@ -272,7 +279,8 @@ private:
 	
 	double min_dist = 0.15;
 	double a = -1.0, b = -1.0;
-	double percent_glue =0.0;
+	double percent_glue = 0.0;
+	double _fixing_term = 0.01;
 
 	string init = "Spectral";
 	string similarity_method;

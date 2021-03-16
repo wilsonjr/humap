@@ -209,6 +209,19 @@ class HUMAP(object):
 		except:
 			raise ValueError("level must be in [1, n_levels-1]")
 
+
+	def fix_datapoints(self, datapoints):
+		self.h_umap.set_fixed_datapoints(datapoints)
+
+	def set_fixing_term(self, fixing_term):
+		self.h_umap.set_fixing_term(fixing_term)
+
+
+
+	def geom_trans(self, points_from, points_to):
+		return self.h_umap.geomTrans(points_from, points_to)
+
+
 	
 	def find_ab_params(self, spread, min_dist):
 		"""

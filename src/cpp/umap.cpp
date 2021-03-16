@@ -93,11 +93,21 @@ void umap::UMAP::optimize_euclidean_epoch(vector<vector<double>>& head_embedding
 
 			for( int d = 0; d < dim; ++d ) {
 				double grad_d = utils::clip(grad_coeff * ((*current)[d] - (*other)[d]));
+
 				if( this->_free_datapoints[j] ) {
 					(*current)[d] += (grad_d * alpha);
+				} else {
+					(*current)[d] += (grad_d * alpha)*this->_fixing_term;
 				}
-				if( move_other && this->_free_datapoints[k] ) {
-					(*other)[d] += (-grad_d * alpha);
+			
+				if( move_other ) {
+
+					if( this->_free_datapoints[k] ) {
+						(*other)[d] += (-grad_d * alpha);
+					} else {
+						(*other)[d] += (-grad_d * alpha)*this->_fixing_term;
+					}
+
 				}
 			}
 
@@ -130,6 +140,8 @@ void umap::UMAP::optimize_euclidean_epoch(vector<vector<double>>& head_embedding
 
 					if( this->_free_datapoints[j] ) {
 						(*current)[d] += (grad_d * alpha);
+					} else {
+						(*current)[d] += (grad_d * alpha)*this->_fixing_term;
 					}
 				}
 
@@ -1431,3 +1443,6 @@ double* umap::Matrix::data() {
 
 	return d;
 }
+
+
+

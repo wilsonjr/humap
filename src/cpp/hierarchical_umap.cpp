@@ -1232,8 +1232,18 @@ vector<vector<double>> humap::HierarchicalUMAP::embed_data(int level, Eigen::Spa
 	vector<vector<double>> embedding = this->reducers[level].spectral_layout(X, graph, this->n_components);
 	sec toc = clock::now() - tic; 
 
+	this->reducers[level].set_free_datapoints(this->free_datapoints);
+	this->reducers[level].set_fixing_term(this->_fixing_term);
+
+	if( this->free_datapoints.size() != 0 ) {
+		for( int i = 0; i < this->indices_fixed.size(); ++i ) {
+			embedding[this->indices_fixed[i]] = this->fixed_datapoints[i];
+		}
+	}
+
 	if( this->verbose ) {
 		cout << "done in " << toc.count() << " seconds." << endl;
+		cout << "Fixing term: " << this->_fixing_term << endl;
 	}
 
 
@@ -1279,13 +1289,7 @@ vector<vector<double>> humap::HierarchicalUMAP::embed_data(int level, Eigen::Spa
 	}
 
 	this->reducers[level].verbose = this->verbose;
-	this->reducers[level].set_free_datapoints(this->free_datapoints);
-
-	if( this->free_datapoints.size() != 0 ) {
-		for( int i = 0; i < this->indices_fixed.size(); ++i ) {
-			embedding[this->indices_fixed[i]] = this->fixed_datapoints[i];
-		}
-	}
+	
 
 	vector<vector<double>> result = this->reducers[level].optimize_layout_euclidean(
 		embedding,
@@ -1377,7 +1381,7 @@ py::array_t<double> humap::HierarchicalUMAP::project_data(int level, vector<int>
 	map<int, int> mapper;
 
 	vector<int> correspond_values;
-	
+	vector<int> landmark_order;
 	for( int i = 0; i < this->metadata[level-1].size; ++i ) {
 		int landmark = this->metadata[level-1].indices[i];
 
@@ -1390,7 +1394,8 @@ py::array_t<double> humap::HierarchicalUMAP::project_data(int level, vector<int>
 				is_in_it[i] = true;
 
 				if( this->original_indices[level-1][i] == this->original_indices[level][selected_indices[j]]) {
-					correspond_values.push_back(indices_next_level.size()-1);				
+					correspond_values.push_back(indices_next_level.size()-1);
+					landmark_order.push_back(landmark);				
 				}
 
 				break;
@@ -1408,12 +1413,16 @@ py::array_t<double> humap::HierarchicalUMAP::project_data(int level, vector<int>
 		cout << "Correspond values has " << correspond_values.size() << "/" << selected_indices.size() << " indices, from " << indices_next_level.size() << " to be projected. " << endl;
 		
 		this->free_datapoints = vector<bool>(indices_next_level.size(), true);
-		
-		for( int i = 0; i < correspond_values.size(); ++i ) {
-			free_datapoints[correspond_values[i]] = false;
+		vector<int> indices_cor = utils::argsort(landmark_order);
+		this->indices_fixed = vector<int>();
+
+		for( int i = 0; i < indices_cor.size(); ++i ) {
+			this->free_datapoints[correspond_values[indices_cor[i]]] = false;
+			this->indices_fixed.push_back(correspond_values[indices_cor[i]]);
+			// this->free_datapoints[selected_indices[i]] = false;
 		}
 
-		this->indices_fixed = correspond_values;
+		// this->indices_fixed = selected_indices;
 	}
 
 	this->labels_selected = labels;	
@@ -1694,4 +1703,60 @@ py::array_t<double> humap::HierarchicalUMAP::project_data(int level, vector<int>
 	}
 
 	return py::cast(vector<vector<double>>());
+}
+
+
+Eigen::MatrixXd humap::HierarchicalUMAP::geomTrans(Eigen::MatrixXd const &pointsFrom,
+                                  Eigen::MatrixXd const &pointsTo) {
+  auto n = std::min(pointsFrom.rows(), pointsTo.rows());
+  auto m = pointsTo.rows() - pointsFrom.rows();
+
+  if (m < 0) {
+    std::cerr << "geomTrans: does not support the case that rows of pointsTo "
+                 "is smaller than rows of pointsFrom"
+              << std::endl;
+  }
+
+  Eigen::MatrixXd processedPointsFrom = pointsFrom.topRows(n);
+  Eigen::MatrixXd processedPointsTo = pointsTo.topRows(n);
+  // translation
+  Eigen::RowVectorXd meanPointsFrom = processedPointsFrom.colwise().mean();
+  Eigen::RowVectorXd meanPointsTo = processedPointsTo.colwise().mean();
+  processedPointsFrom = processedPointsFrom.rowwise() - meanPointsFrom;
+  processedPointsTo = processedPointsTo.rowwise() - meanPointsTo;
+
+  // uniform scaling
+  double scalePointsFrom = processedPointsFrom.colwise().norm().sum();
+  double scalePointsTo = processedPointsTo.colwise().norm().sum();
+  scalePointsFrom /= double(n);
+  scalePointsTo /= double(n);
+  scalePointsFrom = std::sqrt(scalePointsFrom);
+  scalePointsTo = std::sqrt(scalePointsTo);
+  processedPointsFrom /= scalePointsFrom;
+  processedPointsTo /= scalePointsTo;
+
+  // rotation
+  Eigen::BDCSVD<Eigen::MatrixXd> svd(processedPointsFrom.transpose() *
+                                         processedPointsTo,
+                                     Eigen::ComputeThinU | Eigen::ComputeThinV);
+  Eigen::MatrixXd U = svd.matrixU();
+  Eigen::MatrixXd V = svd.matrixV(); // before transposed unlike numpy svd
+  Eigen::VectorXd S = svd.singularValues();
+  Eigen::MatrixXd R = V * U.transpose();
+
+  // apply tranformation
+  Eigen::MatrixXd transformedPointsTo(pointsTo.rows(), 2);
+  transformedPointsTo.topRows(n) = scalePointsFrom * processedPointsTo * R;
+
+  // for new points
+  Eigen::MatrixXd processedNewPointsTo = pointsTo.bottomRows(m);
+  processedNewPointsTo = processedNewPointsTo.rowwise() - meanPointsTo;
+  processedNewPointsTo /= scalePointsTo;
+  processedNewPointsTo = scalePointsFrom * processedNewPointsTo * R;
+
+  // aggregate result and move center
+  transformedPointsTo.bottomRows(m) = processedNewPointsTo;
+  transformedPointsTo = transformedPointsTo.rowwise() + meanPointsFrom;
+
+  return transformedPointsTo;
 }

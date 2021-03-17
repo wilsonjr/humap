@@ -222,6 +222,14 @@ class HUMAP(object):
 		return self.h_umap.geomTrans(points_from, points_to)
 
 
+	def influence(self, level):
+		return self.h_umap.get_influence(level)
+
+
+	def influence_selected(self):
+		return self.h_umap.get_influence_selected()
+
+
 	
 	def find_ab_params(self, spread, min_dist):
 		"""

@@ -9,3 +9,6 @@ __pycache__/
 *.so
 figs_experiments/
 experiments/
+evaluation/comparison-techniques/*
+evaluation/comparison-drill/*
+evaluation/comparison-np/*

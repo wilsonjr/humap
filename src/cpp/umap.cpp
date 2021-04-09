@@ -262,34 +262,21 @@ vector<vector<double>> umap::UMAP::component_layout(umap::Matrix& data, int n_co
 														 vector<int>& component_labels, int dim)
 {
 
-
-	// cout << "Entrei 1" << endl;
-	// cout << "n_components " << n_components << endl;
-	// cout << "data.is_sparse(): " << data.is_sparse() << endl;
-	// cout << "data.shape(1) " << data.shape(1) << endl;
-
 	vector<vector<double>> component_centroids(n_components, vector<double>(data.shape(1), 0.0));
 
-	// cout << "Entrei 2" << endl;
 	vector<vector<double>> distance_matrix;
 
 	if( this->metric == "precomputed" ) {
-		// cout << "precomputed" << endl;
 		distance_matrix = vector<vector<double>>(n_components, vector<double>(n_components, 0.0));
 
 
-		// cout << "shape distance_matrix: " << n_components << " x " << n_components << endl;
 		for( int c_i = 0; c_i < n_components; ++c_i ) {
-			// cout << "passei 1" << endl;
 			vector<vector<double>> dm_i;
 			for( int i = 0; i < component_labels.size(); ++i ) {
-				// cout << "passei 2 (data.shape: " << data.shape(1) << ", " <<  component_labels.size() << ")" << endl;
 				if( component_labels[i] == c_i )
 					dm_i.push_back(data.get_row(i));
-				// cout << "passei 3" << endl;
 			}
 			string linkage = "min";
-			// cout << "passei 4" << endl;
 			for( int c_j = c_i+1; c_j < n_components; ++c_j  ) {
 
 				double dist = 0.0;
@@ -301,13 +288,10 @@ vector<vector<double>> umap::UMAP::component_layout(umap::Matrix& data, int n_co
 
 					}
 				}
-				// cout << "passei 5" << endl;
 				distance_matrix[c_i][c_j] = dist;
 				distance_matrix[c_j][c_i] = dist;
-				// cout << "passei 6" << endl;
 			}
 		}
-		// cout << "passei aqui irmao" << endl;
 
 	} else {
 	
@@ -573,7 +557,6 @@ vector<vector<double>> umap::UMAP::spectral_layout(umap::Matrix& data,
 	// random initialization
 
 	if( this->init != "Spectral" ) {
-		// cout << "Random initialization" << endl;
 		py::module scipy_random = py::module::import("numpy.random");
 		py::object randomState = scipy_random.attr("RandomState")(this->random_state);
 		vector<int> size = {(int)graph.rows(), dim};
@@ -619,18 +602,12 @@ vector<vector<double>> umap::UMAP::spectral_layout(umap::Matrix& data,
 
 		return spectral_embedding;
 	}
-	// cout << "spectral 4" << endl;
 	Eigen::VectorXd result = graph * Eigen::VectorXd::Ones(graph.cols());
-	// cout << "spectral 5" << endl;
 	vector<double> diag_data(&result[0], result.data() + result.size());
-	// vector<double> diag_data;
 
-	// cout << "spectral 6" << endl;
 	vector<double> temp(diag_data.size(), 0.0);
-	// cout << "spectral 7" << endl;
 	for( int i = 0; i < temp.size(); ++i )
 		temp[i] = 1.0/sqrt(diag_data[i]);
-	// cout << "spectral 8" << endl;
 	
 
 
@@ -650,7 +627,6 @@ vector<vector<double>> umap::UMAP::spectral_layout(umap::Matrix& data,
 		py::module scipy_sparse_linalg = py::module::import("scipy.sparse.linalg");	
 		py::object eigen;
 
-		// cout << "spectral 16" << endl;
 		if( L.rows() < 2000000 ) {
 
 			eigen = scipy_sparse_linalg.attr("eigsh")(L, k, //nullptr, nullptr, 
@@ -672,7 +648,6 @@ vector<vector<double>> umap::UMAP::spectral_layout(umap::Matrix& data,
 
 		vector<vector<double>> spectral_embedding(eigenvectors.size());
 
-		// printf("embedding: \n");
 		double max_value = -1.0;
 		for( int i = 0; i < eigenvectors.size(); ++i ) {
 			spectral_embedding[i] = utils::arrange_by_indices(eigenvectors[i], order);
@@ -680,8 +655,6 @@ vector<vector<double>> umap::UMAP::spectral_layout(umap::Matrix& data,
 			max_value = max(max_value, 
 				abs(*max_element(spectral_embedding[i].begin(), spectral_embedding[i].end(), [](double a, double b) { return abs(a) < abs(b);})));
 		}
-
-		// printf("\nmax_value: %.4f\n", max_value);
 
 		py::module scipy_random = py::module::import("numpy.random");
 		py::object randomState = scipy_random.attr("RandomState")(this->random_state);

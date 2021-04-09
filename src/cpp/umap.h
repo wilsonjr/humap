@@ -1,4 +1,5 @@
 // Author: Wilson Estécio Marcílio Júnior <wilson_jr@outlook.com>
+// Code adapted from UMAP's official implementation: https://github.com/lmcinnes/umap implemented by Leland McInnes
 
 /*
  *

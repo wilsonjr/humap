@@ -615,13 +615,11 @@ int humap::random_walk(int vertex, int n_neighbors, vector<double>& vals, vector
 					   mt19937& rng, vector<int>& is_landmark)
 {
 
-// cout << "random_walk 1" << endl;
 	for( int step = 0;  step < walk_length; ++step ) {
-		// cout << "random_walk 2" << endl;
 		double c = unif(rng);
 		int next_vertex = vertex;
 		double incremental_prob = 0.0;
-		// cout << "random_walk 3: " << sum_vals.size() << ", " << vertex  << endl;
+
 		// for( Eigen::SparseMatrix<double, Eigen::RowMajor>::InnerIterator it(graph, vertex); it; ++it ) {
 			
 		// 	incremental_prob += (it.value()/sum_vals[vertex]);
@@ -640,17 +638,15 @@ int humap::random_walk(int vertex, int n_neighbors, vector<double>& vals, vector
 				break;
 			}
 		} 
-		// cout << "random_walk 4: " << vertex << ", " << next_vertex << endl;
 		
 		if( next_vertex == vertex )
 			return -1;
-		// cout << "random_walk 5" << endl;
+
 		if( is_landmark[next_vertex] != -1 )
 			return next_vertex;
-		// cout << "random_walk 6" << endl;
+
 		vertex = next_vertex;
 	}
-	// cout << "random_walk 7" << endl;
 	return -1;
 }
 
@@ -1715,58 +1711,3 @@ py::array_t<double> humap::HierarchicalUMAP::project_data(int level, vector<int>
 	return py::cast(vector<vector<double>>());
 }
 
-
-Eigen::MatrixXd humap::HierarchicalUMAP::geomTrans(Eigen::MatrixXd const &pointsFrom,
-                                  Eigen::MatrixXd const &pointsTo) {
-  auto n = std::min(pointsFrom.rows(), pointsTo.rows());
-  auto m = pointsTo.rows() - pointsFrom.rows();
-
-  if (m < 0) {
-    std::cerr << "geomTrans: does not support the case that rows of pointsTo "
-                 "is smaller than rows of pointsFrom"
-              << std::endl;
-  }
-
-  Eigen::MatrixXd processedPointsFrom = pointsFrom.topRows(n);
-  Eigen::MatrixXd processedPointsTo = pointsTo.topRows(n);
-  // translation
-  Eigen::RowVectorXd meanPointsFrom = processedPointsFrom.colwise().mean();
-  Eigen::RowVectorXd meanPointsTo = processedPointsTo.colwise().mean();
-  processedPointsFrom = processedPointsFrom.rowwise() - meanPointsFrom;
-  processedPointsTo = processedPointsTo.rowwise() - meanPointsTo;
-
-  // uniform scaling
-  double scalePointsFrom = processedPointsFrom.colwise().norm().sum();
-  double scalePointsTo = processedPointsTo.colwise().norm().sum();
-  scalePointsFrom /= double(n);
-  scalePointsTo /= double(n);
-  scalePointsFrom = std::sqrt(scalePointsFrom);
-  scalePointsTo = std::sqrt(scalePointsTo);
-  processedPointsFrom /= scalePointsFrom;
-  processedPointsTo /= scalePointsTo;
-
-  // rotation
-  Eigen::BDCSVD<Eigen::MatrixXd> svd(processedPointsFrom.transpose() *
-                                         processedPointsTo,
-                                     Eigen::ComputeThinU | Eigen::ComputeThinV);
-  Eigen::MatrixXd U = svd.matrixU();
-  Eigen::MatrixXd V = svd.matrixV(); // before transposed unlike numpy svd
-  Eigen::VectorXd S = svd.singularValues();
-  Eigen::MatrixXd R = V * U.transpose();
-
-  // apply tranformation
-  Eigen::MatrixXd transformedPointsTo(pointsTo.rows(), 2);
-  transformedPointsTo.topRows(n) = scalePointsFrom * processedPointsTo * R;
-
-  // for new points
-  Eigen::MatrixXd processedNewPointsTo = pointsTo.bottomRows(m);
-  processedNewPointsTo = processedNewPointsTo.rowwise() - meanPointsTo;
-  processedNewPointsTo /= scalePointsTo;
-  processedNewPointsTo = scalePointsFrom * processedNewPointsTo * R;
-
-  // aggregate result and move center
-  transformedPointsTo.bottomRows(m) = processedNewPointsTo;
-  transformedPointsTo = transformedPointsTo.rowwise() + meanPointsFrom;
-
-  return transformedPointsTo;
-}

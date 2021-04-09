@@ -254,10 +254,6 @@ public:
 
 	// fix datapoints
 	void set_fixed_datapoints(py::array_t<double> fixed) { this->fixed_datapoints = convert_to_vector(fixed); }
-
-
-	Eigen::MatrixXd geomTrans(Eigen::MatrixXd const &pointsFrom,
-                                  Eigen::MatrixXd const &pointsTo);
 		
 private:
 

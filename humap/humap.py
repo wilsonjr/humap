@@ -217,11 +217,6 @@ class HUMAP(object):
 		self.h_umap.set_fixing_term(fixing_term)
 
 
-
-	def geom_trans(self, points_from, points_to):
-		return self.h_umap.geomTrans(points_from, points_to)
-
-
 	def influence(self, level):
 		return self.h_umap.get_influence(level)
 

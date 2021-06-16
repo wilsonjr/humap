@@ -25,7 +25,7 @@ The details of the algorithm can be found in our paper on `ArXiv <https://arxiv.
 
 
 -----------
-Instalation
+Installation
 -----------
 
 HUMAP was written in C++ for performance purposes, and it has an intuitive Python interface. It depends upon common machine learning libraries, such as ``scikit-learn`` and ``NumPy``. It also needs the ``pybind11`` due to the interface between C++ and Python.
@@ -51,7 +51,7 @@ If you have these requirements installed, use PyPI:
 
 The `Eigen <https://eigen.tuxfamily.org/>`_ library does not have to be installed. Just add the files to C:\Eigen or use the manual installation to change Eigen location.
 
-**Manual instalation**: 
+**Manual installation**: 
 
 For manually installing HUMAP, download the project and proceed as follows:
 

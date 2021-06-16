@@ -128,6 +128,18 @@ You can apply the same concept as above to embed data points based on labels.
 
 	embedding, y, indices = hUmap.transform(2, indices=np.array([4, 9]), class_based=True)
 
+
+**C++ UMAP implementation**
+
+You can also fit a one-level HUMAP hierarchy, which essentially corresponds to a UMAP projection.
+
+.. code:: python
+
+	umap_reducer = humap.HUMAP(np.array([]))
+	umap_reducer.fit(X, y)
+
+	embedding = umap_reducer.transform(0)
+
 --------
 Citation
 --------
@@ -136,24 +148,23 @@ Please, use the following reference to cite HUMAP in your work:
 
 .. code:: bibtex
 
-    @article{MarcilioJr2021_HUMAP,
-      title={Hierarchical Uniform Manifold Approximation and Projection},
-      author={Marcílio-Jr, W. E. and Eler, D. M. and Paulovich, F. V.},
-      journal={IEEE Transations on Visualization and Computer Graphics},
-      volume={},
-      number={},
-      pages={},
-      year={2021}
-    }
+    @misc{marciliojr_humap2021,
+      title={HUMAP: Hierarchical Uniform Manifold Approximation and Projection}, 
+      author={Wilson E. Marcílio-Jr and Danilo M. Eler and Fernando V. Paulovich and Rafael M. Martins},
+      year={2021},
+      eprint={2106.07718},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG}
+	}
 
 
 -------
 License
 -------
 
-HUMAP follows the 3-clause BSD license.
+HUMAP follows the 3-clause BSD license and it uses the open-source NNDescent implementation from `EFANNA <https://github.com/ZJULearning/efanna>`_. It also uses a C++ implementation of `UMAP <http://github.com/lmcinnes/umap>`_ for embedding hierarchy levels; this project would not be possible without UMAP's fantastic technique and package.
 
-HUMAP uses the open-source NNDescent implementation from `EFANNA <https://github.com/ZJULearning/efanna>`_. It uses `UMAP <http://github.com/lmcinnes/umap>`_ for embedding hierarchy levels; this project would not be possible without UMAP's fantastic technique and package.
+E-mail me (wilson_jr at outlook.com) if you like to contribute.
 
 
 ......

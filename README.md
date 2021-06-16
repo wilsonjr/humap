@@ -13,7 +13,7 @@ Hierarchical Manifold Approximation and Projection (HUMAP) is a technique based 
 1. Focus on important information while reducing the visual burden when exploring whole datasets;
 2. Drill-down the hierarchy according to information demand.
 
-The details of the algorithm can be found in our paper on `ArXiv <https://arxiv.org/abs/2106.07718>`_ .
+The details of the algorithm can be found in our paper on `ArXiv <https://arxiv.org/abs/2106.07718>`_.
 
 
 -----------

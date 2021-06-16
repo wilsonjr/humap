@@ -1,5 +1,13 @@
 .. -*- mode: rst -*-
 
+|pypi_version|_ |pypi_downloads|_
+
+.. |pypi_version| image:: https://img.shields.io/pypi/v/humap.svg
+.. _pypi_version: https://pypi.python.org/pypi/humap/
+
+.. |pypi_downloads| image:: https://pepy.tech/badge/humap/month
+.. _pypi_downloads: https://pepy.tech/project/humap
+
 .. image:: images/fmnist-cover.png
 	:alt: HUMAP exploration on Fashion MNIST dataset
 

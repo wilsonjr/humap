@@ -223,8 +223,6 @@ class HUMAP(object):
 
 	def influence_selected(self):
 		return self.h_umap.get_influence_selected()
-
-
 	
 	def find_ab_params(self, spread, min_dist):
 		"""

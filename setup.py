@@ -46,7 +46,7 @@ setup(
     version=__version__,
     author="Wilson E. Marcílio-Jr",
     author_email="wilson_jr@outlook.com",
-    url="https://github.com/wilsonjr/hierarchical_umap",
+    url="https://github.com/wilsonjr/humap",
     description="Hierarchical Uniform Manifold Approximation and Projection",
     long_description="",
     ext_modules=ext_modules,

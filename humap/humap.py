@@ -202,8 +202,6 @@ class HUMAP(object):
 		ValueError
 			If level equals 0 or greater than the highest level.			
 		"""
-
-
 		try:
 			return self.h_umap.get_labels(level)
 		except:
@@ -237,3 +235,58 @@ class HUMAP(object):
 		yv[xv >= min_dist] = np.exp(-(xv[xv >= min_dist] - min_dist) / spread)
 		params, covar = curve_fit(curve, xv, yv)
 		return params[0], params[1]
+
+
+class UMAP(HUMAP):
+	"""
+	Class for wrapping the pybind11 interface of HUMAP C++ implementation
+	
+	...
+
+	Parameters
+	----------
+	n_neighbors : int (optional, default 100)
+		The number of neighbors using for k nearest neighbor computation.
+
+	min_dist : float (optional, default 0.15)
+		The effective minimum distance between embedded points for UMAP technique.
+
+	knn_algorithm : str (optional, default 'NNDescent')
+		The kNN algorithm used for affinity computation. Options include:
+			* NNDescent
+			* KDTree_NNDescent
+			* ANNOY (Python instalation required)
+			* FLANN (Python instalation required)
+
+	init : str (optional, default 'Spectral')
+		Initialization method for the low dimensional embedding: Options include:	
+			* Spectral
+			* random
+
+	verbose : bool (optional, default True)
+		Controls logging.
+
+	"""
+	def __init__(self, n_neighbors=100, min_dist=0.15, knn_algorithm='NNDescent', init="Spectral", verbose=True):
+		super().__init__(np.array([]), n_neighbors, min_dist, knn_algorithm, init, verbose)
+
+	def fit_transform(self, X):
+		"""
+		Generates the embedding.
+		
+		Parameters
+		----------
+		X : array, shape (n, m)
+			The dataset consisting of n data points by m features
+
+		Raises
+		------
+		ValueError
+			If X:
+				* is None 
+				* is not a Numpy array
+				* is not a two-dimensional array
+
+		"""
+		super().fit(X, None)
+		return super().transform(0)	

@@ -203,9 +203,9 @@ public:
 		// hard-coded
 		// TODO: find an intelligent way to define these parameters
 		knn_args["L"] = std::to_string(n_neighbors_); //"100";
-		knn_args["iter"] = "3";
-		knn_args["S"] = std::to_string((int)(0.3*n_neighbors_)); 
-		knn_args["R"] = std::to_string((int)(0.3*n_neighbors_)); 
+		knn_args["iter"] = n_neighbors_ >= 50 ? "3" : "10";
+		knn_args["S"] = std::to_string((int)(n_neighbors_ >= 50 ? 0.3*n_neighbors_ : n_neighbors_)); 
+		knn_args["R"] = std::to_string((int)(n_neighbors_ >= 50 ? 0.3*n_neighbors_ : n_neighbors_)); 
 	}
 
 	/**

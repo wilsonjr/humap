@@ -21,7 +21,7 @@ Hierarchical Manifold Approximation and Projection (HUMAP) is a technique based 
 1. Focus on important information while reducing the visual burden when exploring whole datasets;
 2. Drill-down the hierarchy according to information demand.
 
-The details of the algorithm can be found in our paper on `ArXiv <https://arxiv.org/abs/2106.07718>`_.
+The details of the algorithm can be found in our paper on `ArXiv <https://arxiv.org/abs/2106.07718>`_. This repository also features a C++ UMAP implementation.
 
 
 -----------
@@ -143,10 +143,8 @@ You can also fit a one-level HUMAP hierarchy, which essentially corresponds to a
 
 .. code:: python
 
-	umap_reducer = humap.HUMAP(np.array([]))
-	umap_reducer.fit(X, y)
-
-	embedding = umap_reducer.transform(0)
+	umap_reducer = humap.UMAP()
+	embedding = umap_reducer.fit_transform(X)
 
 --------
 Citation

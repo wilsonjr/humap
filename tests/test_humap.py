@@ -1,12 +1,14 @@
 import humap
 
-import unitttest
+import unittest
+
+import numpy as np
 
 from sklearn.datasets import fetch_openml 
 from sklearn.preprocessing import normalize
 from sklearn.model_selection import train_test_split
 
-class TestUmap(unitttest.TestCase):
+class TestUmap(unittest.TestCase):
 
     def setUp(self):
         X, y = fetch_openml('mnist_784', version=1, return_X_y=True)        
@@ -19,7 +21,7 @@ class TestUmap(unitttest.TestCase):
         pass 
 
     
-    def test_influenceHierarchyLevels():
+    def test_influenceHierarchyLevels(self):
         reducer = humap.HUMAP(n_neighbors=15)
         reducer.fit(self.X)
 
@@ -32,7 +34,7 @@ class TestUmap(unitttest.TestCase):
 
         self.assertEqual((level1.shape[1], level0.shape[1]), (np.sum(influence2to1), np.sum(influence1to0)), "missing influence on hierarchy levels")
 
-    def test_lessPointsOnTop():
+    def test_lessPointsOnTop(self):
 
         reducer = humap.HUMAP(n_neighbors=15)
         reducer.fit(self.X)
@@ -45,34 +47,34 @@ class TestUmap(unitttest.TestCase):
         self.assertLess(level1.shape[1], level2.shape[2])
         self.assertLess(level1.shape[0], level2.shape[1])
 
-    def test_dimensionality2():
+    def test_dimensionality2(self):
 
         X = np.random.rand(1000, 1)
         reducer = humap.HUMAP(n_neighbors=15)
 
         self.assertRaises(ValueError, lambda: reducer.fit(X), "input dimensionality <= 2")
 
-    def test_noneArray():
+    def test_noneArray(self):
         reducer = humap.HUMAP(n_neighbors=15)
 
         self.assertRaises(ValueError, lambda: reducer.fit(None), "input array must be a valid array")
 
 
-    def test_shapeArray():
+    def test_shapeArray(self):
 
         X = np.random.rand(1000, 2, 3)
         reducer = humap.HUMAP(n_neighbors=15)
 
         self.assertRaises(ValueError, lambda: reducer.fit(X), "input array must be two-dimensional")
 
-    def test_nNeighborsGreaterThanLevel():
+    def test_nNeighborsGreaterThanLevel(self):
 
         X = np.random.rand(1000, 2)
         reducer = humap.HUMAP(n_neighbors=100)
 
         self.assertRaises(ValueError, lambda: reducer.fit(X), "input array must be two-dimensional")
 
-    def test_ndArray():
+    def test_ndArray(self):
 
         X = np.random.rand(1000, 2).tolist()
         reducer = humap.HUMAP(n_neighbors=10)

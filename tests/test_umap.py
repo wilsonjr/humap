@@ -1,12 +1,14 @@
 import humap
 
-import unitttest
+import unittest
+
+import numpy as np
 
 from sklearn.datasets import fetch_openml 
 from sklearn.preprocessing import normalize
 from sklearn.model_selection import train_test_split
 
-class TestUmap(unitttest.TestCase):
+class TestUmap(unittest.TestCase):
 
     def setUp(self):
         X, y = fetch_openml('mnist_784', version=1, return_X_y=True)        
@@ -19,21 +21,21 @@ class TestUmap(unitttest.TestCase):
         pass 
 
     
-    def test_numberDataPoints():
+    def test_numberDataPoints(self):
         reducer = humap.UMAP(n_neighbors=15)
         embedding = reducer.fit_transform(self.X)
         
         self.assertEqual(embedding.shape, (len(self.X), 2), "incorrect embedding size")
 
 
-    def test_dimensionality1():
+    def test_dimensionality1(self):
 
         X = np.random.rand(1000, 1)
         reducer = humap.UMAP(n_neighbors=15)
 
         self.assertRaises(ValueError, lambda: reducer.fit_transform(X), "input dimensionality <= 2")
 
-    def test_dimensionality2():
+    def test_dimensionality2(self):
 
         X = np.random.rand(1000, 2)
         reducer = humap.UMAP(n_neighbors=15)

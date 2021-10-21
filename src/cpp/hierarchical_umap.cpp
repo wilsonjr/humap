@@ -765,6 +765,10 @@ void humap::HierarchicalUMAP::fit(py::array_t<double> X, py::array_t<int> y)
 	reducer.set_ab_parameters(this->a, this->b);
 	
 	before = clock::now();
+
+	/**
+		Basically, computes the knn and indices the graph of strengths
+	*/
 	reducer.fit(this->hierarchy_X[0]);
 	duration = clock::now() - before;
 
@@ -825,13 +829,13 @@ void humap::HierarchicalUMAP::fit(py::array_t<double> X, py::array_t<int> y)
  		sec end_random_walk = clock::now() - begin_random_walk;
  		cout << "done in " << end_random_walk.count() << " seconds." << endl;
 
+
+		// we sort points based on their endpoints
+		// the most visited ones will be landmarks for the next hierarchy level
  		vector<int> inds_lands; 		
  		vector<int> sorted_landmarks = utils::argsort(landmarks, true); 		
  		for( int i = 0; i < n_elements; ++i )
  			inds_lands.push_back(sorted_landmarks[i]);
- 		 
-
-
 
  		/*
 			COMPUTING RANDOM WALK FOR CONSTRUCTING REPRESENTATION NEIGHBORHOOD
@@ -846,6 +850,8 @@ void humap::HierarchicalUMAP::fit(py::array_t<double> X, py::array_t<int> y)
  		vector<vector<int>> association;
  		double max_incidence; 
 
+		// another markov chain process...
+		// here, we use to induce a global neighborhood for the data points
  		max_incidence = humap::markov_chain(this->reducers[level].knn_indices(),
 										    this->reducers[level].vals_transition,
 										    this->reducers[level].cols,
@@ -885,7 +891,7 @@ void humap::HierarchicalUMAP::fit(py::array_t<double> X, py::array_t<int> y)
 		umap::Matrix data;			
 		auto similarity_before = clock::now();		
 		if( this->similarity_method == "similarity" ) {
-
+			/* Work in progress... */
 			vector<vector<double>> dense;
 			for( int i = 0; i < greatest.size(); ++i ) {
 				vector<double> row = this->update_position(i, neighborhood[i], this->hierarchy_X[level]);
@@ -899,6 +905,13 @@ void humap::HierarchicalUMAP::fit(py::array_t<double> X, py::array_t<int> y)
 
 		} else if( this->similarity_method == "precomputed" ) {	 
 			
+
+			/*			
+				Computes the similarity among landmarks
+
+				It consists of the intersection of the global and local neighborhoods.
+			
+			*/
 			SparseComponents triplets = this->sparse_similarity(level+1, this->hierarchy_X[level].size(), this->n_neighbors,
 																greatest, neighborhood, max_incidence, association); 
 		
@@ -908,11 +921,11 @@ void humap::HierarchicalUMAP::fit(py::array_t<double> X, py::array_t<int> y)
 			reducer.set_ab_parameters(this->a, this->b);
 
 		} else {
-
+			/* Work in progress... */
 			reducer = umap::UMAP("euclidean", this->n_neighbors, this->min_dist, this->knn_algorithm, this->init);
 			reducer.set_ab_parameters(this->a, this->b);
 		}
-		
+
 		sec similarity_after = clock::now() - similarity_before;
 		if( this->verbose ) {
 			cout << "done in " << similarity_after.count() << " seconds." << endl;
@@ -948,7 +961,7 @@ void humap::HierarchicalUMAP::fit(py::array_t<double> X, py::array_t<int> y)
 		{
 			is_landmark[greatest[i]] = i;
 		}
-
+		
 		this->associate_to_landmarks(greatest.size(), this->n_neighbors, greatest, this->reducers[level].cols, 
 			this->metadata[level].strength, this->metadata[level].owners, this->metadata[level].indices, 
 			this->metadata[level].association, is_landmark, this->metadata[level].count_influence, this->reducers[level].knn_dists());

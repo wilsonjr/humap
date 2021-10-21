@@ -143,8 +143,8 @@ class HUMAP(object):
 		Returns
 		-------
 
-		array
-			An array with the original indices of each data point in the level passed as parameter.
+		np.array
+			An NumPy array with the original indices of each data point in the level passed as parameter.
 		"""
 
 		return self.h_umap.get_original_indices(level)
@@ -173,6 +173,22 @@ class HUMAP(object):
 		------
 		TypeError
 			If the parameters of 'kwargs' diverge from 'indices' and 'class_based'.	
+
+
+		Returns
+		-------
+
+		if kwargds == None
+			np.array
+				The embedded hierarchy level
+		else
+			np.array
+				The embedded subset of the hierarchy level
+			np.array
+				The labels of the embedded subset
+			np.array
+				The indices of the subset on the hierarchy level
+
 		"""
 
 		if len(kwargs) == 0:
@@ -216,17 +232,76 @@ class HUMAP(object):
 
 
 	def fix_datapoints(self, datapoints):
+		r"""
+		Data points used to guide Stochastic Gradient Descent on the mental map preservation of subsequent projections (of hierarchy levels)
+
+		Parameters
+		----------
+		datapoints: np.array 
+			The data points already projected hierarchy levels.
+
+		Raises
+		------
+		ValueError 
+			If datapoints is not a two-dimensional array
+		
+		"""
+
+		if len(datapoints.shape) != 2:
+			raise ValueError("Fix data points must be two-dimensional")
+
 		self.h_umap.set_fixed_datapoints(datapoints)
 
 	def set_fixing_term(self, fixing_term):
+		r"""
+		Fixing term used to preserve the mental map of subsequent projections (of hierarchy levels)
+
+		Parameters
+		----------
+		fixing_term: float
+			The fixing term (between 0 and 1) on how the data points used to guide mental map preservation
+			will be free during SGD optimization.
+
+		Raises
+		------
+		ValueError 
+			If fixing_term < 0 or fixing_term > 1
+		
+		"""
+		if fixing_term < 0 or fixing_term > 1.0:
+			raise ValueError("Fixing term must be between 0 and 1")
+
 		self.h_umap.set_fixing_term(fixing_term)
 
 
 	def influence(self, level):
+		r"""
+		Gets the information on how each landmark influence on the subsequent level
+
+		Parameters
+		----------
+		level: int
+			The current level of landmarks
+
+		Returns
+		-------
+		np.array
+			An array of integers containing how many data points each landmark influence on the subsequent level
+
+		"""
 		return self.h_umap.get_influence(level)
 
 
 	def influence_selected(self):
+		r"""
+		Gets the information on how each selected landmark (when projecting subsets) influence on the subsequent level
+
+		Returns
+		-------
+		np.array
+			An array of integers containing how many data points each landmark influence on the subsequent level
+
+		"""
 		return self.h_umap.get_influence_selected()
 	
 	def find_ab_params(self, spread, min_dist):

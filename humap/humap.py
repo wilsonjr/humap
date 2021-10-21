@@ -87,6 +87,12 @@ class HUMAP(object):
 		if y is None:
 			y = np.zeros(X.shape[0])
 
+		N = X.shape[0]
+		for i, pct_level in enumerate([1.0] + self.levels.tolist()):
+			if self.n_neighbors < int(pct_level * N):
+				raise ValueError("Cannot induce a hierarchy since n_neighbors > # points on level {}, consider decreasing n_neighbors.".format(i))
+			N *= pct_level
+
 
 		X = check_array(X, dtype=np.float32, accept_sparse='csr', order='C')
 		a, b = self.find_ab_params(1.0, self.min_dist)
@@ -202,10 +208,11 @@ class HUMAP(object):
 		ValueError
 			If level equals 0 or greater than the highest level.			
 		"""
-		try:
-			return self.h_umap.get_labels(level)
-		except:
+
+		if level <= 0 or level > self.n_levels:
 			raise ValueError("level must be in [1, n_levels-1]")
+		else:			
+			return self.h_umap.get_labels(level)
 
 
 	def fix_datapoints(self, datapoints):
@@ -288,5 +295,9 @@ class UMAP(HUMAP):
 				* is not a two-dimensional array
 
 		"""
+
+		if X.shape[1] <= 2:
+			raise ValueError("Input dimensionality must be > 2.")
+
 		super().fit(X, None)
 		return super().transform(0)	

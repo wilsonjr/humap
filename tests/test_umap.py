@@ -1,15 +1,44 @@
 import humap
-import matplotlib.pyplot as plt 
+
+import unitttest
 
 from sklearn.datasets import fetch_openml 
 from sklearn.preprocessing import normalize
+from sklearn.model_selection import train_test_split
 
-X, y = fetch_openml('mnist_784', version=1, return_X_y=True)
-X = normalize(X)
+class TestUmap(unitttest.TestCase):
 
-reducer = humap.UMAP(n_neighbors=15)
-embedding = reducer.fit_transform(X)
+    def setUp(self):
+        X, y = fetch_openml('mnist_784', version=1, return_X_y=True)        
+        X = normalize(X)
 
-plt.scatter(embedding[:, 0], embedding[:, 1], c=y.astype(int), cmap='viridis')
-plt.show()
+        self.X = X 
+        self.y = y
+    
+    def tearDown(self):
+        pass 
+
+    
+    def test_numberDataPoints():
+        reducer = humap.UMAP(n_neighbors=15)
+        embedding = reducer.fit_transform(self.X)
+        
+        self.assertEqual(embedding.shape, (len(self.X), 2), "incorrect embedding size")
+
+
+    def test_dimensionality1():
+
+        X = np.random.rand(1000, 1)
+        reducer = humap.UMAP(n_neighbors=15)
+
+        self.assertRaises(ValueError, lambda: reducer.fit_transform(X), "input dimensionality <= 2")
+
+    def test_dimensionality2():
+
+        X = np.random.rand(1000, 2)
+        reducer = humap.UMAP(n_neighbors=15)
+
+        self.assertRaises(ValueError, lambda: reducer.fit_transform(X), "input dimensionality <= 2")
+
+
 

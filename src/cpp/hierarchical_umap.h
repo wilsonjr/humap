@@ -127,7 +127,6 @@ struct SparseComponents
 	vector<int> cols;
 	vector<int> rows;
 	vector<double> vals;
-
 };
 
 /**
@@ -136,10 +135,12 @@ struct SparseComponents
 class RandomGenerator
 {
 public:
-    static RandomGenerator& Instance() {
+    
+	static RandomGenerator& Instance() {
         static RandomGenerator s;
         return s;
     }
+
     std::mt19937 & get() {
         return mt;
     }
@@ -347,14 +348,6 @@ private:
 
 };
 
-
-
-
-
 }
-
-
-
-
 
 #endif

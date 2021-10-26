@@ -17,28 +17,28 @@ class HUMAP(object):
 
 	Parameters
 	----------
-	levels : array, shape (n_levels-1) (optinal, default [0.2, 0.2])
+	levels (np.array): shape (n_levels-1) (optinal, default [0.2, 0.2])
 		A numpy array to inform the percentage of data points in each hierarchy level starting from the second .
 
-	n_neighbors : int (optional, default 100)
+	n_neighbors (int): (optional, default 100)
 		The number of neighbors using for k nearest neighbor computation.
 
-	min_dist : float (optional, default 0.15)
+	min_dist (float): (optional, default 0.15)
 		The effective minimum distance between embedded points for UMAP technique.
 
-	knn_algorithm : str (optional, default 'NNDescent')
+	knn_algorithm (str): (optional, default 'NNDescent')
 		The kNN algorithm used for affinity computation. Options include:
 			* NNDescent
 			* KDTree_NNDescent
 			* ANNOY (Python instalation required)
 			* FLANN (Python instalation required)
 
-	init : str (optional, default 'Spectral')
-		Initialization method for the low dimensional embedding: Options include:	
+	init (str): (optional, default 'Spectral')
+		Initialization method for the low dimensional embedding. Options include:	
 			* Spectral
 			* random
 
-	verbose : bool (optional, default True)
+	verbose (bool): (optional, default True)
 		Controls logging.
 
 	"""
@@ -59,10 +59,10 @@ class HUMAP(object):
 		
 		Parameters
 		----------
-		X : array, shape (n_samples, n_features)
+		X (np.array): shape (n_samples, n_features)
 			The dataset consisting of n data points by m features
 
-		y : array, shape (n_samples) (optinal, default None)
+		y (np.array): shape (n_samples) (optinal, default None)
 			The dataset labels
 
 		Raises
@@ -72,7 +72,6 @@ class HUMAP(object):
 				* is None 
 				* is not a Numpy array
 				* is not a two-dimensional array
-
 		"""
 
 		if X is None:
@@ -84,13 +83,16 @@ class HUMAP(object):
 		if len(X.shape) != 2:
 			raise ValueError("X must be a two-dimensional array")
 
+		if X.shape[1] <= 2:
+			raise ValueError("X.shape[1] must be n-dimensional array (n > 2)")
+
 		if y is None:
 			y = np.zeros(X.shape[0])
 
 		N = X.shape[0]
 		for i, pct_level in enumerate([1.0] + self.levels.tolist()):
-			if self.n_neighbors < int(pct_level * N):
-				raise ValueError("Cannot induce a hierarchy since n_neighbors > # points on level {}, consider decreasing n_neighbors.".format(i))
+			if self.n_neighbors > int(pct_level * N):
+				raise ValueError("Cannot induce a hierarchy since {} > {} on level {}, consider decreasing n_neighbors.".format(self.n_neighbors, int(pct_level * N), i))
 			N *= pct_level
 
 
@@ -110,8 +112,7 @@ class HUMAP(object):
 	
 		Parameters
 		----------
-		focus_context : bool
-			Indicates how to perform embedding
+		focus_context (bool): indicates if the subsets of data will be projected based focus+context approach
 		"""
 		self.h_umap.set_focus_context(focus_context)
 
@@ -123,8 +124,7 @@ class HUMAP(object):
 
 		Parameters
 		----------
-		n_neighbors : int 
-			The number of local neighbors used in similarity computation.
+		n_neighbors (int): the number of local neighbors used in similarity computation.
 		"""
 
 		self.h_umap.set_influence_neighborhood(n_neighbors)
@@ -137,14 +137,11 @@ class HUMAP(object):
 		Parameters
 		----------
 
-		level : int
-			The level of interest.
+		level (int): the level of interest.
 
 		Returns
 		-------
-
-		np.array
-			An NumPy array with the original indices of each data point in the level passed as parameter.
+		np.array: the indices of each data point in the level passed as parameter.
 		"""
 
 		return self.h_umap.get_original_indices(level)
@@ -159,35 +156,26 @@ class HUMAP(object):
 		
 		Parameters
 		----------
-		level : int
-			The hierarchical level to embed.
+		level (int): the hierarchical level to embed.
 
-		\**kwargs : dict
-			* indices : array
-				Indices of data points of interest or class labels.
-			* class_based : bool
-				Specifies if the embed is based on classes or indices.
-
+		**kwargs (dict):
+			* indices (np.array): indices of data points of interest or class labels.
+			* class_based (bool): specifies if the embed is based on classes or indices.
 
 		Raises
 		------
 		TypeError
 			If the parameters of 'kwargs' diverge from 'indices' and 'class_based'.	
 
-
 		Returns
 		-------
-
 		if kwargds == None
-			np.array
-				The embedded hierarchy level
+			np.array: The embedded hierarchy level
 		else
-			np.array
-				The embedded subset of the hierarchy level
-			np.array
-				The labels of the embedded subset
-			np.array
-				The indices of the subset on the hierarchy level
+			tuple:
+				np.array: The embedded subset of the hierarchy level
+				np.array: The labels of the embedded subset
+				np.array: The indices of the subset on the hierarchy level
 
 		"""
 
@@ -216,13 +204,16 @@ class HUMAP(object):
 
 		Parameters
 		----------
-		level : int
-			The level of interest.
+		level (int): the level of interest.
 
 		Raises
 		------
 		ValueError
 			If level equals 0 or greater than the highest level.			
+
+		Returns
+		-------
+		np.array: the labels for the data points in the specified level
 		"""
 
 		if level <= 0 or level > self.n_levels:
@@ -237,8 +228,7 @@ class HUMAP(object):
 
 		Parameters
 		----------
-		datapoints: np.array 
-			The data points already projected hierarchy levels.
+		datapoints (np.array): The data points already projected hierarchy levels.
 
 		Raises
 		------
@@ -258,9 +248,7 @@ class HUMAP(object):
 
 		Parameters
 		----------
-		fixing_term: float
-			The fixing term (between 0 and 1) on how the data points used to guide mental map preservation
-			will be free during SGD optimization.
+		fixing_term (float): The fixing term (between 0 and 1) on how the data points used to guide mental map preservation will be free during SGD optimization.
 
 		Raises
 		------
@@ -280,13 +268,11 @@ class HUMAP(object):
 
 		Parameters
 		----------
-		level: int
-			The current level of landmarks
+		level (int): The current level of landmarks
 
 		Returns
 		-------
-		np.array
-			An array of integers containing how many data points each landmark influence on the subsequent level
+		np.array: An array of integers containing how many data points each landmark influence on the subsequent level
 
 		"""
 		return self.h_umap.get_influence(level)
@@ -298,8 +284,7 @@ class HUMAP(object):
 
 		Returns
 		-------
-		np.array
-			An array of integers containing how many data points each landmark influence on the subsequent level
+		np.array: An array of integers containing how many data points each landmark influence on the subsequent level
 
 		"""
 		return self.h_umap.get_influence_selected()
@@ -327,25 +312,25 @@ class UMAP(HUMAP):
 
 	Parameters
 	----------
-	n_neighbors : int (optional, default 100)
+	n_neighbors (int): (optional, default 100)
 		The number of neighbors using for k nearest neighbor computation.
 
-	min_dist : float (optional, default 0.15)
+	min_dist (float): (optional, default 0.15)
 		The effective minimum distance between embedded points for UMAP technique.
 
-	knn_algorithm : str (optional, default 'NNDescent')
+	knn_algorithm (str): (optional, default 'NNDescent')
 		The kNN algorithm used for affinity computation. Options include:
 			* NNDescent
 			* KDTree_NNDescent
 			* ANNOY (Python instalation required)
 			* FLANN (Python instalation required)
 
-	init : str (optional, default 'Spectral')
+	init (str): (optional, default 'Spectral')
 		Initialization method for the low dimensional embedding: Options include:	
 			* Spectral
 			* random
 
-	verbose : bool (optional, default True)
+	verbose (bool): (optional, default True)
 		Controls logging.
 
 	"""
@@ -358,8 +343,7 @@ class UMAP(HUMAP):
 		
 		Parameters
 		----------
-		X : array, shape (n, m)
-			The dataset consisting of n data points by m features
+		X (np.array): The dataset consisting of n data points by m features
 
 		Raises
 		------

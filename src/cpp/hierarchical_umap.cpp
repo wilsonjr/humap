@@ -827,8 +827,9 @@ void humap::HierarchicalUMAP::fit(py::array_t<double> X, py::array_t<int> y)
 										this->landmarks_wl); 
 
  		sec end_random_walk = clock::now() - begin_random_walk;
- 		cout << "done in " << end_random_walk.count() << " seconds." << endl;
-
+		if( this->verbose ) {
+ 			cout << "done in " << end_random_walk.count() << " seconds." << endl;
+		}
 
 		// we sort points based on their endpoints
 		// the most visited ones will be landmarks for the next hierarchy level
@@ -860,8 +861,10 @@ void humap::HierarchicalUMAP::fit(py::array_t<double> X, py::array_t<int> y)
 										    inds_lands, this->influence_neighborhood,
 										    neighborhood, association);
  		sec influence_time = clock::now() - influence_begin;
- 		cout << "done in " << influence_time.count() << " seconds." << endl;
 
+		if( this->verbose ) {
+ 			cout << "done in " << influence_time.count() << " seconds." << endl;
+		}
  			
  		level_landmarks.push_back(inds_lands);
 
@@ -945,8 +948,9 @@ void humap::HierarchicalUMAP::fit(py::array_t<double> X, py::array_t<int> y)
 		reducer.fit(data);
 		sec fit_duration = clock::now() - fit_before;
 
-		cout << "done in " << fit_duration.count() << " seconds." << endl;
-
+		if( this->verbose ) {
+			cout << "done in " << fit_duration.count() << " seconds." << endl;
+		}
 
 		/*
 			ASSOCIATING DATA POINTS TO LANDMARKS
@@ -984,7 +988,11 @@ void humap::HierarchicalUMAP::fit(py::array_t<double> X, py::array_t<int> y)
 									  is_landmark, this->reducers[level].knn_dists());
 
 		sec associate_duration = clock::now() - associate_before;
-		cout << "done in " << associate_duration.count() << " seconds." << endl;
+
+		if( this->verbose ) {
+			cout << "done in " << associate_duration.count() << " seconds." << endl;
+		}
+
 
 		/*
 			STORE INFORMATION FOR THE NEXT HIERARCHY LEVEL
@@ -1009,18 +1017,19 @@ void humap::HierarchicalUMAP::fit(py::array_t<double> X, py::array_t<int> y)
 		}
 
 		sec level_duration = clock::now() - level_before;
-		cout << endl << "Level construction: " << level_duration.count() << endl;
-		cout << endl;
+		if( this->verbose ) {
+			cout << endl << "Level construction: " << level_duration.count() << endl;
+			cout << endl;
+		}
 
 	}
 
-
-
-
 	sec hierarchy_duration = clock::now() - hierarchy_before;
-	cout << endl;
-	cout << "Hierarchy construction in " << hierarchy_duration.count() << " seconds." << endl;
-	cout << endl;
+	if( this->verbose ) {
+		cout << endl;
+		cout << "Hierarchy construction in " << hierarchy_duration.count() << " seconds." << endl;
+		cout << endl;
+	}
 
 
 	for( int i = 0; i < this->hierarchy_X.size(); ++i ) {

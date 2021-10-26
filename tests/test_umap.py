@@ -33,14 +33,14 @@ class TestUmap(unittest.TestCase):
         X = np.random.rand(1000, 1)
         reducer = humap.UMAP(n_neighbors=15)
 
-        self.assertRaises(ValueError, lambda: reducer.fit_transform(X), "input dimensionality <= 2")
+        self.assertRaises(ValueError, reducer.fit_transform, X)
 
     def test_dimensionality2(self):
 
         X = np.random.rand(1000, 2)
         reducer = humap.UMAP(n_neighbors=15)
 
-        self.assertRaises(ValueError, lambda: reducer.fit_transform(X), "input dimensionality <= 2")
+        self.assertRaises(ValueError, reducer.fit_transform, X)
 
 
 

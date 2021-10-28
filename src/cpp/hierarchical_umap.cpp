@@ -751,15 +751,11 @@ void humap::HierarchicalUMAP::fit(py::array_t<double> X, py::array_t<int> y)
 	this->dense_backup.push_back(first_level);
 	this->hierarchy_y.push_back(vector<int>((int*)y.request().ptr, (int*)y.request().ptr + y.request().shape[0]));
 
-	if( this->verbose ) {
-		cout << "\n\n*************************************************************************" << endl;
-		cout << "*********************************LEVEL 0*********************************" << endl;
-		cout << "*************************************************************************" << endl << endl;
-		cout << "Level 0 with "  << first_level.size() << " data samples." << endl;
-		cout << "Fitting the first hierarchy level... "; 
-	}
-
-
+	utils::log(this->verbose, std::string("\n\n*************************************************************************\n")+
+								"*********************************LEVEL 0*********************************\n"+ 
+								"*************************************************************************\n\n"+
+								"Level 0 with "  + std::to_string(first_level.size()) + " data samples.\n"+
+								"Fitting the first hierarchy level... ");
 	
 	umap::UMAP reducer = umap::UMAP("euclidean", this->n_neighbors, this->min_dist, this->knn_algorithm, this->init);
 	reducer.set_ab_parameters(this->a, this->b);
@@ -771,53 +767,40 @@ void humap::HierarchicalUMAP::fit(py::array_t<double> X, py::array_t<int> y)
 	*/
 	reducer.fit(this->hierarchy_X[0]);
 	duration = clock::now() - before;
+	utils::log(this->verbose, "\ndone in " + std::to_string(duration.count()) + " seconds.\n");
+
 
 	this->reducers.push_back(reducer);
 
-	if( this->verbose ) {
-		cout << "done in " << duration.count() << " seconds." << endl;
-	}
 	
 	vector<int> indices(this->hierarchy_X[0].size(), 0);	
 	iota(indices.begin(), indices.end(), 0);
-	
 	vector<int> owners(this->hierarchy_X[0].size(), -1);
 	vector<double> strength(this->hierarchy_X[0].size(), -1.0);
 	vector<vector<int>> association(this->hierarchy_X[0].size(), vector<int>());
 
 	this->metadata.push_back(humap::Metadata(indices, owners, strength, association, this->hierarchy_X[0].size()));
-
 	this->original_indices.push_back(indices);
-
-
+	
 	Eigen::SparseMatrix<double, Eigen::RowMajor> graph = this->reducers[0].get_graph();
-
 	vector<vector<double>> knn_dists = this->reducers[0].knn_dists();
 
 	for( int level = 0; level < this->percents.size(); ++level ) {
-		
 
 		auto level_before = clock::now();
-
 		int n_elements = (int) (this->percents[level] * this->hierarchy_X[level].size());		
-
-		if( this->verbose ) {
-
-			cout << "\n\n*************************************************************************" << endl;
-			cout << "*********************************LEVEL "<< (level+1) << "*********************************" << endl;
-			cout << "*************************************************************************" << endl << endl;
-			
-			cout << "Level " << (level+1) << ": " << n_elements << " data samples." << endl;
-		}
+	
+		utils::log(this->verbose, std::string("\n\n*************************************************************************\n")+
+										"*********************************LEVEL " + std::to_string(level+1) + "*********************************\n"+
+										"*************************************************************************\n\n"+
+										"Level " + std::to_string(level+1) + ": " + std::to_string(n_elements) + " data samples.");
 
 
 		/*
 			COMPUTING RANDOM WALK FOR SAMPLING SELETION
  		*/
  		auto begin_random_walk = clock::now();
- 		if( this->verbose ) {
- 			cout << "Computing random walks for sampling selection... ";
- 		} 		
+ 		utils::log(this->verbose, "Computing random walks for sampling selection... \n");
 
  		vector<int> landmarks;
  		landmarks = humap::markov_chain(this->reducers[level].knn_indices(),
@@ -827,9 +810,7 @@ void humap::HierarchicalUMAP::fit(py::array_t<double> X, py::array_t<int> y)
 										this->landmarks_wl); 
 
  		sec end_random_walk = clock::now() - begin_random_walk;
-		if( this->verbose ) {
- 			cout << "done in " << end_random_walk.count() << " seconds." << endl;
-		}
+		utils::log(this->verbose, "done in " + std::to_string(end_random_walk.count()) + " seconds.\n");
 
 		// we sort points based on their endpoints
 		// the most visited ones will be landmarks for the next hierarchy level
@@ -838,13 +819,12 @@ void humap::HierarchicalUMAP::fit(py::array_t<double> X, py::array_t<int> y)
  		for( int i = 0; i < n_elements; ++i )
  			inds_lands.push_back(sorted_landmarks[i]);
 
+
  		/*
 			COMPUTING RANDOM WALK FOR CONSTRUCTING REPRESENTATION NEIGHBORHOOD
  		*/
  		auto influence_begin = clock::now();
- 		if( this->verbose ) {
- 			cout << "Computing random walks for constucting representation neighborhood... ";
- 		}
+ 		utils::log(this->verbose, "Computing random walks for constucting representation neighborhood... \n");
 
 
  		vector<vector<int>> neighborhood;
@@ -857,23 +837,20 @@ void humap::HierarchicalUMAP::fit(py::array_t<double> X, py::array_t<int> y)
 										    this->reducers[level].vals_transition,
 										    this->reducers[level].cols,
 										    this->influence_nwalks, this->influence_wl,  
-										    //this->reducers[level].sum_vals,
 										    inds_lands, this->influence_neighborhood,
 										    neighborhood, association);
- 		sec influence_time = clock::now() - influence_begin;
 
-		if( this->verbose ) {
- 			cout << "done in " << influence_time.count() << " seconds." << endl;
-		}
+ 		sec influence_time = clock::now() - influence_begin;
+		utils::log(this->verbose, "done in " + std::to_string(influence_time.count()) + " seconds.\n");
  			
  		level_landmarks.push_back(inds_lands);
+
 
 
  		/*
 			STORE INFORMATION ABOUT ORIGINAL INDICES AND LANDMARKS
  		*/
 		vector<int> greatest = inds_lands;
-
 		vector<int> orig_inds(greatest.size(), 0);
 
 		for( int i = 0; i < orig_inds.size(); ++i )
@@ -884,63 +861,32 @@ void humap::HierarchicalUMAP::fit(py::array_t<double> X, py::array_t<int> y)
 		this->_indices.push_back(greatest);
 
 
+
 		/*
 			COMPUTE SIMILARITY AMONG THE LANDMARKS
 		*/
-		if( this->verbose ) {
-			cout << "Computing similarity among landmarks... ";
-		}
+		utils::log(this->verbose, "Computing similarity among landmarks... \n");
 
 		umap::Matrix data;			
 		auto similarity_before = clock::now();		
-		if( this->similarity_method == "similarity" ) {
-			/* Work in progress... */
-			vector<vector<double>> dense;
-			for( int i = 0; i < greatest.size(); ++i ) {
-				vector<double> row = this->update_position(i, neighborhood[i], this->hierarchy_X[level]);
-				dense.push_back(row);
-			}
 
-			data = umap::Matrix(dense);
-			reducer = umap::UMAP("euclidean", this->n_neighbors, this->min_dist, this->knn_algorithm, this->init);
-			reducer.set_ab_parameters(this->a, this->b);
-
-
-		} else if( this->similarity_method == "precomputed" ) {	 
-			
-
-			/*			
-				Computes the similarity among landmarks
-
-				It consists of the intersection of the global and local neighborhoods.
-			
-			*/
-			SparseComponents triplets = this->sparse_similarity(level+1, this->hierarchy_X[level].size(), this->n_neighbors,
-																greatest, neighborhood, max_incidence, association); 
-		
-			vector<utils::SparseData> sparse = humap::create_sparse(n_elements, triplets.rows, triplets.cols, triplets.vals);
-			data = umap::Matrix(sparse, greatest.size());
-			reducer = umap::UMAP("precomputed", this->n_neighbors, this->min_dist, this->knn_algorithm, this->init);
-			reducer.set_ab_parameters(this->a, this->b);
-
-		} else {
-			/* Work in progress... */
-			reducer = umap::UMAP("euclidean", this->n_neighbors, this->min_dist, this->knn_algorithm, this->init);
-			reducer.set_ab_parameters(this->a, this->b);
-		}
+		// it consists of the intersection of the global and local neighborhoods.				
+		SparseComponents triplets = this->sparse_similarity(level+1, 
+															this->hierarchy_X[level].size(), this->n_neighbors,
+															greatest, neighborhood, max_incidence, association); 	
+		vector<utils::SparseData> sparse = humap::create_sparse(n_elements, triplets.rows, triplets.cols, triplets.vals);
+		data = umap::Matrix(sparse, greatest.size());
+		reducer = umap::UMAP("precomputed", this->n_neighbors, this->min_dist, this->knn_algorithm, this->init);
+		reducer.set_ab_parameters(this->a, this->b);
 
 		sec similarity_after = clock::now() - similarity_before;
-		if( this->verbose ) {
-			cout << "done in " << similarity_after.count() << " seconds." << endl;
-		}
+		utils::log(this->verbose, "done in "  + std::to_string(similarity_after.count()) + " seconds.\n");
 
 
 		/*
 			FITTING HIERARCHY LEVEL			
 		*/
-		if( this->verbose ) {
-			cout << "Fitting the hierarchy level... "; 
-		}
+		utils::log(this->verbose, "Fitting the hierarchy level... \n");
 
 		this->metadata[level].count_influence = vector<int>(greatest.size(), 0);
 
@@ -948,27 +894,23 @@ void humap::HierarchicalUMAP::fit(py::array_t<double> X, py::array_t<int> y)
 		reducer.fit(data);
 		sec fit_duration = clock::now() - fit_before;
 
-		if( this->verbose ) {
-			cout << "done in " << fit_duration.count() << " seconds." << endl;
-		}
+		utils::log(this->verbose, "done in "  + std::to_string(fit_duration.count()) + " seconds.\n");
+
 
 		/*
 			ASSOCIATING DATA POINTS TO LANDMARKS
 		*/
-		if( this->verbose ) {
-			cout << "Associating data points to landmarks... "; 
-		}
+		utils::log(this->verbose, "Associating data points to landmarks... \n");
 
 		auto associate_before = clock::now();
 		vector<int> is_landmark(this->metadata[level].size, -1);
-		for( int i = 0; i < greatest.size(); ++i ) 
-		{
+		for( int i = 0; i < greatest.size(); ++i ) {
 			is_landmark[greatest[i]] = i;
 		}
 		
 		this->associate_to_landmarks(greatest.size(), this->n_neighbors, greatest, this->reducers[level].cols, 
-			this->metadata[level].strength, this->metadata[level].owners, this->metadata[level].indices, 
-			this->metadata[level].association, is_landmark, this->metadata[level].count_influence, this->reducers[level].knn_dists());
+								     this->metadata[level].strength, this->metadata[level].owners, this->metadata[level].indices, 
+									 this->metadata[level].association, is_landmark, this->metadata[level].count_influence, this->reducers[level].knn_dists());
 
 		
 		int n = 0;
@@ -988,49 +930,36 @@ void humap::HierarchicalUMAP::fit(py::array_t<double> X, py::array_t<int> y)
 									  is_landmark, this->reducers[level].knn_dists());
 
 		sec associate_duration = clock::now() - associate_before;
+		utils::log(this->verbose, "done in "  + std::to_string(associate_duration.count()) + " seconds.\n");
 
-		if( this->verbose ) {
-			cout << "done in " << associate_duration.count() << " seconds." << endl;
-		}
 
 
 		/*
 			STORE INFORMATION FOR THE NEXT HIERARCHY LEVEL
 		*/
-		if( this->verbose ) {
-			cout << "Storing information for the next hierarchy level... ";
-		}
+		utils::log(this->verbose, "Storing information for the next hierarchy level... \n");
+
 		auto information_before = clock::now();
 
 		vector<int> new_owners(greatest.size(), -1);
 		vector<double> new_strength(greatest.size(), -1.0);
 		vector<vector<int>> new_association(greatest.size(), vector<int>());
 
-		this->metadata.push_back(Metadata(greatest, new_owners, new_strength, new_association, greatest.size()));//vector<int>(greatest.size(), -1), vector<double>(greatest.size(), -1.0)));
+		this->metadata.push_back(Metadata(greatest, new_owners, new_strength, new_association, greatest.size()));
 		this->reducers.push_back(reducer);
 		this->hierarchy_X.push_back(data);
 		this->hierarchy_y.push_back(utils::arrange_by_indices(this->hierarchy_y[level], greatest));
 
 		sec information_after = clock::now() - information_before;
-		if( this->verbose ) {
-			cout << "done in " << information_after.count() << " seconds." << endl;
-		}
+		utils::log(this->verbose, "done in " + std::to_string(information_after.count()) + " seconds.");
 
 		sec level_duration = clock::now() - level_before;
-		if( this->verbose ) {
-			cout << endl << "Level construction: " << level_duration.count() << endl;
-			cout << endl;
-		}
+		utils::log(this->verbose, "\nLevel construction: " + std::to_string(level_duration.count()) + "\n\n");
 
 	}
 
 	sec hierarchy_duration = clock::now() - hierarchy_before;
-	if( this->verbose ) {
-		cout << endl;
-		cout << "Hierarchy construction in " << hierarchy_duration.count() << " seconds." << endl;
-		cout << endl;
-	}
-
+	utils::log(this->verbose, "\nHierarchy construction in " + std::to_string(hierarchy_duration.count()) + " seconds.\n\n");
 
 	for( int i = 0; i < this->hierarchy_X.size(); ++i ) {
 		this->embeddings.push_back(vector<vector<double>>());

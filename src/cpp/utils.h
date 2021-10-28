@@ -39,9 +39,11 @@
 #include <tuple>
 #include <cmath>
 #include <vector>
-#include <algorithm>
 #include <string>
 #include <numeric>
+#include <iostream>
+#include <algorithm>
+
 #include <Eigen/Sparse>
 
 #include <pybind11/pybind11.h>
@@ -168,7 +170,6 @@ std::vector<T> arrange_by_indices(const std::vector<T>& data, std::vector<int>& 
   return v;
 }
 
-
 // Converts an Eigen::Matrix to tuple format
 std::tuple<std::vector<int>, std::vector<int>, std::vector<double>> to_row_format(const Eigen::SparseMatrix<double, Eigen::RowMajor>& M);
 
@@ -186,6 +187,9 @@ double clip(double value);
 
 // Computes the pairwise distance for a matrix of points
 vector<vector<double>> pairwise_distances(vector<vector<double>>& X);
+
+// output verbosity
+void log(bool verbose, const string& message);
 
 
 }

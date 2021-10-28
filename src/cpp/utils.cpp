@@ -180,3 +180,16 @@ vector<vector<double>> utils::pairwise_distances(vector<vector<double>>& X)
 
   return pd;
 }
+
+
+/**
+* Prints the log
+*
+* @param verbose bool that indicates the verbosity
+* @param message string specifing the message to output
+*/
+void utils::log(bool verbose, const string& message)
+{
+  if( verbose )
+    cout << message;
+}

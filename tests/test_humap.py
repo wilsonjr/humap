@@ -8,7 +8,7 @@ from sklearn.datasets import fetch_openml
 from sklearn.preprocessing import normalize
 from sklearn.model_selection import train_test_split
 
-class TestUmap(unittest.TestCase):
+class TestHumap(unittest.TestCase):
 
     def setUp(self):
         X, y = fetch_openml('mnist_784', version=1, return_X_y=True)    

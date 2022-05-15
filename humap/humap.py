@@ -44,6 +44,7 @@ class HUMAP(object):
 	"""
 	def __init__(self, levels=np.array([0.2, 0.2]), n_neighbors=100, min_dist=0.15, knn_algorithm='NNDescent', init="Spectral", verbose=True):
 		self.levels = levels
+		self.n_levels = len(levels)+1
 		self.n_neighbors = n_neighbors
 		self.min_dist = min_dist
 		self.knn_algorithm = knn_algorithm
@@ -216,7 +217,7 @@ class HUMAP(object):
 		np.array: the labels for the data points in the specified level
 		"""
 
-		if level <= 0 or level > self.n_levels:
+		if level <= 0 or level >= self.n_levels:
 			raise ValueError("level must be in [1, n_levels-1]")
 		else:			
 			return self.h_umap.get_labels(level)

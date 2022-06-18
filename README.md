@@ -5,7 +5,7 @@
 .. |pypi_version| image:: https://img.shields.io/pypi/v/humap.svg
 .. _pypi_version: https://pypi.python.org/pypi/humap/
 
-.. |pypi_downloads| image:: https://pepy.tech/badge/humap/
+.. |pypi_downloads| image:: https://pepy.tech/badge/humap
 .. _pypi_downloads: https://pepy.tech/project/humap
 
 .. image:: images/fmnist-cover.png

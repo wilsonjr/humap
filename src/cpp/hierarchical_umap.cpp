@@ -760,18 +760,18 @@ void humap::HierarchicalUMAP::fit(py::array_t<double> X, py::array_t<int> y)
 	umap::UMAP reducer = umap::UMAP("euclidean", this->n_neighbors, this->min_dist, this->knn_algorithm, this->init);
 	reducer.set_ab_parameters(this->a, this->b);
 	
-	before = clock::now();
+	dump_info("Step,Level,Points,Runtime\n");
 
+	before = clock::now();
 	/**
 		Basically, computes the knn and indices the graph of strengths
 	*/
 	reducer.fit(this->hierarchy_X[0]);
 	duration = clock::now() - before;
 	utils::log(this->verbose, "\ndone in " + std::to_string(duration.count()) + " seconds.\n");
-
-
 	this->reducers.push_back(reducer);
-
+	
+	this->dump_info("Fit,0,"+std::to_string(this->hierarchy_X[0].size())+","+std::to_string(duration.count())+"\n");
 	
 	vector<int> indices(this->hierarchy_X[0].size(), 0);	
 	iota(indices.begin(), indices.end(), 0);
@@ -812,6 +812,10 @@ void humap::HierarchicalUMAP::fit(py::array_t<double> X, py::array_t<int> y)
  		sec end_random_walk = clock::now() - begin_random_walk;
 		utils::log(this->verbose, "done in " + std::to_string(end_random_walk.count()) + " seconds.\n");
 
+		this->dump_info("Markov Chain - Sampling,"+std::to_string(level)+","+
+						std::to_string(this->reducers[level].knn_indices().size())+","+
+						std::to_string(end_random_walk.count())+"\n");
+
 		// we sort points based on their endpoints
 		// the most visited ones will be landmarks for the next hierarchy level
  		vector<int> inds_lands; 		
@@ -844,6 +848,10 @@ void humap::HierarchicalUMAP::fit(py::array_t<double> X, py::array_t<int> y)
 		utils::log(this->verbose, "done in " + std::to_string(influence_time.count()) + " seconds.\n");
  			
  		level_landmarks.push_back(inds_lands);
+
+		this->dump_info("Markov Chain - Dissimilarity,"+std::to_string(level)+","+
+						std::to_string(this->reducers[level].knn_indices().size())+","+
+						std::to_string(influence_time.count())+"\n");
 
 
 
@@ -882,6 +890,11 @@ void humap::HierarchicalUMAP::fit(py::array_t<double> X, py::array_t<int> y)
 		sec similarity_after = clock::now() - similarity_before;
 		utils::log(this->verbose, "done in "  + std::to_string(similarity_after.count()) + " seconds.\n");
 
+		this->dump_info("Landmarks Dissimilarity,"+std::to_string(level)+","+
+						std::to_string(neighborhood.size())+","+
+						std::to_string(similarity_after.count())+"\n");
+
+
 
 		/*
 			FITTING HIERARCHY LEVEL			
@@ -896,6 +909,9 @@ void humap::HierarchicalUMAP::fit(py::array_t<double> X, py::array_t<int> y)
 
 		utils::log(this->verbose, "done in "  + std::to_string(fit_duration.count()) + " seconds.\n");
 
+		this->dump_info("Fit,"+std::to_string(level+1)+","+
+						std::to_string(data.size())+","+
+						std::to_string(fit_duration.count())+"\n");
 
 		/*
 			ASSOCIATING DATA POINTS TO LANDMARKS
@@ -932,6 +948,9 @@ void humap::HierarchicalUMAP::fit(py::array_t<double> X, py::array_t<int> y)
 		sec associate_duration = clock::now() - associate_before;
 		utils::log(this->verbose, "done in "  + std::to_string(associate_duration.count()) + " seconds.\n");
 
+		this->dump_info("Landmark Association,"+std::to_string(level+1)+","+
+						std::to_string(data.size())+","+
+						std::to_string(associate_duration.count())+"\n");
 
 
 		/*
@@ -963,6 +982,10 @@ void humap::HierarchicalUMAP::fit(py::array_t<double> X, py::array_t<int> y)
 
 	for( int i = 0; i < this->hierarchy_X.size(); ++i ) {
 		this->embeddings.push_back(vector<vector<double>>());
+	}
+
+	if( this->output_filename != "" ) {
+		this->output_file.close();
 	}
 }
 
@@ -1645,5 +1668,12 @@ py::array_t<double> humap::HierarchicalUMAP::project_data(int level, vector<int>
 	}
 
 	return py::cast(vector<vector<double>>());
+}
+
+void humap::HierarchicalUMAP::dump_info(string info)
+{
+	if( this->output_filename != "" ) {
+		this->output_file << info;
+	}
 }
 

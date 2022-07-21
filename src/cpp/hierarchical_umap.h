@@ -45,6 +45,7 @@
 #include <vector>
 #include <algorithm>
 #include <chrono>
+#include <fstream>
 #include <time.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
@@ -255,6 +256,15 @@ public:
 
 	// fix datapoints
 	void set_fixed_datapoints(py::array_t<double> fixed) { this->fixed_datapoints = convert_to_vector(fixed); }
+
+	// file
+	void set_info_file(string filename) { 
+		this->output_filename = filename; 
+		this->output_file.open(filename); 
+	}
+
+	// set statistics
+	void dump_info(string info);
 		
 private:
 
@@ -279,6 +289,8 @@ private:
 	double percent_glue = 0.0;
 	double _fixing_term = 0.01;
 
+	string output_filename = "";
+	ofstream output_file;
 	string init = "Spectral";
 	string similarity_method;
 	string knn_algorithm;

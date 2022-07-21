@@ -263,6 +263,10 @@ class HUMAP(object):
 		self.h_umap.set_fixing_term(fixing_term)
 
 
+	def set_info_file(self, info_file=""):
+		self.h_umap.set_info_file(info_file)
+
+
 	def influence(self, level):
 		r"""
 		Gets the information on how each landmark influence on the subsequent level

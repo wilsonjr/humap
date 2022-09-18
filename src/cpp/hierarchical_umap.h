@@ -54,8 +54,10 @@
 
 #include "umap.h"
 
+#include "uniform_distribution_double.h"
 
 using namespace std;
+using namespace umap;
 
 namespace py = pybind11;
 
@@ -68,16 +70,17 @@ vector<vector<double>> convert_to_vector(const py::array_t<double>& v);
 vector<utils::SparseData> create_sparse(int n, const vector<int>& rows, const vector<int>& cols, const vector<double>& vals);
 
 // returns how many times each data point was an endpoint after a markov chain
-vector<int>  markov_chain(vector<vector<int>>& knn_indices, vector<double>& vals, vector<int>& cols, int num_walks, int walk_length); 
+vector<int>  markov_chain(vector<vector<int>>& knn_indices, vector<double>& vals, vector<int>& cols, int num_walks, int walk_length, bool reproducible); 
 
 // returns the endpoint after a random walk
 int random_walk(int vertex, int n_neighbors, vector<double>& vals, vector<int>& cols, int walk_length, 
-	            std::uniform_real_distribution<double>& unif, std::default_random_engine& rng);
+	            uniform_real_distribution<double>& unif, std::mt19937& rng);
 
 
 // returns the max neighborhood after markov chain
 int markov_chain(vector<vector<int>>& knn_indices, vector<double>& vals, vector<int>& cols, 
-	             int num_walks, int walk_length, vector<int>& landmarks, int influence_neighborhood, vector<vector<int>>& neighborhood, vector<vector<int>>& association);
+	             int num_walks, int walk_length, vector<int>& landmarks, int influence_neighborhood, 
+				 vector<vector<int>>& neighborhood, vector<vector<int>>& association, bool reproducible);
 
 // returns the endpoint after a random walk
 int random_walk(int vertex, int n_neighbors, vector<double>& vals, vector<int>& cols, 
@@ -130,36 +133,7 @@ struct SparseComponents
 	vector<double> vals;
 };
 
-/**
-*  Class for generating random values during random walks
-*/
-class RandomGenerator
-{
-public:
-    
-	static RandomGenerator& Instance() {
-        static RandomGenerator s;
-        return s;
-    }
 
-    std::mt19937 & get() {
-        return mt;
-    }
-
-private:
-    RandomGenerator() {
-        std::random_device rd;
-
-        auto seed = std::chrono::high_resolution_clock::now().time_since_epoch().count();
-        mt.seed(seed);
-    }
-    ~RandomGenerator() {}
-
-    RandomGenerator(RandomGenerator const&) = delete;
-    RandomGenerator& operator= (RandomGenerator const&) = delete;
-
-    std::mt19937 mt;
-};
 
 /**
 * Hierarchical UMAP
@@ -179,8 +153,10 @@ public:
 	* @param init_ string representing the initialization of low-dimensional representation
 	* @param verbose_ bool controling the verbosity of HUMAP	
 	*/
-	HierarchicalUMAP(string similarity_method_, py::array_t<double> percents_, int n_neighbors_=15, double min_dist_=0.15, string knn_algorithm_="NNDescent", string init_="Spectral", bool verbose_=false) 
-	: similarity_method(similarity_method_), n_neighbors(n_neighbors_), min_dist(min_dist_), knn_algorithm(knn_algorithm_), percent_glue(0.0), init(init_), verbose(verbose_) {
+	HierarchicalUMAP(string similarity_method_, py::array_t<double> percents_, int n_neighbors_=15, double min_dist_=0.15, 
+					 string knn_algorithm_="NNDescent", string init_="Spectral", bool verbose_=false, bool reproducible_=false) 
+	: similarity_method(similarity_method_), n_neighbors(n_neighbors_), min_dist(min_dist_), 
+		knn_algorithm(knn_algorithm_), percent_glue(0.0), init(init_), verbose(verbose_), reproducible(reproducible_) {
 
 		percents = vector<double>((double*)percents_.request().ptr, (double*)percents_.request().ptr + percents_.request().shape[0]);
 	}
@@ -263,6 +239,9 @@ public:
 		this->output_file.open(filename); 
 	}
 
+	void set_random_state(int random_state) { this->random_state = random_state; }
+	void set_n_epochs(int n_epochs) { this->n_epochs = n_epochs; }
+
 	// set statistics
 	void dump_info(string info);
 		
@@ -283,6 +262,7 @@ private:
 	bool verbose;
 	bool focus_context = false;
 	bool distance_similarity = false;
+	bool reproducible;
 	
 	double min_dist = 0.15;
 	double a = -1.0, b = -1.0;

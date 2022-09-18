@@ -41,7 +41,7 @@ namespace py = pybind11;
 PYBIND11_MODULE(_hierarchical_umap, m) {
 	
 	py::class_<humap::HierarchicalUMAP>(m, "HUMAP")
-		.def(py::init<string, py::array_t<double>, int, double, string, string, bool>())
+		.def(py::init<string, py::array_t<double>, int, double, string, string, bool, bool>())
 		.def(py::init<>())
 		.def("fit", &humap::HierarchicalUMAP::fit)
 		.def("transform", &humap::HierarchicalUMAP::transform)
@@ -67,6 +67,8 @@ PYBIND11_MODULE(_hierarchical_umap, m) {
 		.def("set_fixed_datapoints", &humap::HierarchicalUMAP::set_fixed_datapoints)
 		.def("set_fixing_term", &humap::HierarchicalUMAP::set_fixing_term)
 		.def("set_info_file", &humap::HierarchicalUMAP::set_info_file)
+		.def("set_n_epochs", &humap::HierarchicalUMAP::set_n_epochs)
+
 		.def("__repr__",
 			[](humap::HierarchicalUMAP& a) {
 				return "<class.HierarchicalUMAP>";

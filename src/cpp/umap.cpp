@@ -64,15 +64,16 @@ void umap::UMAP::optimize_euclidean_epoch(vector<vector<double>>& head_embedding
 										   const vector<int>& head, const vector<int>& tail, int n_vertices, 
 										   const vector<double>& epochs_per_sample, double a, double b, 
 										   double gamma, int dim, bool move_other, double alpha, vector<double>& epochs_per_negative_sample,
-										   vector<double>& epoch_of_next_negative_sample, vector<double>& epoch_of_next_sample, int n)
+										   vector<double>& epoch_of_next_negative_sample, 
+										   vector<double>& epoch_of_next_sample, 
+										   int n)
 {
-	std::random_device seeder;
-	std::mt19937 engine(seeder());
+	
+	const int seed = 0;
+	std::mt19937& engine = RandomGenerator::Instance().get();
 	std::uniform_int_distribution<int> dist(0, head_embedding.size());
 
-
-
-	#pragma omp parallel for
+	#pragma omp parallel for		
 	for( int i = 0; i < epochs_per_sample.size(); ++i ) {
 		if( epoch_of_next_sample[i] <= n ) {
 			int j = head[i];
@@ -113,23 +114,28 @@ void umap::UMAP::optimize_euclidean_epoch(vector<vector<double>>& head_embedding
 
 			epoch_of_next_sample[i] += epochs_per_sample[i];
 			int n_neg_samples = (int) ((n-epoch_of_next_negative_sample[i])/epochs_per_negative_sample[i]);
+			// #pragma omp critical
+			// {
 			for( int p = 0; p < n_neg_samples; ++p ) {
-				int k = dist(engine);
-				k = k % n_vertices;
-			
-				other = &tail_embedding[k];
-				dist_squared = utils::rdist(*current, *other);
-			
-				if( dist_squared > 0.0 ) {
-					grad_coeff = 2.0 * gamma * b;
-					grad_coeff /= (0.001 + dist_squared) * (a * pow(dist_squared, b) + 1.0);
-				} else if( j == k ) {
-					continue;
-				} else {
-					grad_coeff = 0.0;
-				}
-			
-				for( int d = 0; d < dim; ++d ) {
+				
+					int k = dist(engine);
+					k = k % n_vertices;
+				
+					other = &tail_embedding[k];
+					dist_squared = utils::rdist(*current, *other);
+				
+					if( dist_squared > 0.0 ) {
+						grad_coeff = 2.0 * gamma * b;
+						grad_coeff /= (0.001 + dist_squared) * (a * pow(dist_squared, b) + 1.0);
+					} else if( j == k ) {
+						;
+					} else {
+						grad_coeff = 0.0;
+					}
+				
+
+
+				for( int d = 0; j != k && d < dim; ++d ) {
 					double grad_d = 0.0;
 					if( grad_coeff > 0.0 ) {
 						grad_d = utils::clip(grad_coeff * ((*current)[d] - (*other)[d]));
@@ -146,10 +152,129 @@ void umap::UMAP::optimize_euclidean_epoch(vector<vector<double>>& head_embedding
 				}
 
 			}
-
+			
 			epoch_of_next_negative_sample[i] += (n_neg_samples * epochs_per_negative_sample[i]);
 		}
 	}
+	
+}
+
+/**
+* Optimize the layout for one epoch (reproducible method)
+*
+* @param head_embedding Container
+* @param tail_embedding Container
+* @param head Container 
+* @param tail Container
+* @param n_vertices int
+* @param epochs_per_sample Container
+* @param a double
+* @param b double
+* @param gamma double
+* @param dim int
+* @param move_other bool
+* @param alpha double
+* @param epochs_per_negative_sample Container
+* @param epochs_of_next_negative_sample Container
+* @param epochs_of_next_sample Container
+* @param n int
+* @return 
+*/
+void umap::UMAP::optimize_euclidean_epoch_reproducible(vector<vector<double>>& head_embedding, vector<vector<double>>& tail_embedding,
+										   const vector<int>& head, const vector<int>& tail, int n_vertices, 
+										   const vector<double>& epochs_per_sample, double a, double b, 
+										   double gamma, int dim, bool move_other, double alpha, vector<double>& epochs_per_negative_sample,
+										   vector<double>& epoch_of_next_negative_sample, 
+										   vector<double>& epoch_of_next_sample, 
+										   int n)
+{
+	const int seed = 0;
+	std::mt19937& engine = RandomGenerator::Instance().get();
+	std::uniform_int_distribution<int> dist(0, head_embedding.size());
+
+	for( int i = 0; i < epochs_per_sample.size(); ++i ) {
+		if( epoch_of_next_sample[i] <= n ) {
+			int j = head[i];
+			int k = tail[i];
+
+			vector<double>* current = &head_embedding[j];			
+			vector<double>* other = &tail_embedding[k];
+			
+
+			double dist_squared = utils::rdist((*current), (*other));
+
+			double grad_coeff = 0.0;
+
+			if( dist_squared > 0.0 ) {
+				grad_coeff = -2.0 * a * b * pow(dist_squared, b-1.0);
+				grad_coeff /= a * pow(dist_squared, b) + 1.0;
+			}
+
+			for( int d = 0; d < dim; ++d ) {
+				double grad_d = utils::clip(grad_coeff * ((*current)[d] - (*other)[d]));
+
+				if( this->_free_datapoints[j] ) {
+					(*current)[d] += (grad_d * alpha);
+				} else {
+					(*current)[d] += (grad_d * alpha)*this->_fixing_term;
+				}
+			
+				if( move_other ) {
+
+					if( this->_free_datapoints[k] ) {
+						(*other)[d] += (-grad_d * alpha);
+					} else {
+						(*other)[d] += (-grad_d * alpha)*this->_fixing_term;
+					}
+
+				}
+			}
+
+			epoch_of_next_sample[i] += epochs_per_sample[i];
+			int n_neg_samples = (int) ((n-epoch_of_next_negative_sample[i])/epochs_per_negative_sample[i]);
+			// #pragma omp critical
+			// {
+			for( int p = 0; p < n_neg_samples; ++p ) {
+				
+					int k = dist(engine);
+					k = k % n_vertices;
+				
+					other = &tail_embedding[k];
+					dist_squared = utils::rdist(*current, *other);
+				
+					if( dist_squared > 0.0 ) {
+						grad_coeff = 2.0 * gamma * b;
+						grad_coeff /= (0.001 + dist_squared) * (a * pow(dist_squared, b) + 1.0);
+					} else if( j == k ) {
+						;
+					} else {
+						grad_coeff = 0.0;
+					}
+				
+
+
+				for( int d = 0; j != k && d < dim; ++d ) {
+					double grad_d = 0.0;
+					if( grad_coeff > 0.0 ) {
+						grad_d = utils::clip(grad_coeff * ((*current)[d] - (*other)[d]));
+					}
+					else {
+						grad_d = 4.0;
+					}
+
+					if( this->_free_datapoints[j] ) {
+						(*current)[d] += (grad_d * alpha);
+					} else {
+						(*current)[d] += (grad_d * alpha)*this->_fixing_term;
+					}
+				}
+
+			}
+			
+			epoch_of_next_negative_sample[i] += (n_neg_samples * epochs_per_negative_sample[i]);
+		}
+	}
+	
 }
 
 /**
@@ -191,30 +316,51 @@ vector<vector<double>> umap::UMAP::optimize_layout_euclidean(vector<vector<doubl
 	if( this->_free_datapoints.size() == 0 ) {
 		this->_free_datapoints = vector<bool>(head_embedding.size(), true);
 	}
-
-
+	
 	for( int epoch = 0; epoch < n_epochs; ++epoch ) {
+		
+		if( this->try_reproducible ) {
 
-		this->optimize_euclidean_epoch(
-			head_embedding,
-			tail_embedding,
-			head,
-			tail,
-			n_vertices,
-			epochs_per_sample,
-			a, 
-			b,
-			gamma,
-			dim,
-			move_other,
-			alpha,
-			epochs_per_negative_sample,
-			epoch_of_next_negative_sample,
-			epoch_of_next_sample,
-			epoch);
+			this->optimize_euclidean_epoch_reproducible(
+				head_embedding,
+				tail_embedding,
+				head,
+				tail,
+				n_vertices,
+				epochs_per_sample,
+				a, 
+				b,
+				gamma,
+				dim,
+				move_other,
+				alpha,
+				epochs_per_negative_sample,
+				epoch_of_next_negative_sample,
+				epoch_of_next_sample,
+				epoch);
+
+		} else {
+
+			this->optimize_euclidean_epoch(
+				head_embedding,
+				tail_embedding,
+				head,
+				tail,
+				n_vertices,
+				epochs_per_sample,
+				a, 
+				b,
+				gamma,
+				dim,
+				move_other,
+				alpha,
+				epochs_per_negative_sample,
+				epoch_of_next_negative_sample,
+				epoch_of_next_sample,
+				epoch);
+		}
 
 		alpha = initial_alpha * (1.0 - ((double)epoch/(double)n_epochs));
-
 
 		if( this->verbose && epoch % (int)(n_epochs/10) == 0)
 			printf("\tcompleted %d / %d epochs\n", epoch, n_epochs);
@@ -437,7 +583,8 @@ vector<vector<double>> umap::UMAP::multi_component_layout(umap::Matrix& data,
 
 				if( component_labels[i] == label ) {
 					for( int j = 0; j < noise[row].size(); ++j ) {
-						result[i][j] = noise[row][j] + meta_embedding[label][j];
+						// result[i][j] = noise[row][j] + meta_embedding[label][j];
+						result[i][j] = 0.0 + meta_embedding[label][j];
 					}
 					row++;
 				}
@@ -555,8 +702,10 @@ vector<vector<double>> umap::UMAP::spectral_layout(umap::Matrix& data,
 	using clock = chrono::system_clock;
 	using sec = chrono::duration<double>;
 	// random initialization
+	std::srand(this->random_state);
 
-	if( this->init != "Spectral" ) {
+	if( true ) {// this->init != "Spectral" ) {
+		cout << "returning noise object" << endl; 
 		py::module scipy_random = py::module::import("numpy.random");
 		py::object randomState = scipy_random.attr("RandomState")(this->random_state);
 		vector<int> size = {(int)graph.rows(), dim};
@@ -900,7 +1049,7 @@ tuple<vector<double>, vector<double>> umap::smooth_knn_dist(vector<vector<double
 * @return tuple with two Containers containing the knn indices and knn distances
 */
 tuple<vector<vector<int>>, vector<vector<double>>> umap::nearest_neighbors(umap::Matrix& X,
-	int n_neighbors, string metric, map<string, string> knn_args, bool verbose)
+	int n_neighbors, string metric, map<string, string> knn_args, bool verbose, bool reproducible)
 {
 
 	using clock = chrono::system_clock;
@@ -919,7 +1068,7 @@ tuple<vector<vector<int>>, vector<vector<double>>> umap::nearest_neighbors(umap:
 		knn_indices = vector<vector<int>>(X.size(), vector<int>(n_neighbors, 0));
 		knn_dists = vector<vector<double>>(X.size(), vector<double>(n_neighbors, 0.0));
 
-		// #pragma omp parallel for default(shared)		
+		#pragma omp parallel for default(shared)		
 		for( int i = 0; i < knn_indices.size(); ++i )
 		{
 			vector<double> row_data = X.dense_matrix[i];
@@ -948,17 +1097,21 @@ tuple<vector<vector<int>>, vector<vector<double>>> umap::nearest_neighbors(umap:
 			knn_indices = knn_indices_.cast<vector<vector<int>>>();
 
 		} else if( algorithm == "ANNOY" ) {
+			py::module scipy_random = py::module::import("numpy.random");
+			scipy_random.attr("seed")(0);
 
 			py::module annoy = py::module::import("annoy");
 			py::object t = annoy.attr("AnnoyIndex")(
 				py::cast(X.shape(1)), py::cast("euclidean")
 				);
 
+			t.attr("set_seed")(0);
+
 			for( int i = 0; i < X.shape(0); ++i ) {
 				py::array_t<double> values = py::cast(X.dense_matrix[i]);
 				t.attr("add_item")(py::cast(i), values);				
 			}
-
+			t.attr("set_seed")(0);
 			t.attr("build")(100, py::arg("n_jobs")=-1);
 
 
@@ -974,7 +1127,38 @@ tuple<vector<vector<int>>, vector<vector<double>>> umap::nearest_neighbors(umap:
 				knn_indices.push_back(indices);
 			}
 
-		} else if( algorithm == "NNDescent" ) {
+		} else if( algorithm == "NNDescent" && reproducible ) {
+
+			py::module pynn = py::module::import("pynndescent");
+			int n_trees = min(64, 5 + int(sqrt(X.shape(0))/20.0));
+			int n_iters = max(5, int(log2(X.shape(0))));
+
+			
+
+			py::array_t<double> data = py::cast(X.dense_matrix);
+			py::object nn_descent = pynn.attr("NNDescent")(
+				data, 
+				py::arg("n_neighbors")=n_neighbors,
+				py::arg("metric")="euclidean",
+				// py::arg("metric_kwds")=metric_kwds,
+				py::arg("random_state")=0,
+				py::arg("n_trees")=n_trees,
+				py::arg("n_iters")=n_iters,
+				py::arg("max_candidates")=60,
+				py::arg("low_memory")=true,
+				py::arg("n_jobs")=-1,
+				py::arg("verbose")=true,
+				py::arg("compressed")=false
+			);
+			py::object neighbor_graph = nn_descent.attr("neighbor_graph");
+			py::object knn_indices_ = neighbor_graph.attr("__getitem__")(0);
+			py::object knn_dists_ = neighbor_graph.attr("__getitem__")(1);
+
+			knn_dists = knn_dists_.cast<vector<vector<double>>>();
+			knn_indices = knn_indices_.cast<vector<vector<int>>>();
+		
+		
+		} else if( algorithm == "NNDescent" && !reproducible ) {
 
 			auto prep_before = clock::now();
 			unsigned L = (unsigned) stoi(knn_args["L"]);
@@ -1110,7 +1294,7 @@ tuple<Eigen::SparseMatrix<double, Eigen::RowMajor>, vector<double>, vector<doubl
 	using sec = chrono::duration<double>;
 
 	if( knn_indices.size() == 0 || knn_dists.size() == 0 ) {
-		tie(knn_indices, knn_dists) = umap::nearest_neighbors(X, n_neighbors, metric, obj->knn_args, verbose);
+		tie(knn_indices, knn_dists) = umap::nearest_neighbors(X, n_neighbors, metric, obj->knn_args, verbose, obj->is_reproducible());
 	} 
 
 	vector<double> sigmas, rhos;
@@ -1282,7 +1466,7 @@ void umap::UMAP::prepare_for_fitting(umap::Matrix& X)
 		string nn_metric = this->metric;
 
 		tie(this->_knn_indices, this->_knn_dists) = umap::nearest_neighbors(X, this->_n_neighbors, nn_metric, 
-																			this->knn_args, verbose=this->verbose);
+																			this->knn_args, verbose=this->verbose, this->is_reproducible());
 
 		tie(this->graph_, this->_sigmas, this->_rhos) = umap::fuzzy_simplicial_set(X, this->n_neighbors, random_state,
 																                   nn_metric, this->_knn_indices, this->_knn_dists,
@@ -1299,7 +1483,7 @@ void umap::UMAP::prepare_for_fitting(umap::Matrix& X)
 */
 void umap::UMAP::fit(const Eigen::SparseMatrix<double, Eigen::RowMajor>& X)
 {
-
+	std::srand(this->random_state);
 	vector<int> rows, cols;
 	vector<double> vals;
 	
@@ -1325,7 +1509,7 @@ void umap::UMAP::fit(const Eigen::SparseMatrix<double, Eigen::RowMajor>& X)
 */
 void umap::UMAP::fit(const vector<utils::SparseData>& X)
 {
-
+	std::srand(this->random_state);
 	this->dataset = umap::Matrix(X);
 	this->_sparse_data = true;
 
@@ -1340,6 +1524,7 @@ void umap::UMAP::fit(const vector<utils::SparseData>& X)
 */
 void umap::UMAP::fit(vector<vector<double>> X)
 {
+	std::srand(this->random_state);
 	this->dataset = umap::Matrix(X);
 	this->_sparse_data = false;
 

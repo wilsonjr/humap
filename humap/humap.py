@@ -33,16 +33,20 @@ class HUMAP(object):
 			* ANNOY (Python instalation required)
 			* FLANN (Python instalation required)
 
+
 	init (str): (optional, default 'Spectral')
 		Initialization method for the low dimensional embedding. Options include:	
 			* Spectral
 			* random
 
+	reproducible (bool): (optional, default 'False')
+		If the results among different runs need to be reproducible. It affects the runtime execution.
+
 	verbose (bool): (optional, default True)
 		Controls logging.
 
 	"""
-	def __init__(self, levels=np.array([0.2, 0.2]), n_neighbors=100, min_dist=0.15, knn_algorithm='NNDescent', init="Spectral", verbose=True):
+	def __init__(self, levels=np.array([0.2, 0.2]), n_neighbors=100, min_dist=0.15, knn_algorithm='NNDescent', init="Spectral", verbose=True, reproducible=False):
 		self.levels = levels
 		self.n_levels = len(levels)+1
 		self.n_neighbors = n_neighbors
@@ -50,8 +54,9 @@ class HUMAP(object):
 		self.knn_algorithm = knn_algorithm
 		self.verbose = verbose
 		self.init = init
+		self.reproducible = reproducible
 
-		self.h_umap = _hierarchical_umap.HUMAP('precomputed', self.levels, self.n_neighbors, self.min_dist, self.knn_algorithm, self.init, self.verbose)
+		self.h_umap = _hierarchical_umap.HUMAP('precomputed', self.levels, self.n_neighbors, self.min_dist, self.knn_algorithm, self.init, self.verbose, self.reproducible)
 
 
 	def fit(self, X, y=None):
@@ -266,6 +271,9 @@ class HUMAP(object):
 	def set_info_file(self, info_file=""):
 		self.h_umap.set_info_file(info_file)
 
+	def set_n_epochs(self, epochs):
+		self.h_umap.set_n_epochs(epochs)
+
 
 	def influence(self, level):
 		r"""
@@ -339,8 +347,8 @@ class UMAP(HUMAP):
 		Controls logging.
 
 	"""
-	def __init__(self, n_neighbors=100, min_dist=0.15, knn_algorithm='NNDescent', init="Spectral", verbose=True):
-		super().__init__(np.array([]), n_neighbors, min_dist, knn_algorithm, init, verbose)
+	def __init__(self, n_neighbors=100, min_dist=0.15, knn_algorithm='NNDescent', init="Spectral", verbose=True, reproducible=False):
+		super().__init__(np.array([]), n_neighbors, min_dist, knn_algorithm, init, verbose, reproducible)
 
 	def fit_transform(self, X):
 		"""

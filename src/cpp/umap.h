@@ -60,6 +60,7 @@
 
 
 #include "utils.h"
+#include "uniform_distribution.h"
 
 #include "external/efanna/index_graph.h"
 #include "external/efanna/index_random.h"
@@ -76,6 +77,40 @@ namespace umap {
 
 static double SMOOTH_K_TOLERANCE = 1e-5;
 static double MIN_K_DIST_SCALE = 1e-3;
+
+
+/**
+*  Class for generating random values during random walks
+*/
+class RandomGenerator
+{
+public:
+    
+	static RandomGenerator& Instance() {
+        static RandomGenerator s;
+        return s;
+    }
+
+    std::mt19937 & get() {
+		mt.seed(0);
+        return mt;
+    }
+
+private:
+    RandomGenerator() {
+        std::random_device rd;
+
+		// if
+        auto seed = 0;// std::chrono::high_resolution_clock::now().time_since_epoch().count();
+        mt.seed(0);
+    }
+    ~RandomGenerator() {}
+
+    RandomGenerator(RandomGenerator const&) = delete;
+    RandomGenerator& operator= (RandomGenerator const&) = delete;
+
+    std::mt19937 mt;
+};
 
 /**
 * Class to store data points throughout the hierarchy
@@ -186,13 +221,14 @@ public:
 	* @param knn_algorithm string representin the knn algorithm
 	* @param init_ string with the type of low-embedding initialization
 	*/
-	UMAP(string metric_, int n_neighbors_, double min_dist_=0.15, string knn_algorithm="NNDescent", string init_="Spectral"): 
+	UMAP(string metric_, int n_neighbors_, double min_dist_=0.15, string knn_algorithm="NNDescent", string init_="Spectral", bool reproducible_=false): 
 		metric(metric_), 
 		verbose(false),
 		n_neighbors(n_neighbors_),
 		min_dist(min_dist_),
 		init(init_),
-		local_connectivity(1.0)
+		local_connectivity(1.0),
+		try_reproducible(reproducible_)
 	{
 		knn_args["knn_algorithm"] = knn_algorithm;
 
@@ -270,6 +306,10 @@ public:
 		this->_fixing_term = fixing_term;
 	}
 
+	bool is_reproducible() {
+		return try_reproducible;
+	}
+
 	// fit the dataset in fact
 	void prepare_for_fitting(Matrix& X);
 
@@ -301,6 +341,7 @@ private:
 	bool low_memory;
 	bool _sparse_data;
 	bool force_approximation_algorithm = false;
+	bool try_reproducible = false;
 
 	int n_epochs;
 	int n_components;
@@ -344,7 +385,16 @@ private:
 								   const vector<int>& head, const vector<int>& tail, int n_vertices, 
 								   const vector<double>& epochs_per_sample, double a, double b, 
 								   double gamma, int dim, bool move_other, double alpha, vector<double>& epochs_per_negative_sample,
-								   vector<double>& epoch_of_next_negative_sample, vector<double>& epoch_of_next_sample, int n);
+								   vector<double>& epoch_of_next_negative_sample, vector<double>& epoch_of_next_sample, 
+								   int n);
+
+	void optimize_euclidean_epoch_reproducible(vector<vector<double>>& head_embedding, vector<vector<double>>& tail_embedding,
+										   const vector<int>& head, const vector<int>& tail, int n_vertices, 
+										   const vector<double>& epochs_per_sample, double a, double b, 
+										   double gamma, int dim, bool move_other, double alpha, vector<double>& epochs_per_negative_sample,
+										   vector<double>& epoch_of_next_negative_sample, 
+										   vector<double>& epoch_of_next_sample, 
+										   int n);
 
 };
 
@@ -366,7 +416,7 @@ tuple<vector<double>, vector<double>> smooth_knn_dist(vector<vector<double>>& di
 
 // find the nearest neighbors
 tuple<vector<vector<int>>, vector<vector<double>>> nearest_neighbors(umap::Matrix& X,
-	int n_neighbors, string metric, map<string, string> knn_args, bool verbose=false);
+	int n_neighbors, string metric, map<string, string> knn_args, bool verbose=false,bool reproducible=false);
 
 // compute the affinities after find knn, sigma and rho values
 tuple<vector<int>, vector<int>, vector<double>, vector<double>> compute_membership_strenghts(
@@ -375,6 +425,9 @@ tuple<vector<int>, vector<int>, vector<double>, vector<double>> compute_membersh
 
 // computes the pairwise distance between data points
 std::vector<std::vector<double>> pairwise_distances(Matrix& X, string metric="euclidean");
+
+
+
 
 
 

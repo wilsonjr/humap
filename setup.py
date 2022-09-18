@@ -51,6 +51,7 @@ setup(
     url="https://github.com/wilsonjr/humap",
     description="Hierarchical Uniform Manifold Approximation and Projection",
     long_description=long_description,
+    long_description_content_type='text/markdown',
     ext_modules=ext_modules,
     license='MIT',
     extras_require={"test": "pytest"},

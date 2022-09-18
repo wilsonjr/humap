@@ -9,10 +9,12 @@ from pybind11 import get_cmake_dir
 
 import sys 
 
-__version__ = "0.1.2"
+__version__ = "0.2.1"
+
+with open('README.md', 'r') as f:
+	long_description = f.read()
 
 ext_modules = None 
-
 
 if sys.platform == 'win32':
     print("Compiling for Windows")
@@ -48,11 +50,10 @@ setup(
     author_email="wilson_jr@outlook.com",
     url="https://github.com/wilsonjr/humap",
     description="Hierarchical Uniform Manifold Approximation and Projection",
-    long_description="",
+    long_description=long_description,
     ext_modules=ext_modules,
+    license='MIT',
     extras_require={"test": "pytest"},
-    # Currently, build_ext only provides an optional "highest supported C++
-    # level" feature, but in the future it may provide more features.
     cmdclass={"build_ext": build_ext},
     install_requires=['numpy', 'pybind11'],
     packages=['humap'],

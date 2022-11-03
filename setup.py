@@ -28,7 +28,18 @@ if sys.platform == 'win32':
     		),
 
     ]
+elif sys.platform == 'darwin':
+    print("Compiling for MacOS")
+    ext_modules = [
+    Pybind11Extension("_hierarchical_umap",
+        ["src/cpp/external/efanna/index.cpp", "src/cpp/external/efanna/index_graph.cpp", "src/cpp/external/efanna/index_kdtree.cpp", "src/cpp/external/efanna/index_random.cpp", "src/cpp/utils.cpp", "src/cpp/umap.cpp", "src/cpp/hierarchical_umap.cpp", "src/cpp/humap_binding.cpp"],
+        language='c++',
+        extra_compile_args = ['-O3', '-std=c++11', '-fPIC', '-fopenmp', '-DEIGEN_DONT_PARALLELIZE', '-march=native', '-DINFO'],
+        extra_link_args = ['-O3', '-std=c++11', '-fPIC', '-fopenmp', '-DEIGEN_DONT_PARALLELIZE', '-march=native', '-DINFO'],
+        define_macros = [('VERSION_INFO', __version__)],
+        ),
 
+    ]
 else:
     print("Compiling for Linux")
     ext_modules = [

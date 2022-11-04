@@ -9,7 +9,7 @@ from pybind11 import get_cmake_dir
 
 import sys 
 
-__version__ = "0.2.2"
+__version__ = "0.2.3"
 
 with open('README.md', 'r') as f:
 	long_description = f.read()
@@ -34,8 +34,8 @@ elif sys.platform == 'darwin':
     Pybind11Extension("_hierarchical_umap",
         ["src/cpp/external/efanna/index.cpp", "src/cpp/external/efanna/index_graph.cpp", "src/cpp/external/efanna/index_kdtree.cpp", "src/cpp/external/efanna/index_random.cpp", "src/cpp/utils.cpp", "src/cpp/umap.cpp", "src/cpp/hierarchical_umap.cpp", "src/cpp/humap_binding.cpp"],
         language='c++',
-        extra_compile_args = ['-O3', '-std=c++11', '-fPIC', '-fopenmp', '-DEIGEN_DONT_PARALLELIZE', '-march=native', '-DINFO'],
-        extra_link_args = ['-O3', '-std=c++11', '-fPIC', '-fopenmp', '-DEIGEN_DONT_PARALLELIZE', '-march=native', '-DINFO'],
+        extra_compile_args = ['-O3', '-std=c++11', '-fPIC', '-fopenmp', '-DEIGEN_DONT_PARALLELIZE', '-DINFO'],
+        extra_link_args = ['-O3', '-std=c++11', '-fPIC', '-fopenmp', '-DEIGEN_DONT_PARALLELIZE', '-DINFO'],
         define_macros = [('VERSION_INFO', __version__)],
         ),
 
@@ -46,8 +46,8 @@ else:
     Pybind11Extension("_hierarchical_umap",
         ["src/cpp/external/efanna/index.cpp", "src/cpp/external/efanna/index_graph.cpp", "src/cpp/external/efanna/index_kdtree.cpp", "src/cpp/external/efanna/index_random.cpp", "src/cpp/utils.cpp", "src/cpp/umap.cpp", "src/cpp/hierarchical_umap.cpp", "src/cpp/humap_binding.cpp"],
         language='c++',
-        extra_compile_args = ['-O3', '-shared', '-std=c++11', '-fPIC', '-fopenmp', '-DEIGEN_DONT_PARALLELIZE', '-march=native', '-DINFO'],
-        extra_link_args = ['-O3', '-shared', '-std=c++11', '-fPIC', '-fopenmp', '-DEIGEN_DONT_PARALLELIZE', '-march=native', '-DINFO'],
+        extra_compile_args = ['-O3', '-shared', '-std=c++11', '-fPIC', '-fopenmp', '-DEIGEN_DONT_PARALLELIZE', '-DINFO'],
+        extra_link_args = ['-O3', '-shared', '-std=c++11', '-fPIC', '-fopenmp', '-DEIGEN_DONT_PARALLELIZE', '-DINFO'],
         define_macros = [('VERSION_INFO', __version__)],
         ),
 
@@ -67,7 +67,7 @@ setup(
     license='MIT',
     extras_require={"test": "pytest"},
     cmdclass={"build_ext": build_ext},
-    install_requires=['numpy', 'pybind11'],
+    install_requires=['numpy>=1.23.0', 'pybind11==2.10.1', 'scikit-learn>=1.1.3', 'scipy>=1.9.3'],
     packages=['humap'],
     zip_safe=False,
 )

@@ -67,7 +67,7 @@ setup(
     license='MIT',
     extras_require={"test": "pytest"},
     cmdclass={"build_ext": build_ext},
-    install_requires=['numpy>=1.23.0', 'pybind11==2.10.1', 'scikit-learn>=1.1.3', 'scipy>=1.9.3'],
+    # install_requires=['numpy>=1.23.0', 'pybind11==2.10.1', 'scikit-learn>=1.1.3', 'scipy>=1.9.3'],
     packages=['humap'],
     zip_safe=False,
 )

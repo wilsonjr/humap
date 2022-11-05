@@ -9,7 +9,7 @@ from pybind11 import get_cmake_dir
 
 import sys 
 
-__version__ = "0.2.2"
+__version__ = "0.2.6"
 
 with open('README.md', 'r') as f:
 	long_description = f.read()

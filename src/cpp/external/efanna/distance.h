@@ -75,7 +75,7 @@ namespace efanna2e{
 
             #ifdef COMPATIBILITY_MODE
               #pragma omp parallel for
-              for( unsigned int i = 0; i < size; ++i ) {
+              for( int i = 0; i < size; ++i ) {
                 result += (*(a+i) - *(b+i))*(*(a+i) - *(b+i));
               }
               result = std::sqrt(result);

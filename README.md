@@ -38,6 +38,7 @@ Requirements:
 * scipy
 * scikit-learn
 * pybind11
+* pynndescent (for reproducible results)
 * Eigen (C++)
 
 If you have these requirements installed, use PyPI:
@@ -45,6 +46,12 @@ If you have these requirements installed, use PyPI:
 .. code:: bash
 
     pip install humap
+    
+Alternatively (and preferable), you can use conda to install:
+
+.. code:: bash
+
+    conda install humap
 
 
 **For Windows users**:

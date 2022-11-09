@@ -1,12 +1,18 @@
 .. -*- mode: rst -*-
 
-|pypi_version|_ |pypi_downloads|_
+|conda_version|_ |conda_downloads|_ |pypi_version|_ |pypi_downloads|_
 
 .. |pypi_version| image:: https://img.shields.io/pypi/v/humap.svg
 .. _pypi_version: https://pypi.python.org/pypi/humap/
 
 .. |pypi_downloads| image:: https://pepy.tech/badge/humap
 .. _pypi_downloads: https://pepy.tech/project/humap
+
+.. |conda_version| image:: https://anaconda.org/conda-forge/humap/badges/version.svg
+.. _conda_version: https://anaconda.org/conda-forge/humap
+
+.. |conda_downloads| image:: https://anaconda.org/conda-forge/humap/badges/downloads.svg
+.. _conda_downloads: https://anaconda.org/conda-forge/humap
 
 .. image:: images/fmnist-cover.png
 	:alt: HUMAP exploration on Fashion MNIST dataset

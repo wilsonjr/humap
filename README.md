@@ -62,7 +62,7 @@ Alternatively (and preferable), you can use conda to install:
 
 **For Windows users**:
 
-The `Eigen <https://eigen.tuxfamily.org/>`_ library does not have to be installed. Just add the files to C:\Eigen or use the manual installation to change Eigen location.
+If using *pip* The `Eigen <https://eigen.tuxfamily.org/>`_ library does not have to be installed. Just add the files to C:\\Eigen or use the manual installation to change Eigen location.
 
 **Manual installation**: 
 

@@ -203,6 +203,8 @@ public:
 	// get the indices of the embedded subset
 	py::array_t<int> get_indices_selected() { return py::cast(this->indices_selected); }
 
+	py::array_t<int> get_indices_fixed() { return py::cast(this->indices_fixed); }
+
 	// sets the number of random walks for landmark selection
 	void set_landmarks_nwalks(int value) { this->landmarks_nwalks = value; }
 

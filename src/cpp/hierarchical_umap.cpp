@@ -1246,6 +1246,7 @@ vector<vector<double>> humap::HierarchicalUMAP::embed_data(int level, Eigen::Spa
 	if( this->free_datapoints.size() != 0 ) {
 		for( int i = 0; i < this->indices_fixed.size(); ++i ) {
 			embedding[this->indices_fixed[i]] = this->fixed_datapoints[i];
+			this->fixed_datapoints[i][0] << endl;
 		}
 	}
 
@@ -1278,18 +1279,19 @@ vector<vector<double>> humap::HierarchicalUMAP::embed_data(int level, Eigen::Spa
 	vector<double> max_minus_min(this->n_components, 0.0);
 	std::transform(max_vec.begin(), max_vec.end(), min_vec.begin(), max_minus_min.begin(), [](double a, double b){ return a-b; });
 	
+	if( this->free_datapoints.size() != 0 ) {
+		for( int j = 0; j < embedding.size(); ++j ) {
 
-	for( int j = 0; j < embedding.size(); ++j ) {
+			std::transform(embedding[j].begin(), embedding[j].end(), min_vec.begin(), embedding[j].begin(), 
+				[](double a, double b) {
+					return 10*(a-b);
+				});
 
-		std::transform(embedding[j].begin(), embedding[j].end(), min_vec.begin(), embedding[j].begin(), 
-			[](double a, double b) {
-				return 10*(a-b);
-			});
-
-		std::transform(embedding[j].begin(), embedding[j].end(), max_minus_min.begin(), embedding[j].begin(),
-			[](double a, double b) {
-				return a/b;
-			});
+			std::transform(embedding[j].begin(), embedding[j].end(), max_minus_min.begin(), embedding[j].begin(),
+				[](double a, double b) {
+					return a/b;
+				});
+		}
 	}
 
 	if( this->verbose ) {

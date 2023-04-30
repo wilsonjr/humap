@@ -36,6 +36,8 @@
 #include "umap.h"
 #include "utils.h"
 
+#include <iostream>
+
 namespace py = pybind11;
 using namespace std;
 

@@ -56,6 +56,7 @@ PYBIND11_MODULE(_hierarchical_umap, m) {
 		.def("set_ab_parameters", &humap::HierarchicalUMAP::set_ab_parameters)
 		.def("get_labels_selected", &humap::HierarchicalUMAP::get_labels_selected)
 		.def("get_indices_selected", &humap::HierarchicalUMAP::get_indices_selected)
+		.def("get_indices_fixed", &humap::HierarchicalUMAP::get_indices_fixed)
 		.def("get_influence_selected", &humap::HierarchicalUMAP::get_influence_selected)
 		.def("set_landmarks_nwalks", &humap::HierarchicalUMAP::set_landmarks_nwalks)
 		.def("set_landmarks_wl", &humap::HierarchicalUMAP::set_landmarks_wl)

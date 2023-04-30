@@ -199,7 +199,8 @@ class HUMAP(object):
 
 				y = self.h_umap.get_labels_selected()
 				indices_cluster = self.h_umap.get_indices_selected() 
-				return [embedding, y, indices_cluster]
+				indices_fixed = self.h_umap.get_indices_fixed()
+				return [embedding, y, indices_cluster, indices_fixed]
 
 			except:
 				raise TypeError("Accepted parameters: indices and class_based.")

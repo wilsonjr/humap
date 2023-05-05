@@ -275,6 +275,20 @@ class HUMAP(object):
 	def set_n_epochs(self, epochs):
 		self.h_umap.set_n_epochs(epochs)
 
+	def get_knn(self, level):
+
+		if level < 0 or level >= self.n_levels:
+			raise ValueError("level must be in [0, n_levels-1]")
+		else:			
+			return self.h_umap.get_knn(level)
+
+	def get_knn_distances(self, level):
+
+		if level < 0 or level >= self.n_levels:
+			raise ValueError("level must be in [0, n_levels-1]")
+		else:			
+			return self.h_umap.get_knn_dists(level)
+
 
 	def influence(self, level):
 		r"""

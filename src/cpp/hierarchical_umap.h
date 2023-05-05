@@ -216,6 +216,10 @@ public:
 
 	py::array_t<int> get_indices_fixed() { return py::cast(this->indices_fixed); }
 
+	py::array_t<int> get_knn(int i) { return py::cast(this->reducers[i].knn_indices()); } 
+
+	py::array_t<double> get_knn_dists(int i) { return py::cast(this->reducers[i].knn_dists()); }
+
 	// sets the number of random walks for landmark selection
 	void set_landmarks_nwalks(int value) { this->landmarks_nwalks = value; }
 

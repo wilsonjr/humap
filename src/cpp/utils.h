@@ -148,6 +148,9 @@ std::vector<int> argsort(const std::vector<T>& data, bool reverse=false) {
 }
 
 
+
+
+
 /**
  * Rearrages an array based on indices
  *
@@ -191,7 +194,7 @@ vector<vector<double>> pairwise_distances(vector<vector<double>>& X);
 // output verbosity
 void log(bool verbose, const string& message);
 
-
+std::string encode_pos(int a, int b);
 }
 
 #endif

@@ -80,7 +80,10 @@ int random_walk(int vertex, int n_neighbors, vector<double>& vals, vector<int>& 
 // returns the max neighborhood after markov chain
 int markov_chain(vector<vector<int>>& knn_indices, vector<double>& vals, vector<int>& cols, 
 	             int num_walks, int walk_length, vector<int>& landmarks, int influence_neighborhood, 
-				 vector<vector<int>>& neighborhood, vector<vector<int>>& association, bool reproducible);
+				 vector<vector<int>>& neighborhood, 
+				//  vector<vector<int>>& association, 
+				vector<map<int, int>>& association,
+				 bool reproducible);
 
 // returns the endpoint after a random walk
 int random_walk(int vertex, int n_neighbors, vector<double>& vals, vector<int>& cols, 
@@ -106,6 +109,14 @@ struct Metadata {
 	: indices(indices_), owners(owners_), strength(strength_), association(association_), size(size_)
 	{	 	
 	}
+
+	Metadata(vector<int> indices_, int size_): indices(indices_), size(size_) 
+	{
+		owners = vector<int>(size_, -1);
+		strength = vector<double>(size_, -1.0);
+		association = vector<vector<int>>(size_, vector<int>());
+	}
+
 
 	int size;
 
@@ -238,7 +249,7 @@ public:
 	// file
 	void set_info_file(string filename) { 
 		this->output_filename = filename; 
-		this->output_file.open(filename); 
+		
 	}
 
 	void set_random_state(int random_state) { this->random_state = random_state; }
@@ -265,6 +276,7 @@ private:
 	bool focus_context = false;
 	bool distance_similarity = false;
 	bool reproducible;
+	bool low_memory = true;
 	
 	double min_dist = 0.15;
 	double a = -1.0, b = -1.0;
@@ -285,8 +297,8 @@ private:
 	vector<double> 				   percents;
 	vector<vector<int>>            hierarchy_y;
 	vector<vector<int>>            original_indices;
-	vector<vector<int>>            _indices;
-	vector<vector<double>> 		   _sigmas;
+	// vector<vector<int>>            _indices;
+	// vector<vector<double>> 		   _sigmas;
 	vector<vector<double>> 		   fixed_datapoints;
 	vector<vector<int>>            level_landmarks;
 	vector<vector<vector<double>>> embeddings;
@@ -295,22 +307,35 @@ private:
 
 	vector<umap::UMAP> reducers;
 	
-	vector<umap::Matrix> hierarchy_X;
-	vector<umap::Matrix> dense_backup;
+	// vector<umap::Matrix> hierarchy_X;
+	// vector<umap::Matrix> dense_backup;
 
 	// finds which data point influence the one passed as parameter
 	int influenced_by(int level, int index);
 	
 	// append information of a landmark to the similarity data structure
 	void add_similarity(int index, int i, vector<vector<int>>& neighborhood, std::vector<std::vector<int> >& indices, 
-						int* mapper, double* elements, vector<vector<int>>& indices_nzeros, int n, double max_incidence, vector<vector<int>>& association);
+						int* mapper,
+						// map<int, int>& mapper, 
+						// double* elements, 
+						unordered_map<string, double>& elements,
+						// vector<vector<double>>& elements,
+						vector<vector<int>>& indices_nzeros, int n, double max_incidence, 
+						// vector<vector<int>>& association
+						vector<map<int, int>>& association);
 
 	// create a sparse represention after similarity computaiton 
-	SparseComponents create_sparse(int n, int n_neighbors, double* elements, vector<vector<int>>& indices_nzeros);
+	SparseComponents create_sparse(int n, int n_neighbors, 
+			// double* elements, 
+			unordered_map<string, double>& elements,
+			// vector<vector<double>>& elements,
+			vector<vector<int>>& indices_nzeros);
 
 	// compute the similarity among landmarks
 	SparseComponents sparse_similarity(int level, int n, int n_neighbors, vector<int>& greatest, vector<vector<int>>& neighborhood,
-									   double max_incidence, vector<vector<int>>& association);
+									   double max_incidence, vector<map<int, int>>& association
+									//    vector<vector<int>>& association
+									   );
 
 	// update the position of a landmark based on its surroundings	
 	vector<double> update_position(int i, vector<int>& neighbors, umap::Matrix& X);

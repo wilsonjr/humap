@@ -54,7 +54,6 @@ vector<utils::SparseData> humap::create_sparse(int n, const vector<int>& rows, c
 	for( int i = 0; i < rows.size(); ++i )
 		sparse[rows[i]].push(cols[i], vals[i]);
 
-
 	return sparse;
 }
 
@@ -306,8 +305,16 @@ void humap::HierarchicalUMAP::associate_to_landmarks(int n, int n_neighbors, int
 */
 void humap::HierarchicalUMAP::add_similarity(int index, int i, vector<vector<int>>& neighborhood, 
 											  std::vector<std::vector<int> >& indices,
-											  int* mapper, double* elements, vector<vector<int>>& indices_nzeros, int n, 
-											  double max_incidence, vector<vector<int>>& association)
+											  int* mapper,
+											// map<int, int>& mapper, 
+											//   double* elements, 
+											 unordered_map<string, double>& elements,
+											// vector<vector<double>>& elements,
+											  vector<vector<int>>& indices_nzeros, int n, 
+											  double max_incidence, 
+											//   vector<vector<int>>& association
+											vector<map<int, int>>& association
+											  )
 {
 	std::vector<int> neighbors = neighborhood[index];
 
@@ -317,7 +324,9 @@ void humap::HierarchicalUMAP::add_similarity(int index, int i, vector<vector<int
 		int neighbor = neighbors[j];
 
 		if( indices[neighbor].size() == 0 ) {
+			// dump_info("begin::push_back 1 - "+to_string(indices.size())+": "+to_string(neighbor)+" -> "+to_string(i));
 			indices[neighbor].push_back(i);
+			// dump_info("end::push_back 1");
 		} else {
 			int ind2 = i;
 				
@@ -328,26 +337,122 @@ void humap::HierarchicalUMAP::add_similarity(int index, int i, vector<vector<int
 					int u = *(mapper + ind1);
 					int v = *(mapper + ind2);
 
+				// if( mapper.count(ind1) != 0 ) {
+				// 	int u = mapper[ind1];
+				// 	int v = mapper[ind2];
+
 				
 					double s = 0.0;
 					if( this->distance_similarity ) {
-						s = (std::min(association[u][neighbor], association[v][neighbor])/std::max(association[u][neighbor], association[v][neighbor]))/max_incidence;
+						s = (
+								std::min(
+									association[u][neighbor], 
+									association[v][neighbor]
+							 	)
+						     	/
+								std::max(
+									association[u][neighbor], 
+									association[v][neighbor]
+								)
+							)/max_incidence;
 					} else {
 						s = (1.0 / max_incidence);
 					}						
 
-					*(elements + u*n + v) += s;
-					*(elements + v*n + u) += s;
+					// *(elements + u*n + v) += s;
+					// *(elements + v*n + u) += s;
+					if( elements.count(utils::encode_pos(u, v)) == 0 ) {
+						elements[utils::encode_pos(u, v)] = 0.0;
+					}
 
+					if( elements.count(utils::encode_pos(v, u)) == 0 ) {
+						elements[utils::encode_pos(v, u)] = 0.0;
+					}
+
+					elements[utils::encode_pos(u, v)] += s;
+					elements[utils::encode_pos(v, u)] += s;
+
+					// dump_info("begin::push_back elements - "+to_string(elements.size())+": "+to_string(u)+" -> "+to_string(v));
+					// elements[u].push_back(s);
+					// elements[v].push_back(s);
+
+					// elements[u][v] +=s;
+					// elements[v][u] +=s;
+
+
+					// dump_info("begin::push_back 2 - "+to_string(indices_nzeros.size())+": "+to_string(u)+" -> "+to_string(v));
 					indices_nzeros[u].push_back(v);
+					// dump_info("begin::push_back 2.1 - "+to_string(indices_nzeros.size())+": "+to_string(v)+" -> "+to_string(u));
 					indices_nzeros[v].push_back(u);
-
+					// dump_info("end::push_back 2");
 				}
 			}
 
+			// dump_info("begin::push_back 3 - "+to_string(indices.size())+": "+to_string(neighbor)+" -> "+to_string(ind2));
 			indices[neighbor].push_back(ind2);
+			// dump_info("end::push_back 3");
 		}
 	}
+
+	// cout << "getting neighbors" << endl;
+
+
+	// std::vector<int> neighbors = neighborhood[index];
+
+	// //#pragma omp parallel for default(shared) schedule(dynamic, 50)
+	// // #pragma omp parallel for default(shared) schedule(dynamic, 100)
+	// for( int j = 0; j < neighbors.size(); ++j ) {
+	// 	int neighbor = neighbors[j];
+
+	// 	// cout << "passei 1" << endl;
+	// 	if( indices[neighbor].size() == 0 ) {
+	// 		// cout << "passei 2" << endl;
+	// 		indices[neighbor].push_back(i);
+	// 		// cout << "passei 3" << endl;
+	// 	} else {
+	// 		int ind2 = i;
+	// 		// cout << "passei 4" << endl;
+	// 		for( int count = 0; count < indices[neighbor].size(); ++count ) {
+	// 			// cout << "passei 5" << endl;
+	// 			int ind1 = indices[neighbor][count];
+	// 			// cout << "passei 6" << endl;
+	// 			if( *(mapper + ind1) != -1 ) {
+	// 				// cout << "passei 7" << endl;
+	// 				int u = *(mapper + ind1);
+	// 				int v = *(mapper + ind2);
+
+	// 				// cout << "passei 8" << endl;
+	// 				double s = 0.0;
+	// 				if( this->distance_similarity ) {
+	// 					s = (std::min(association[u][neighbor], association[v][neighbor])/std::max(association[u][neighbor], association[v][neighbor]))/max_incidence;
+	// 					// s = (1.0 / max_incidence);
+	// 				} else {
+	// 					s = (1.0 / max_incidence);
+	// 				}					
+	// 				// cout << "passei 9" << endl;	
+
+	// 				cout << "n: " << n << ", u: " << u << ", v:" << v << endl;
+	// 				cout << "*(elements + u*n + v): " << *(elements + u*n + v) << endl;
+	// 				cout << "*(elements + v*n + u): " << *(elements + v*n + u) << endl;
+	// 				cout << "s: " << s << endl;
+	// 				*(elements + u*n + v) += s;
+	// 				cout << "passei 10" << endl;
+	// 				*(elements + v*n + u) += s;
+	// 				cout << "passei 11" << endl;
+
+	// 				indices_nzeros[u].push_back(v);
+	// 				// cout << "passei 12" << endl;
+	// 				indices_nzeros[v].push_back(u);
+	// 				// cout << "passei 13" << endl;
+
+	// 			}
+	// 		}
+
+	// 		// cout << "passei 14" << endl;
+	// 		indices[neighbor].push_back(ind2);
+	// 		// cout << "passei 15" << endl;
+	// 	}
+	// }
 }
 
 /**
@@ -359,42 +464,90 @@ void humap::HierarchicalUMAP::add_similarity(int index, int i, vector<vector<int
 * @param indices_nzeros Container with indices of non-zero values for each matrix row
 * @return SparseComponents with cols, rows, and non-zero values
 */
-humap::SparseComponents humap::HierarchicalUMAP::create_sparse(int n, int n_neighbors, double* elements, vector<vector<int>>& indices_nzeros)
+// humap::SparseComponents 
+
+humap::SparseComponents humap::HierarchicalUMAP::create_sparse(int n, int n_neighbors, 
+								// double* elements, 
+								unordered_map<string, double>& elements,
+								// vector<vector<double>>& elements,
+								vector<vector<int>>& indices_nzeros)
 {
 
 	vector<int> cols;
 	vector<int> rows;
-	vector<double> vals;
+	vector<double> vals;	
+
+	cout << "instanciado " << endl;
 
 	int* current = new int[n*sizeof(int)];
 	fill(current, current+n, 0);
-	double max_found = -1.0;		
+	double max_found = -1.0;	
+	cout << "instanciei " << endl;
+
 	for( int i = 0; i < n; ++i ) {
 		bool flag = true;
+
+		// cout << "elements: " << i << "/" << n << " -> " << elements.size() << endl;
+		// cout << "indices_nzeros: " << i << "/" << n << " -> " << indices_nzeros.size() << endl;
+		// cout << "elements[i].size(): " << elements[i].size() << endl;
+		// cout << "indices_nzeros[i].size(): " << indices_nzeros[i].size() << endl;
 		
-		for( int j = 0; j < indices_nzeros[i].size(); ++j ) {
+		for( int j = 0; j < indices_nzeros[i].size(); ++j ) {	
+
+		// cout << "elements: " << i << "/" << n << " -> " << elements.size() << endl;
+		// cout << "indices_nzeros: " << i << "/" << n << " -> " << indices_nzeros.size() << endl;
+		// cout << "elements[i].size(): " << elements[i].size() << endl;
+		// for( int j = 0; j < elements[i].size(); ++j ) {
+
+			// cout << "indices_nzeros2: " << j << "/" << indices_nzeros[i].size() << endl; 
 			int index = indices_nzeros[i][j];
+
+			// cout << "index: " << index << "/" << n << endl;
 
 			if( *(current + index) )
 				continue;
 
 			*(current + index) = 1;
-			if( *(elements + i*n + index) != 0.0 ) {				
+			
+			string enc_pos = utils::encode_pos(i, index);
+
+			// double value = elements[i][j];
+			// double value = *(elements + i*n + index);
+			double value = elements[enc_pos];
+
+			// if( *(elements + i*n + index) != 0.0 ) {
+			// if( elements[enc_pos] != 0.0 ) {			
+			if( value != 0) {
+				// cout << ("******** pushing 1") << endl;
 				rows.push_back(i);
 				cols.push_back(index);
 				if( i == index )
 					flag = false;
-				vals.push_back(1.0 - *(elements + i*n + index));			
-				max_found = max(max_found, 1.0 - *(elements + i*n + index));
+				// vals.push_back(1.0 - *(elements + i*n + index));			
+				// max_found = max(max_found, 1.0 - *(elements + i*n + index));
+
+				// vals.push_back(1.0 - elements[enc_pos]);
+				// max_found = max(max_found, 1.0 - elements[enc_pos]);
+
+				vals.push_back(1.0 - value);
+				max_found = max(max_found, 1.0 - value);
+
+				// cout << ("******** finishing 1") << endl;
 			}
 		}
 
  		for( int j = 0; j < n_neighbors+5; ++j ) {
-			if( *(elements + i*n + j) == 0.0 && i != j) {				
+			// if( *(elements + i*n + j) == 0.0 && i != j) {		
+			if( (elements.count(utils::encode_pos(i, j)) == 0 || elements[utils::encode_pos(i, j)] == 0.0) && i != j) {	
+			// if( (elements.size() < n_neighbors+5  || elements[i][j] == 0.0) && i != j) {
+			// if( (j > elements[i].size() || elements[i][j] == 0.0) && i != j )	{
+				// cout << ("******** pushing 2") << endl;
 				rows.push_back(i);
 				cols.push_back(j);
 				vals.push_back(1.0);
 				// vals.push_back(-1.0);
+
+				// cout << ("******** finishing 2") << endl;
 			} 
 		}
 
@@ -402,11 +555,16 @@ humap::SparseComponents humap::HierarchicalUMAP::create_sparse(int n, int n_neig
 			*(current + indices_nzeros[i][j]) = 0;
 		}
 	 	if( flag ) {
+			// cout << ("******** pushing 3") << endl;
 		 	rows.push_back(i);
 			cols.push_back(i);
 			vals.push_back(0);
+			// cout << ("******** finishing 3") << endl;
 	 	}
 	}
+
+	free(current);
+	current = 0;
 
 
 	return humap::SparseComponents(rows, cols, vals);
@@ -427,7 +585,10 @@ humap::SparseComponents humap::HierarchicalUMAP::create_sparse(int n, int n_neig
 */
 humap::SparseComponents humap::HierarchicalUMAP::sparse_similarity(int level, int n, int n_neighbors, vector<int>& greatest,  
 																   vector<vector<int>>& neighborhood, 
-																   double max_incidence, vector<vector<int>>& association) 
+																   double max_incidence, 
+																//    vector<vector<int>>& association
+																	vector<map<int, int>>& association
+																   ) 
 {
 
 	using clock = chrono::system_clock;
@@ -435,8 +596,12 @@ humap::SparseComponents humap::HierarchicalUMAP::sparse_similarity(int level, in
 
 	std::vector<std::vector<int> > indices_sim;
 
+	cout << ("********** inicio creating mapper >>>> "+to_string(n)+", "+to_string(greatest.size())) << endl;
+
 	int* mapper = new int[n * sizeof(int)];
 	fill(mapper, mapper+n, -1);
+	// map<int, int> mapper;
+
 
 	for( int i = 0; i < greatest.size(); ++i )
 		mapper[greatest[i]] = i;
@@ -445,36 +610,53 @@ humap::SparseComponents humap::HierarchicalUMAP::sparse_similarity(int level, in
 	for( int i = 0; i < n; ++i ) {
 		indices_sim.push_back(std::vector<int>());
 	}
-	
-	double* elements = new double[greatest.size()*greatest.size()*sizeof(double)];
-	fill(elements, elements+greatest.size()*greatest.size(), 0);
-	
-	int* non_zeros = new int[greatest.size() * sizeof(int)];
-	fill(non_zeros, non_zeros+greatest.size(), 0);
+	cout << ("********** fim creating mapper") << endl;
+
+	cout << ("********** inicio creating elements: "+to_string(greatest.size()*greatest.size())) << endl;
+
+	// TODO: try not to use this
+	// double* elements = new double[greatest.size()*(greatest.size())*sizeof(double)];
+	// fill(elements, elements+greatest.size()*greatest.size(), 0.0);
+
+	// vector<vector<double>> elements(greatest.size(), vector<double>());
+	unordered_map<string, double> elements;
+	// vector<vector<double>> elements(greatest.size(), vector<double>());
+
+
+	cout << ("********** fim creating elements") << endl;
 
 	vector<vector<int>> indices_nzeros(greatest.size(), vector<int>());
 
+	cout << ("********** inicio add similarity ---------- ") << endl;
 	for( int i = 0; i < greatest.size(); ++i ) {
-		this->add_similarity(i, greatest[i], neighborhood, indices_sim,
-							  mapper, elements, indices_nzeros, greatest.size(), max_incidence, association);
+		// cout << ("********** add similarity "+to_string(i+1)+"/"+to_string(greatest.size())) << endl;
+		this->add_similarity(i, greatest[i], 
+								neighborhood, 
+								indices_sim, mapper, 
+							  elements, indices_nzeros, greatest.size(), max_incidence, association);
 	}
-
+	cout << ("********** fim add similarity ------ ") << endl;
+	cout << "finished similarity *************************" << endl;
+	
+	// if( mapper ) {
+	// 	free(mapper);
+	// 	mapper = 0;
+	// }
+	cout << ("********** inicio create sparce") << endl;
  	humap::SparseComponents sc = this->create_sparse(greatest.size(), n_neighbors, elements, indices_nzeros);
+	//  vector<int> cols;
+	// vector<int> rows;
+	// vector<double> vals;
+	//  humap::SparseComponents sc(rows, cols, vals);
+	cout << ("********** fim create sparce") << endl;
 
-	if( elements ) {
-		free(elements);
-		elements = 0;
-	}
+	cout << ("********** inicio freeing objects") << endl;
+	// if( elements ) {
+	// 	free(elements);
+	// 	elements = 0;
+	// }
 
-	if( non_zeros ) {
-		free(non_zeros);
-		non_zeros = 0;
-	}
-
-	if( mapper ) {
-		free(mapper);
-		mapper = 0;
-	}
+	cout << ("********** fim freeing objects") << endl;
 
 	return sc;
 }
@@ -667,9 +849,11 @@ int humap::random_walk(int vertex, int n_neighbors, vector<double>& vals, vector
 int humap::markov_chain(vector<vector<int>>& knn_indices, 
 						vector<double>& vals, vector<int>& cols,
 						int num_walks, int walk_length, 
-						vector<int>& landmarks, int influence_neighborhood, 
+						vector<int>& landmarks, 
+						int influence_neighborhood, 
 						vector<vector<int>>& neighborhood, 
-						vector<vector<int>>& association,
+						// vector<vector<int>>& association,
+						vector<map<int,int>>& association,
 						bool reproducible)
 {	
 
@@ -678,20 +862,26 @@ int humap::markov_chain(vector<vector<int>>& knn_indices,
 	// std::srand(0);
 	auto begin_influence = clock::now();
 	
-	vector<int> is_landmark(knn_indices.size(), -1);
+	cout << "knn_indices.size(): " << knn_indices.size() << ", landmarks.size(): " << landmarks.size() << endl;
+
+	vector<int> is_landmark(knn_indices.size(), -1); // can I use a dict?
 	for( int i = 0; i < landmarks.size(); ++i ) {
 		is_landmark[landmarks[i]] = i;
 	}
 	
+	cout << "creating neighborhood and association matrices" << endl;
 	neighborhood = vector<vector<int>>(landmarks.size(), vector<int>());
-	association = vector<vector<int>>(landmarks.size(), vector<int>(knn_indices.size(), 0));
+	// association = vector<vector<int>>(landmarks.size(), vector<int>(knn_indices.size(), 0));
+	association = vector<map<int, int>>(landmarks.size(), map<int, int>());
 	
 
 	std::mt19937& rng = RandomGenerator::Instance().get();
 	std::uniform_real_distribution<double> unif(0.0, 1.0);
 	int max_neighborhood = -1;
 
+	cout << "influence neighborhood: " << influence_neighborhood << endl;
 	if( influence_neighborhood > 1 ) {
+		cout << "entered influence neighborhood" << endl;
 		#pragma omp parallel for
 		for( int i = 0; i < knn_indices.size(); ++i ) {
 			if( is_landmark[i] != -1 )
@@ -714,10 +904,13 @@ int humap::markov_chain(vector<vector<int>>& knn_indices,
 				
 			}
 		}
+	} else {
+		cout << "did not enter influence neighborhood" << endl;
 	}
 
+	cout << "reproducible: " << reproducible << endl;
 	if( reproducible ) {
-
+		cout << "entered reproducible: " << endl;
 		for( int i = 0; i < is_landmark.size(); ++i ) {	
 
 			if( is_landmark[i] != -1 ) 
@@ -737,11 +930,11 @@ int humap::markov_chain(vector<vector<int>>& knn_indices,
 		}
 
 	} else {
-
+		cout << "did not enter reproducible" << endl;
 		#pragma omp parallel for 
 		for( int i = 0; i < is_landmark.size(); ++i ) {	
 
-			if( is_landmark[i] != -1 ) 
+			if( is_landmark[i] != -1 )
 				continue;
 
 			for( int walk = 0; walk < num_walks; ++walk ) {
@@ -750,11 +943,19 @@ int humap::markov_chain(vector<vector<int>>& knn_indices,
 				{
 					if(  vertex != -1 ) {				
 						int index = is_landmark[vertex];
-						if( !association[index][i] ) {
+						// if( !association[index][i] ) {
+						// 	neighborhood[index].push_back(i);
+						// 	max_neighborhood = max(max_neighborhood, (int) neighborhood[index].size());
+						// } 
+						// association[index][i]++;
+
+
+						if( association[index].count(i) == 0 ) {
 							neighborhood[index].push_back(i);
 							max_neighborhood = max(max_neighborhood, (int) neighborhood[index].size());
-						} 
-						association[index][i]++;
+							association[index][i] = 0;
+						}
+						association[index][i] += 1;
 					} 	
 				}
 			}
@@ -776,8 +977,7 @@ int humap::markov_chain(vector<vector<int>>& knn_indices,
 void humap::HierarchicalUMAP::fit(py::array_t<double> X, py::array_t<int> y)
 {
 	std::srand(this->random_state);
-
-
+	
 	using clock = chrono::system_clock;
 	using sec = chrono::duration<double>;
 
@@ -788,9 +988,15 @@ void humap::HierarchicalUMAP::fit(py::array_t<double> X, py::array_t<int> y)
 	umap::Matrix first_level(humap::convert_to_vector(X));
 	sec duration = clock::now() - before;
 
-	this->hierarchy_X.push_back(first_level);
-	this->dense_backup.push_back(first_level);
+	
+
+	// this->hierarchy_X.push_back(first_level);
+	// this->dense_backup.push_back(first_level);
 	this->hierarchy_y.push_back(vector<int>((int*)y.request().ptr, (int*)y.request().ptr + y.request().shape[0]));
+
+	// free unused memory
+	// delete X;
+	// delete y;
 
 	utils::log(this->verbose, std::string("\n\n*************************************************************************\n")+
 								"*********************************LEVEL 0*********************************\n"+ 
@@ -801,35 +1007,40 @@ void humap::HierarchicalUMAP::fit(py::array_t<double> X, py::array_t<int> y)
 	umap::UMAP reducer = umap::UMAP("euclidean", this->n_neighbors, this->min_dist, this->knn_algorithm, this->init, this->reproducible);
 	reducer.set_ab_parameters(this->a, this->b);
 	
-	dump_info("Step,Level,Points,Runtime\n");
+	// dump_info("Step,Level,Points,Runtime\n");
 
 	before = clock::now();
 	/**
 		Basically, computes the knn and indices the graph of strengths
 	*/
-	reducer.fit(this->hierarchy_X[0]);
+	// reducer.fit(this->hierarchy_X[0]);
+	reducer.fit(first_level);
 	duration = clock::now() - before;
 	utils::log(this->verbose, "\ndone in " + std::to_string(duration.count()) + " seconds.\n");
 	this->reducers.push_back(reducer);
 	
-	this->dump_info("Fit,0,"+std::to_string(this->hierarchy_X[0].size())+","+std::to_string(duration.count())+"\n");
+	// this->dump_info("Fit,0,"+std::to_string(first_level.size())+","+std::to_string(duration.count())+"\n");
 	
-	vector<int> indices(this->hierarchy_X[0].size(), 0);	
+	vector<int> indices(first_level.size(), 0);	
 	iota(indices.begin(), indices.end(), 0);
-	vector<int> owners(this->hierarchy_X[0].size(), -1);
-	vector<double> strength(this->hierarchy_X[0].size(), -1.0);
-	vector<vector<int>> association(this->hierarchy_X[0].size(), vector<int>());
+	// vector<int> owners(first_level.size(), -1);
+	// vector<double> strength(first_level.size(), -1.0);
+	// vector<vector<int>> association(first_level.size(), vector<int>());
 
-	this->metadata.push_back(humap::Metadata(indices, owners, strength, association, this->hierarchy_X[0].size()));
+	this->metadata.push_back(humap::Metadata(indices, first_level.size()));
 	this->original_indices.push_back(indices);
 	
-	Eigen::SparseMatrix<double, Eigen::RowMajor> graph = this->reducers[0].get_graph();
-	vector<vector<double>> knn_dists = this->reducers[0].knn_dists();
+	// Eigen::SparseMatrix<double, Eigen::RowMajor> graph = this->reducers[0].get_graph();
+	// vector<vector<double>> knn_dists = this->reducers[0].knn_dists();
+
+	// delete reducer;
+
+
 
 	for( int level = 0; level < this->percents.size(); ++level ) {
 
 		auto level_before = clock::now();
-		int n_elements = (int) (this->percents[level] * this->hierarchy_X[level].size());		
+		int n_elements = (int) (this->percents[level] * this->reducers[level].get_size());		
 	
 		utils::log(this->verbose, std::string("\n\n*************************************************************************\n")+
 										"*********************************LEVEL " + std::to_string(level+1) + "*********************************\n"+
@@ -843,19 +1054,31 @@ void humap::HierarchicalUMAP::fit(py::array_t<double> X, py::array_t<int> y)
  		auto begin_random_walk = clock::now();
  		utils::log(this->verbose, "Computing random walks for sampling selection... \n");
 
+		cout << ("********* inicio randomwalk\n") << endl;
+
  		vector<int> landmarks;
+
+		cout << "not using markov chain for sampling selection" << endl;
  		landmarks = humap::markov_chain(this->reducers[level].knn_indices(),
  										this->reducers[level].vals_transition, 
  										this->reducers[level].cols,
 										this->landmarks_nwalks, 
 										this->landmarks_wl, this->reproducible); 
 
+		// landmarks = vector<int>(this->reducers[level].knn_indices().size(), 0);
+		// for( int i = 0; i < n_elements; ++i ) {
+		// 	landmarks[rand() % landmarks.size()]++;
+		// }
+
+		cout << ("********* fim randomwalk\n") << endl;
+
+
  		sec end_random_walk = clock::now() - begin_random_walk;
 		utils::log(this->verbose, "done in " + std::to_string(end_random_walk.count()) + " seconds.\n");
 
-		this->dump_info("Markov Chain - Sampling,"+std::to_string(level)+","+
-						std::to_string(this->reducers[level].knn_indices().size())+","+
-						std::to_string(end_random_walk.count())+"\n");
+		// this->cout << ("********* Markov Chain - Sampling,"+std::to_string(level)+"," << endl;
+		// 				std::to_string(this->reducers[level].knn_indices().size())+","+
+		// 				std::to_string(end_random_walk.count())+"\n");
 
 		// we sort points based on their endpoints
 		// the most visited ones will be landmarks for the next hierarchy level
@@ -874,26 +1097,34 @@ void humap::HierarchicalUMAP::fit(py::array_t<double> X, py::array_t<int> y)
 
  		vector<vector<int>> neighborhood;
  		vector<vector<int>> association;
- 		double max_incidence; 
+		 vector<map<int, int>> association2;
+ 		double max_incidence = 0; 
+
+		 cout << ("********* inicio incidence\n") << endl;
 
 		// another markov chain process...
 		// here, we use to induce a global neighborhood for the data points
- 		max_incidence = humap::markov_chain(this->reducers[level].knn_indices(),
-										    this->reducers[level].vals_transition,
-										    this->reducers[level].cols,
-										    this->influence_nwalks, this->influence_wl,  
-										    inds_lands, this->influence_neighborhood,
-										    neighborhood, association, this->reproducible);
-
+		
+		cout << "BYPASSING THE MAX INCIDENCE COMPUTATION" << endl;
+		bool bypass_neighborhood = false;
+		if( !bypass_neighborhood ) {
+			cout << "influence_neighborhood: " << this->influence_neighborhood << endl;
+			max_incidence = humap::markov_chain(this->reducers[level].knn_indices(),
+												this->reducers[level].vals_transition,
+												this->reducers[level].cols,
+												this->influence_nwalks, this->influence_wl,  
+												inds_lands, this->influence_neighborhood,
+												neighborhood, association2, this->reproducible);
+		}
  		sec influence_time = clock::now() - influence_begin;
 		utils::log(this->verbose, "done in " + std::to_string(influence_time.count()) + " seconds.\n");
  			
  		level_landmarks.push_back(inds_lands);
 
-		this->dump_info("Markov Chain - Dissimilarity,"+std::to_string(level)+","+
-						std::to_string(this->reducers[level].knn_indices().size())+","+
-						std::to_string(influence_time.count())+"\n");
-
+		// this->cout << ("********* Markov Chain - Dissimilarity,"+std::to_string(level)+"," << endl;
+		// 				std::to_string(this->reducers[level].knn_indices().size())+","+
+		// 				std::to_string(influence_time.count())+"\n");
+		cout << ("********* fim incidence\n") << endl;
 
 
  		/*
@@ -906,8 +1137,8 @@ void humap::HierarchicalUMAP::fit(py::array_t<double> X, py::array_t<int> y)
 			orig_inds[i] = this->original_indices[level][greatest[i]];
 
 		this->original_indices.push_back(orig_inds);
-		this->_sigmas.push_back(this->reducers[level].sigmas());
-		this->_indices.push_back(greatest);
+		// this->_sigmas.push_back(this->reducers[level].sigmas());
+		// this->_indices.push_back(greatest);
 
 
 
@@ -915,25 +1146,30 @@ void humap::HierarchicalUMAP::fit(py::array_t<double> X, py::array_t<int> y)
 			COMPUTE SIMILARITY AMONG THE LANDMARKS
 		*/
 		utils::log(this->verbose, "Computing similarity among landmarks... \n");
-
-		umap::Matrix data;			
+		cout << ("********* inicio sparse similarity\n") << endl;
+					
 		auto similarity_before = clock::now();		
 
 		// it consists of the intersection of the global and local neighborhoods.				
-		SparseComponents triplets = this->sparse_similarity(level+1, 
-															this->hierarchy_X[level].size(), this->n_neighbors,
-															greatest, neighborhood, max_incidence, association); 	
+		SparseComponents triplets = this->sparse_similarity(level+1, this->reducers[level].get_size(), this->n_neighbors,
+															greatest, neighborhood, max_incidence, association2); 
+		// return;
+		cout << ("******** fim sparse similarity\n") << endl;
+		cout << ("******** inicio create sparse 2\n") << endl;
 		vector<utils::SparseData> sparse = humap::create_sparse(n_elements, triplets.rows, triplets.cols, triplets.vals);
-		data = umap::Matrix(sparse, greatest.size());
+		cout << ("******** fim create sparse 2\n") << endl;
+		cout << ("******** inicio create data\n") << endl;
+		umap::Matrix data = umap::Matrix(sparse, greatest.size());
+		cout << ("******** fim create data\n") << endl;
 		reducer = umap::UMAP("precomputed", this->n_neighbors, this->min_dist, this->knn_algorithm, this->init, this->reproducible);
 		reducer.set_ab_parameters(this->a, this->b);
 
 		sec similarity_after = clock::now() - similarity_before;
 		utils::log(this->verbose, "done in "  + std::to_string(similarity_after.count()) + " seconds.\n");
 
-		this->dump_info("Landmarks Dissimilarity,"+std::to_string(level)+","+
-						std::to_string(neighborhood.size())+","+
-						std::to_string(similarity_after.count())+"\n");
+		// this->cout << ("********* Landmarks Dissimilarity,"+std::to_string(level)+"," << endl;
+		// 				std::to_string(neighborhood.size())+","+
+		// 				std::to_string(similarity_after.count())+"\n");
 
 
 
@@ -945,14 +1181,16 @@ void humap::HierarchicalUMAP::fit(py::array_t<double> X, py::array_t<int> y)
 		this->metadata[level].count_influence = vector<int>(greatest.size(), 0);
 
 		auto fit_before = clock::now();
+		cout << ("********* inicio fit\n") << endl;
 		reducer.fit(data);
+		cout << ("********* fim fit\n") << endl;
 		sec fit_duration = clock::now() - fit_before;
 
 		utils::log(this->verbose, "done in "  + std::to_string(fit_duration.count()) + " seconds.\n");
 
-		this->dump_info("Fit,"+std::to_string(level+1)+","+
-						std::to_string(data.size())+","+
-						std::to_string(fit_duration.count())+"\n");
+		// this->cout << ("********* Fit,"+std::to_string(level+1)+"," << endl;
+		// 				std::to_string(data.size())+","+
+		// 				std::to_string(fit_duration.count())+"\n");
 
 		/*
 			ASSOCIATING DATA POINTS TO LANDMARKS
@@ -960,6 +1198,7 @@ void humap::HierarchicalUMAP::fit(py::array_t<double> X, py::array_t<int> y)
 		utils::log(this->verbose, "Associating data points to landmarks... \n");
 
 		auto associate_before = clock::now();
+		cout << "BYPASSING ASSOCIATION..." << endl;
 		vector<int> is_landmark(this->metadata[level].size, -1);
 		for( int i = 0; i < greatest.size(); ++i ) {
 			is_landmark[greatest[i]] = i;
@@ -989,9 +1228,9 @@ void humap::HierarchicalUMAP::fit(py::array_t<double> X, py::array_t<int> y)
 		sec associate_duration = clock::now() - associate_before;
 		utils::log(this->verbose, "done in "  + std::to_string(associate_duration.count()) + " seconds.\n");
 
-		this->dump_info("Landmark Association,"+std::to_string(level+1)+","+
-						std::to_string(data.size())+","+
-						std::to_string(associate_duration.count())+"\n");
+		// this->cout << ("********* Landmark Association,"+std::to_string(level+1)+"," << endl;
+		// 				std::to_string(data.size())+","+
+		// 				std::to_string(associate_duration.count())+"\n");
 
 
 		/*
@@ -1001,27 +1240,34 @@ void humap::HierarchicalUMAP::fit(py::array_t<double> X, py::array_t<int> y)
 
 		auto information_before = clock::now();
 
-		vector<int> new_owners(greatest.size(), -1);
-		vector<double> new_strength(greatest.size(), -1.0);
-		vector<vector<int>> new_association(greatest.size(), vector<int>());
+		// vector<int> new_owners(greatest.size(), -1);
+		// vector<double> new_strength(greatest.size(), -1.0);
+		// vector<vector<int>> new_association(greatest.size(), vector<int>());
 
-		this->metadata.push_back(Metadata(greatest, new_owners, new_strength, new_association, greatest.size()));
+		// this->metadata.push_back(Metadata(greatest, new_owners, new_strength, new_association, greatest.size()));
+		this->metadata.push_back(Metadata(greatest, greatest.size()));
 		this->reducers.push_back(reducer);
-		this->hierarchy_X.push_back(data);
+		// this->hierarchy_X.push_back(data);
 		this->hierarchy_y.push_back(utils::arrange_by_indices(this->hierarchy_y[level], greatest));
+
+
 
 		sec information_after = clock::now() - information_before;
 		utils::log(this->verbose, "done in " + std::to_string(information_after.count()) + " seconds.");
-
 		sec level_duration = clock::now() - level_before;
 		utils::log(this->verbose, "\nLevel construction: " + std::to_string(level_duration.count()) + "\n\n");
 
+
+		utils::log(this->verbose, "\nFreeing memory...");
+
+		free(indices_not_associated);
+		// delete reducer;
 	}
 
 	sec hierarchy_duration = clock::now() - hierarchy_before;
 	utils::log(this->verbose, "\nHierarchy construction in " + std::to_string(hierarchy_duration.count()) + " seconds.\n\n");
 
-	for( int i = 0; i < this->hierarchy_X.size(); ++i ) {
+	for( int i = 0; i < this->hierarchy_y.size(); ++i ) {
 		this->embeddings.push_back(vector<vector<double>>());
 	}
 
@@ -1038,10 +1284,10 @@ void humap::HierarchicalUMAP::fit(py::array_t<double> X, py::array_t<int> y)
 */
 py::array_t<double> humap::HierarchicalUMAP::transform(int level) 
 {
-	if( level >= this->hierarchy_X.size() || level < 0 )
+	if( level >= this->hierarchy_y.size() || level < 0 )
 		throw new runtime_error("Level out of bounds.");
 
-	if( this->fixed_datapoints.size() != 0 && level < this->hierarchy_X.size()-1 ) {
+	if( this->fixed_datapoints.size() != 0 && level < this->hierarchy_y.size()-1 ) {
 
 		this->indices_fixed = vector<int>(level_landmarks[level].begin(), level_landmarks[level].end());
 
@@ -1051,7 +1297,7 @@ py::array_t<double> humap::HierarchicalUMAP::transform(int level)
 		}
 	}
 
-	vector<vector<double>> result = this->embed_data(level, this->reducers[level].get_graph(), this->hierarchy_X[level]);
+	vector<vector<double>> result = this->embed_data(level, this->reducers[level].get_graph(), this->reducers[level].get_data());// this->hierarchy_X[level]);
 
 	return py::cast(result);
 }
@@ -1090,7 +1336,7 @@ int humap::HierarchicalUMAP::influenced_by(int level, int index)
 */
 vector<int> humap::HierarchicalUMAP::get_influence_by_indices(int level, vector<int> indices) 
 {
-	if( level >= this->hierarchy_X.size() || level < 0 )
+	if( level >= this->hierarchy_y.size() || level < 0 )
 		throw new runtime_error("Level out of bounds.");
 	vector<int> influence(indices.size(), 0);
 
@@ -1109,7 +1355,7 @@ vector<int> humap::HierarchicalUMAP::get_influence_by_indices(int level, vector<
 */
 py::array_t<int> humap::HierarchicalUMAP::get_influence(int level)
 {
-	if( level >= this->hierarchy_X.size() || level <= 0 )
+	if( level >= this->hierarchy_y.size() || level <= 0 )
 		throw new runtime_error("Level out of bounds.");
 
 	vector<int> influence(this->metadata[level].size, 0);
@@ -1129,10 +1375,11 @@ py::array_t<int> humap::HierarchicalUMAP::get_influence(int level)
 */
 py::array_t<int> humap::HierarchicalUMAP::get_indices(int level)
 {
-	if( level >= this->hierarchy_X.size()-1 || level < 0 )
+	if( level >= this->hierarchy_y.size()-1 || level < 0 )
 		throw new runtime_error("Level out of bounds.");
 
-	return py::cast(this->_indices[level]);
+	throw new runtime_error("not implemented");
+	// return py::cast(this->_indices[level]);
 }
 
 /**
@@ -1143,7 +1390,7 @@ py::array_t<int> humap::HierarchicalUMAP::get_indices(int level)
 */
 py::array_t<int> humap::HierarchicalUMAP::get_original_indices(int level)
 {
-	if( level >= this->hierarchy_X.size() || level < 0 )
+	if( level >= this->hierarchy_y.size() || level < 0 )
 		throw new runtime_error("Level out of bounds.");
 
 	return py::cast(this->original_indices[level]);
@@ -1160,7 +1407,7 @@ py::array_t<int> humap::HierarchicalUMAP::get_labels(int level)
 	if( level == 0 )  
 		throw new runtime_error("Sorry, we won't be able to return all the labels!");
 
-	if( level >= this->hierarchy_X.size() || level < 0 )
+	if( level >= this->hierarchy_y.size() || level < 0 )
 		throw new runtime_error("Level out of bounds.");
 
 	return py::cast(this->hierarchy_y[level]);
@@ -1174,7 +1421,7 @@ py::array_t<int> humap::HierarchicalUMAP::get_labels(int level)
 */
 py::array_t<double> humap::HierarchicalUMAP::get_embedding(int level)
 {
-	if( level >= this->hierarchy_X.size() || level < 0 )
+	if( level >= this->hierarchy_y.size() || level < 0 )
 		throw new runtime_error("Level out of bounds.");
 
 	return py::cast(this->embeddings[level]);
@@ -1191,10 +1438,11 @@ Eigen::SparseMatrix<double, Eigen::RowMajor> humap::HierarchicalUMAP::get_data(i
 	if( level == 0 )  
 		throw new runtime_error("Sorry, we won't me able to return all dataset! Please, project using UMAP.");
 
-	if( level >= this->hierarchy_X.size() || level < 0 )
+	if( level >= this->hierarchy_y.size() || level < 0 )
 		throw new runtime_error("Level out of bounds.");
 
-	return utils::create_sparse(this->hierarchy_X[level].sparse_matrix, this->hierarchy_X[level].size(), (int) this->n_neighbors*2.5);
+	// return utils::create_sparse(this->hierarchy_X[level].sparse_matrix, this->reducers[level].get_size(), (int) this->n_neighbors*2.5);
+	return utils::create_sparse(this->reducers[level].get_data().sparse_matrix, this->reducers[level].get_size(), (int) this->n_neighbors*2.5);
 }
 
 /**
@@ -1246,7 +1494,6 @@ vector<vector<double>> humap::HierarchicalUMAP::embed_data(int level, Eigen::Spa
 	if( this->free_datapoints.size() != 0 ) {
 		for( int i = 0; i < this->indices_fixed.size(); ++i ) {
 			embedding[this->indices_fixed[i]] = this->fixed_datapoints[i];
-			this->fixed_datapoints[i][0] << endl;
 		}
 	}
 
@@ -1439,9 +1686,9 @@ py::array_t<double> humap::HierarchicalUMAP::project_data(int level, vector<int>
 	this->influence_selected = this->get_influence_by_indices(level-1, indices_next_level);
 	this->indices_selected = indices_next_level;
 
-	if( this->hierarchy_X[level-1].is_sparse() && !this->focus_context  ) {
+	if( this->reducers[level-1].get_data().is_sparse() && !this->focus_context  ) {
 
-		umap::Matrix X = this->hierarchy_X[level-1];
+		umap::Matrix X = this->reducers[level-1].get_data();
 		vector<utils::SparseData> new_X;
 
 		int min_neighbors = 99999;
@@ -1522,12 +1769,12 @@ py::array_t<double> humap::HierarchicalUMAP::project_data(int level, vector<int>
 
 		return py::cast(this->embed_data(level-1, new_graph, nX));
 		
-	} if( this->hierarchy_X[level-1].is_sparse() && this->focus_context ) {
+	} if( this->reducers[level-1].get_data().is_sparse() && this->focus_context ) {
 
 		if( this->verbose )
 			cout << "Using Focus+Context strategy" << endl;
 
-		umap::Matrix X = this->hierarchy_X[level-1];
+		umap::Matrix X = this->reducers[level-1].get_data();
 		vector<utils::SparseData> new_X;
 
 		int min_neighbors = 99999;
@@ -1586,7 +1833,7 @@ py::array_t<double> humap::HierarchicalUMAP::project_data(int level, vector<int>
 		for( int i = 0; i < indices_to_iterate.size(); ++i ) {
 
 			int index = indices_to_iterate[i];
-			utils::SparseData sd = this->hierarchy_X[level].sparse_matrix[index];
+			utils::SparseData sd = this->reducers[level].get_data().sparse_matrix[index];
 
 			// verificar se precisa disso tudo out somente n_neighbors
 			vector<int> assigned(indices_to_iterate.size() + indices_next_level.size(), 0);
@@ -1673,7 +1920,7 @@ py::array_t<double> humap::HierarchicalUMAP::project_data(int level, vector<int>
 	} else {
 
 
-		umap::Matrix X = this->hierarchy_X[level-1];
+		umap::Matrix X = this->reducers[level-1].get_data();
 		vector<vector<double>> new_X;
 
 		for( int i = 0; i < indices_next_level.size(); ++i ) {
@@ -1718,7 +1965,10 @@ py::array_t<double> humap::HierarchicalUMAP::project_data(int level, vector<int>
 void humap::HierarchicalUMAP::dump_info(string info)
 {
 	if( this->output_filename != "" ) {
+		this->output_file.open(this->output_filename, std::ios_base::app); 
 		this->output_file << info;
+		this->output_file << "\n";
+		this->output_file.close();
 	}
 }
 

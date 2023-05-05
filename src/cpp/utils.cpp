@@ -193,3 +193,9 @@ void utils::log(bool verbose, const string& message)
   if( verbose )
     cout << message;
 }
+
+std::string utils::encode_pos(int a, int b)
+{
+  
+  return std::to_string(a)+"_"+std::to_string(b); 
+}

@@ -1512,8 +1512,8 @@ void umap::UMAP::fit(const Eigen::SparseMatrix<double, Eigen::RowMajor>& X)
 void umap::UMAP::fit(const vector<utils::SparseData>& X)
 {
 	std::srand(this->random_state);
-	this->dataset = umap::Matrix(X);
-	this->_sparse_data = true;
+	// this->dataset = umap::Matrix(X);
+	// this->_sparse_data = true;
 
 	this->prepare_for_fitting(this->dataset);
 }
@@ -1527,8 +1527,8 @@ void umap::UMAP::fit(const vector<utils::SparseData>& X)
 void umap::UMAP::fit(vector<vector<double>> X)
 {
 	std::srand(this->random_state);
-	this->dataset = umap::Matrix(X);
-	this->_sparse_data = false;
+	// this->dataset = umap::Matrix(X);
+	// this->_sparse_data = false;
 
 	this->prepare_for_fitting(this->dataset);
 }
@@ -1540,10 +1540,15 @@ void umap::UMAP::fit(vector<vector<double>> X)
 */
 void umap::UMAP::fit(const umap::Matrix& X) 
 {
-	if( X.is_sparse() )
-		this->fit(X.sparse_matrix);
-	else
-		this->fit(X.dense_matrix);
+	this->dataset = X;
+	if( X.is_sparse() ) {
+		this->_sparse_data = true;
+		// this->fit(X.sparse_matrix);
+	} else {
+		this->_sparse_data = false;
+		// this->fit(X.dense_matrix);
+	}
+	this->fit();
 }
 
 /**

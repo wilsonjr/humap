@@ -325,6 +325,11 @@ public:
 								   const vector<int>& head, const vector<int>& tail, int n_epochs, int n_vertices, 
 								   const vector<double>& epochs_per_sample);
 
+
+	Matrix& get_data() { return dataset; }
+
+	int get_size() { return dataset.size(); }
+
 	bool 										 verbose;
 	string                                       metric;
 	vector<int>                                  rows;
@@ -371,7 +376,7 @@ private:
 
 	Eigen::SparseMatrix<double, Eigen::RowMajor> graph_; 
 
-	
+	void fit() { this->prepare_for_fitting(this->dataset); }
 
 	// method for Spectral Embedding
 	vector<vector<double>> component_layout(umap::Matrix& data, int n_components, vector<int>& component_labels, int dim);

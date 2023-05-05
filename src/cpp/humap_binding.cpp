@@ -69,6 +69,8 @@ PYBIND11_MODULE(_hierarchical_umap, m) {
 		.def("set_fixing_term", &humap::HierarchicalUMAP::set_fixing_term)
 		.def("set_info_file", &humap::HierarchicalUMAP::set_info_file)
 		.def("set_n_epochs", &humap::HierarchicalUMAP::set_n_epochs)
+		.def("get_knn", &humap::HierarchicalUMAP::get_knn)
+		.def("get_knn_dists", &humap::HierarchicalUMAP::get_knn_dists)
 
 		.def("__repr__",
 			[](humap::HierarchicalUMAP& a) {

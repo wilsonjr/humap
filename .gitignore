@@ -18,3 +18,5 @@ reinstall.sh
 test.*
 .vscode
 .ipynb_checkpoints
+datasets/*
+*.csv

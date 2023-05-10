@@ -96,18 +96,20 @@ vector<vector<double>> humap::convert_to_vector(const py::array_t<double>& v)
 */
 int humap::HierarchicalUMAP::depth_first_search(int n_neighbors, int* neighbors, vector<int>& cols, vector<double>& strength, vector<int>& owners, vector<int>& is_landmark)
 {
+	// cout <<  "depth_first_search 1 "<< endl;
 	bool* visited = new bool[is_landmark.size()*sizeof(bool)];
 	fill(visited, visited+is_landmark.size(), false);
+	// cout <<  "depth_first_search 2 "<< endl;
 	int* neighbors_search = new int[n_neighbors*sizeof(int)];
-
+	// cout <<  "depth_first_search 3 "<< endl;
 	for( int i = 1; i < n_neighbors; ++i ) {
-
+		// cout <<  "depth_first_search 4 "<< endl;
 		int neighbor = *(neighbors + i);
 		int landmark = -1;
-
+		// cout <<  "depth_first_search 5 "<< endl;
 		if( !*(visited + neighbor) ) {
 			
-
+			// cout <<  "depth_first_search 6 "<< endl;
 			stack<int> p;
 			p.push(neighbor);
 			while( !p.empty() ) {
@@ -133,16 +135,23 @@ int humap::HierarchicalUMAP::depth_first_search(int n_neighbors, int* neighbors,
 						p.push(v);
 				}
 			}
+			// cout <<  "depth_first_search 7 "<< endl;
 		}
-
+		// cout <<  "depth_first_search 8 "<< endl;
 		if( landmark != -1 ) {
-			free(neighbors);
-			neighbors = 0;
+			// cout <<  "depth_first_search 9 "<< endl;
+			// free(neighbors);
+			// cout <<  "depth_first_search 10 "<< endl;
+			// neighbors = 0;
+			free(visited);
+			visited = 0;
+			free(neighbors_search);
+			neighbors_search = 0;
 			return landmark;
 		}
 
 	}
-
+	// cout <<  "depth_first_search 11 "<< endl;
 	return -1;
 }
 
@@ -235,14 +244,20 @@ void humap::HierarchicalUMAP::associate_to_landmarks(int n, int n_neighbors, int
 {
 	int* neighbors = new int[n_neighbors*sizeof(int)];
 	int count_search = 0;
+	// cout << "associate_to_landmarks 1" << endl;
 	for( int i = 0; i < n; ++i ) {
-
+		// cout << "associate_to_landmarks 1.1" << endl;
 		int index = indices[i];
 		 if( is_landmark[index] != -1 ||  owners[index] != -1 )
 			continue;
 
-		bool found = false;
+		// for( int j = 0; j < n_neighbors; ++j ) {
+		// 	neighbors[j] = cols[index*n_neighbors + j];
+		// }
 		
+		// cout << "associate_to_landmarks 1.2" << endl;
+		bool found = false;
+		// cout << "associate_to_landmarks 1.3" << endl;
 		for( int j = 1; j < n_neighbors && !found; ++j ) {
 
 			int nn = cols[index*n_neighbors + j];
@@ -265,11 +280,13 @@ void humap::HierarchicalUMAP::associate_to_landmarks(int n, int n_neighbors, int
 				found = true;
 			}
 		}
-
+		// cout << "associate_to_landmarks 1.4" << endl;
 		if( !found ) {
 
 			count_search++;
+			// cout << "associate_to_landmarks 1.5" << endl;
 			int landmark = this->depth_first_search(n_neighbors, neighbors, cols, strength, owners, is_landmark);
+			// cout << "associate_to_landmarks 1.6" << endl;
 			if( landmark != -1 ) {
 				strength[index] = 0;//knn_dists[landmark]
 				owners[index] = landmark;
@@ -277,16 +294,19 @@ void humap::HierarchicalUMAP::associate_to_landmarks(int n, int n_neighbors, int
 				association[index].push_back(is_landmark[landmark]);
 				count_influence[is_landmark[landmark]]++;
 			} else {
-				cout << "Did not find a landmark :(" << endl;
+				// cout << "Did not find a landmark :(" << endl;
 				throw runtime_error("Did not find a landmark");
 			}
+			// cout << "associate_to_landmarks 1.7" << endl;
 		}
+		// cout << "associate_to_landmarks 1.5" << endl;
 	}
-
+	// cout << "associate_to_landmarks 2" << endl;
 	if( neighbors ) {
 		free(neighbors);
 		neighbors = 0;
 	}
+	// cout << "associate_to_landmarks 3" << endl;
 }
 
 /**
@@ -303,8 +323,9 @@ void humap::HierarchicalUMAP::associate_to_landmarks(int n, int n_neighbors, int
 * @param max_incidence double representing the greater number of neighbors in the representation neighborhood
 * @param association Container representing the association between landmark and point
 */
-void humap::HierarchicalUMAP::add_similarity(int index, int i, vector<vector<int>>& neighborhood, 
-											  std::vector<std::vector<int> >& indices,
+void humap::HierarchicalUMAP::add_similarity(int index, int i, 
+					vector<vector<int>>& neighborhood, 
+				std::vector<std::vector<int> >& indices,
 											  int* mapper,
 											// map<int, int>& mapper, 
 											//   double* elements, 
@@ -313,67 +334,79 @@ void humap::HierarchicalUMAP::add_similarity(int index, int i, vector<vector<int
 											  vector<vector<int>>& indices_nzeros, int n, 
 											  double max_incidence, 
 											//   vector<vector<int>>& association
-											vector<map<int, int>>& association
+											vector<unordered_map<int, int>>& association
 											  )
 {
-	std::vector<int> neighbors = neighborhood[index];
-
-	//#pragma omp parallel for default(shared) schedule(dynamic, 50)
-	// #pragma omp parallel for default(shared) schedule(dynamic, 100)
-	for( int j = 0; j < neighbors.size(); ++j ) {
-		int neighbor = neighbors[j];
-
-		if( indices[neighbor].size() == 0 ) {
-			indices[neighbor].push_back(i);
-		} else {
-			int ind2 = i;
+	
+	
+	
+	#pragma omp critical 
+	{
+		std::vector<int> neighbors = neighborhood[index];
+		//#pragma omp parallel for default(shared) schedule(dynamic, 50)
+		// #pragma omp parallel for default(shared) schedule(dynamic, 100)
+		// #pragma omp parallel for
 				
-			for( int count = 0; count < indices[neighbor].size(); ++count ) {
-				int ind1 = indices[neighbor][count];
+		// cout << "passei 1" << endl;
+		for( int j = 0; j < neighbors.size(); ++j ) {
+			int neighbor = neighbors[j];
+			// cout << "passei 2, neighbor: " << neighbor << ", indices.size(): " << indices.size() << endl;
 
-				if( *(mapper + ind1) != -1 ) {
-					int u = *(mapper + ind1);
-					int v = *(mapper + ind2);
+			if( indices[neighbor].size() == 0 ) {
+				// cout << "adding, neighbor: " << neighbor << ", indices.size(): " << indices.size() << i << endl;
+				indices[neighbor].push_back(i);
+				// cout << "added" << endl;
+			} else {
+				// cout << "passei 3" << endl;
+				int ind2 = i;			
+				for( int count = 0; count < indices[neighbor].size(); ++count ) {
+					// cout << "passei 4" << endl;
+					int ind1 = indices[neighbor][count];
 
-					double s = 0.0;
-					if( this->distance_similarity ) {
-						s = (
-								std::min(
-									association[u][neighbor], 
-									association[v][neighbor]
-							 	)
-						     	/
-								std::max(
-									association[u][neighbor], 
-									association[v][neighbor]
-								)
-							)/max_incidence;
-					} else {
-						s = (1.0 / max_incidence);
-					}						
+					if( *(mapper + ind1) != -1 ) {
+						// cout << "passei 5" << endl;
+						int u = *(mapper + ind1);
+						int v = *(mapper + ind2);
 
-					// *(elements + u*n + v) += s;
-					// *(elements + v*n + u) += s;
-					if( elements.count(utils::encode_pos(u, v)) == 0 ) {
-						elements[utils::encode_pos(u, v)] = 0.0;
+						double s = 0.0;
+						if( this->distance_similarity ) {
+							s = (
+									std::min(
+										association[u][neighbor], 
+										association[v][neighbor]
+									)
+									/
+									std::max(
+										association[u][neighbor], 
+										association[v][neighbor]
+									)
+								)/max_incidence;
+						} else {
+							s = (1.0 / max_incidence);
+						}						
+
+						// *(elements + u*n + v) += s;
+						// *(elements + v*n + u) += s;
+						// if( elements.count(utils::encode_pos(u, v)) == 0 ) {
+						// 	elements[utils::encode_pos(u, v)] = 0.0;
+						// }
+
+						// if( elements.count(utils::encode_pos(v, u)) == 0 ) {
+						// 	elements[utils::encode_pos(v, u)] = 0.0;
+						// }
+						// cout << "passei 6" << endl;
+						elements[utils::encode_pos(u, v)] += s;
+						elements[utils::encode_pos(v, u)] += s;
+						// cout << "passei 7" << endl;
+						indices_nzeros[u].push_back(v);
+						indices_nzeros[v].push_back(u);
 					}
-
-					if( elements.count(utils::encode_pos(v, u)) == 0 ) {
-						elements[utils::encode_pos(v, u)] = 0.0;
-					}
-
-					elements[utils::encode_pos(u, v)] += s;
-					elements[utils::encode_pos(v, u)] += s;
-
-					indices_nzeros[u].push_back(v);
-					indices_nzeros[v].push_back(u);
 				}
+				// cout << "passei 8" << endl;
+				indices[neighbor].push_back(ind2);
 			}
-
-			indices[neighbor].push_back(ind2);
 		}
 	}
-
 }
 
 /**
@@ -470,7 +503,7 @@ humap::SparseComponents humap::HierarchicalUMAP::sparse_similarity(int level, in
 																   vector<vector<int>>& neighborhood, 
 																   double max_incidence, 
 																//    vector<vector<int>>& association
-																	vector<map<int, int>>& association
+																	vector<unordered_map<int, int>>& association
 																   ) 
 {
 
@@ -478,6 +511,8 @@ humap::SparseComponents humap::HierarchicalUMAP::sparse_similarity(int level, in
 	using sec = chrono::duration<double>;
 
 	std::vector<std::vector<int> > indices_sim;
+
+	cout << "Instatiating variables" << endl;
 
 	int* mapper = new int[n * sizeof(int)];
 	fill(mapper, mapper+n, -1);
@@ -491,8 +526,15 @@ humap::SparseComponents humap::HierarchicalUMAP::sparse_similarity(int level, in
 
 	unordered_map<string, double> elements;
 	vector<vector<int>> indices_nzeros(greatest.size(), vector<int>());
-
+	
+	cout << "Add similarity: " << greatest.size() << ", " << n << endl;
+	#pragma omp parallel for
 	for( int i = 0; i < greatest.size(); ++i ) {
+
+		// if( i % 100 == 0 ) 
+		// 	cout << i << "/" << greatest.size() << endl;
+
+
 		this->add_similarity(i, greatest[i], neighborhood, indices_sim, mapper, 
 							  elements, indices_nzeros, greatest.size(), max_incidence, association);
 	}
@@ -502,6 +544,7 @@ humap::SparseComponents humap::HierarchicalUMAP::sparse_similarity(int level, in
 		mapper = 0;
 	}
 
+	cout << "Creating sparse" << endl;
  	return this->create_sparse(greatest.size(), n_neighbors, elements, indices_nzeros);
 }
 
@@ -697,7 +740,7 @@ int humap::markov_chain(vector<vector<int>>& knn_indices,
 						int influence_neighborhood, 
 						vector<vector<int>>& neighborhood, 
 						// vector<vector<int>>& association,
-						vector<map<int,int>>& association,
+						vector<unordered_map<int,int>>& association,
 						bool reproducible)
 {	
 
@@ -714,7 +757,7 @@ int humap::markov_chain(vector<vector<int>>& knn_indices,
 	
 	neighborhood = vector<vector<int>>(landmarks.size(), vector<int>());
 	// association = vector<vector<int>>(landmarks.size(), vector<int>(knn_indices.size(), 0));
-	association = vector<map<int, int>>(landmarks.size(), map<int, int>());
+	association = vector<unordered_map<int, int>>(landmarks.size(), unordered_map<int, int>());
 	
 
 	std::mt19937& rng = RandomGenerator::Instance().get();
@@ -729,7 +772,8 @@ int humap::markov_chain(vector<vector<int>>& knn_indices,
 
 			for(int j = 1; j < influence_neighborhood; ++j ) {
 				#pragma omp critical
-				{
+				{	
+					// TODO
 					if( is_landmark[knn_indices[i][j]] != -1 ) {
 						int index = is_landmark[knn_indices[i][j]];
 
@@ -754,6 +798,8 @@ int humap::markov_chain(vector<vector<int>>& knn_indices,
 				int vertex = humap::random_walk(i, knn_indices[0].size(), vals, cols, walk_length, unif, rng, is_landmark);
 				if(  vertex != -1 ) {				
 					int index = is_landmark[vertex];
+
+					// TODO
 					if( !association[index][i] ) {
 						neighborhood[index].push_back(i);
 						max_neighborhood = max(max_neighborhood, (int) neighborhood[index].size());
@@ -799,6 +845,223 @@ int humap::markov_chain(vector<vector<int>>& knn_indices,
 	return max_neighborhood;
 }
 
+double humap::HierarchicalUMAP::dRNH(
+	unordered_map<int, int>& l_u,
+	unordered_map<int, int>& l_v
+)
+{
+	int min_row = min(l_u.size(), l_v.size());
+	unordered_map<int, int> keys_min;
+
+	if( min_row == l_u.size() )
+		keys_min = l_u;
+	else
+		keys_min = l_v;
+	
+	double s = 0;
+	// for(auto kv : keys_min) {
+	// 	// TODO: divide by max_incidence
+	// 	s += std::min(1.0, (double) (l_u[(int)kv.first] * l_v[(int)kv.first])); 
+	// }
+
+	return s;
+}
+
+humap::SparseComponents humap::HierarchicalUMAP::compute_landmark_similarity(
+	vector<vector<int>>& neighborhood,
+	vector<unordered_map<int, int>>& association,
+	double M,
+	int n_neighbors, int N)
+{
+	using clock = chrono::system_clock;
+	using sec = chrono::duration<double>;
+
+	auto before = clock::now();
+
+	vector<int> cols;
+	vector<int> rows;
+	vector<double> vals;
+	
+	vector<int> sizes;
+	auto before_sort = clock::now();
+	// #pragma omp parallel for 
+	for( int i = 0; i < neighborhood.size(); ++i ) {
+		std::sort(neighborhood[i].begin(), neighborhood[i].end());
+		sizes.push_back(neighborhood[i].size()+5);
+	}
+	sec duration_sort = clock::now() - before_sort;
+	cout << "sorted_duration: " << duration_sort.count() << endl;
+
+
+	auto before_creating = clock::now();
+	Eigen::SparseMatrix<double, Eigen::RowMajor> mat(neighborhood.size(), N);
+	mat.reserve(sizes);
+	for( int i = 0; i < neighborhood.size(); ++i )
+		for( int j = 0; j < neighborhood[i].size(); ++j )
+			mat.insert(i, neighborhood[i][j]) = 1.0;
+	sec duration_creating = clock::now() - before_creating;
+	cout << "nh x N: " <<  neighborhood.size() << ", " << N << endl;
+	cout << "input size: " <<  mat.rows() << ", " << mat.cols() << endl;
+	cout << "duration_creating: " << duration_creating.count() << endl;
+
+	auto before_multiplying = clock::now();
+	Eigen::SparseMatrix<double, Eigen::RowMajor> m_mult = (mat * mat.transpose());
+	cout << "output size: " <<  m_mult.rows() << ", " << m_mult.cols() << endl;
+	sec duration_multiplying = clock::now() - before_multiplying;
+	cout << "duration_multiplying: " << duration_multiplying.count() << endl;
+
+	/*
+	SparseMatrix<double> mat(rows,cols);
+for (int k=0; k<mat.outerSize(); ++k)
+  for (SparseMatrix<double>::InnerIterator it(mat,k); it; ++it)
+  {
+    it.value();
+    it.row();   // row index
+    it.col();   // col index (here it is equal to k)
+    it.index(); // inner index, here it is equal to it.row()
+  }
+	*/
+
+	
+	auto before_iterating = clock::now();
+	for( int i = 0; i < mat.outerSize(); ++i ) {
+		int count_nonzeros = 0;
+		vector<int> accessed(n_neighbors, 0);
+		for(Eigen::SparseMatrix<double, Eigen::RowMajor>::InnerIterator it(m_mult, i); it; ++it) {
+			count_nonzeros++;
+			if( it.col() < accessed.size() )
+				accessed[it.col()] = 1;
+
+			rows.push_back(it.row());
+			cols.push_back(it.col());
+			vals.push_back(1.0-(it.value())/M);
+		}
+
+		if(count_nonzeros < n_neighbors ) {
+			for( int j = 0; j < accessed.size(); ++j ) {
+	 			if( accessed[j] == 0 && i != j ) {	
+	 				rows.push_back(i);
+	 				cols.push_back(j);
+	 				vals.push_back(1.0);
+	 			} 
+			}
+		}
+			
+	}
+
+	sec duration_iterating = clock::now() - before_iterating;
+	cout << "duration_iterating: " << duration_iterating.count() << endl;
+
+
+
+
+	// #pragma omp parallel for 
+	// for( int i = 0; i < neighborhood.size(); ++i ) {
+	// 	vector<int> acessed(n_neighbors+5, 0);
+	// 	auto line_before = clock::now();
+	// 	for( int j = i+1; j < neighborhood.size(); ++j ) {
+	// 		// if (i == j )
+	// 		// 	continue;
+	// 		double s = 0;//dRNH(association[i], association[j]);
+
+	// 		// for(auto kv : association[i]) {
+	// 		// 	// TODO: divide by max_incidence
+	// 		// 	if (association[j].count(kv.first) > 0)
+	// 		// 		s += std::min(1.0, (double) (association[i][(int)kv.first] * association[j][(int)kv.first])); 
+	// 		// }
+	// 		// for(  )
+
+	// 		// if( i % 10000 == 0) {
+	// 		// 	for( int k = 0; k < neighborhood[i].size(); ++k )
+	// 		// 		cout << neighborhood[i][k] << " ";
+	// 		// 	cout << endl;
+	// 		// }
+			
+
+	// 		int count = 0;
+	// 		int ii = 0, jj = 0;
+	// 		while (ii < neighborhood[i].size() && jj < neighborhood[j].size()) {
+				
+	// 			if (neighborhood[i][ii] == neighborhood[j][jj]) {
+	// 				count++;
+	// 				ii++;
+	// 				jj++;
+	// 			} else if (neighborhood[i][ii] < neighborhood[j][jj]) {
+	// 				ii++;
+	// 			} else {
+	// 				jj++;
+	// 			}
+	// 		}
+
+	// 		// int count = 0;
+	// 		// // if( j % 1000 == 0)
+	// 		// // cout << "done 0" << endl;
+	// 		// // Count occurrences of each element in A
+	// 		// std::unordered_map<int, int> counts;
+	// 		// for (int element : neighborhood[i]) {
+	// 		// 	counts[element] = 0;
+	// 		// }
+	// 		// // if( j % 1000 == 0)
+	// 		// // cout << "done 1" << endl;
+	// 		// // Count occurrences of elements in A
+	// 		// for (int element : neighborhood[i]) {
+	// 		// 	counts[element]++;
+	// 		// }
+	// 		// // if( j % 1000 == 0)
+	// 		// // cout << "done 2" << endl;
+	// 		// // Check occurrences of elements in B and count intersections
+	// 		// for (int element : neighborhood[j]) {
+	// 		// 	counts[element]++;
+	// 		// 	if (counts[element] == 2) {
+	// 		// 		count++;
+	// 		// 	}
+	// 		// }
+
+	// 		// if( j % 1000 == 0)
+	// 		// cout << "done 3" << endl;
+	// 		// #pragma omp critical
+	// 			{
+	// 		max_count = std::max(count, max_count);
+	// 		if( count != 0 ) {
+	// 			s = (count/M);
+							
+	// 			rows.push_back(j);
+	// 			cols.push_back(i);
+	// 			rows.push_back(i);
+	// 			cols.push_back(j);
+
+	// 			vals.push_back(1.0-s);
+	// 			vals.push_back(1.0-s);
+
+	// 			if( j < acessed.size())
+	// 				acessed[j] = 1;
+	// 		}
+	// 			}
+	// 	}
+	// 	sec line_duration = clock::now() - line_before;
+	// 	// cout << "compute_landmark_similarity _line: " << line_duration.count() << endl;
+
+	// 	// #pragma omp critical
+	// 	{
+	// 		cols.push_back(i);
+	// 		rows.push_back(i);
+	// 		vals.push_back(0.0);
+
+	// 		for( int j = 0; j < n_neighbors+5; ++j ) {
+	// 			if( acessed[j] == 0 && i != j ) {	
+	// 				rows.push_back(i);
+	// 				cols.push_back(j);
+	// 				vals.push_back(1.0);
+	// 			} 
+	// 		}
+	// 	}
+	// }
+
+	sec duration = clock::now() - before;
+	cout << "compute_landmark_similarity: " << duration.count() << " -> " << rows.size() << endl;
+
+	return humap::SparseComponents(rows, cols, vals);
+}
 
 /**
 * Fits the hierarchy 
@@ -891,7 +1154,7 @@ void humap::HierarchicalUMAP::fit(py::array_t<double> X, py::array_t<int> y)
 
 
  		vector<vector<int>> neighborhood;
-		vector<map<int, int>> association;
+		vector<unordered_map<int, int>> association;
  		double max_incidence = 0; 
 
 		// another markov chain process...
@@ -925,13 +1188,50 @@ void humap::HierarchicalUMAP::fit(py::array_t<double> X, py::array_t<int> y)
 			COMPUTE SIMILARITY AMONG THE LANDMARKS
 		*/
 		utils::log(this->verbose, "Computing similarity among landmarks... \n");
+
+
+
+		utils::log(this->verbose, "NEIGHBORHOOD: "+to_string(neighborhood.size())+", "+to_string(neighborhood[0].size())+"\n");
+
+		SparseComponents triplets = compute_landmark_similarity(neighborhood, association, max_incidence, n_neighbors, this->reducers[level].get_size());
+		// vector<utils::SparseData> sparse = humap::create_sparse(n_elements, triplets.rows, triplets.cols, triplets.vals);
+
+		// for( int i = 0; i < neighborhood.size(); ++i  ) {
+		// 	int max_element = -1;
+
+		// 	for( int j = 0; j < neighborhood[i].size(); ++j ) {
+		// 		max_element = max(max_element, neighborhood[i][j]);
+		// 	}
+
+		// 	cout << i << ": " << max_element << endl;
+
+		// }
 					
 		auto similarity_before = clock::now();		
 
-		// it consists of the intersection of the global and local neighborhoods.				
-		SparseComponents triplets = this->sparse_similarity(level+1, this->reducers[level].get_size(), this->n_neighbors,
-															greatest, neighborhood, max_incidence, association); 
+		// it consists of the intersection of the global and local neighborhoods.	
+		utils::log(this->verbose, "Computing sparse similarity... \n");			
+		// SparseComponents triplets2 = this->sparse_similarity(level+1, this->reducers[level].get_size(), this->n_neighbors, greatest, neighborhood, max_incidence, association); 
+		int max_output = 0;
+		// for( int i = 0; i < triplets.cols.size() && max_output < 100; ++i ) {
+		// 	for( int j = 0; j < triplets2.cols.size() && max_output < 100; ++j ) {
+				
+		// 		if( triplets.cols[i] == triplets2.cols[j] && triplets.rows[i] == triplets2.rows[j] && fabs(triplets.vals[i]-triplets2.vals[j]) > 0.01 ) {
+		// 			cout << "val_triplet: " <<  triplets.vals[i] << ", val_triplet2: " << triplets2.vals[j] << endl;
+		// 			max_output++;
+		// 		}
+		// 	}
+		// }
+
+		cout << "triplets.size(): " << triplets.cols.size() << endl;
+		// cout << "triplets2.size(): " << triplets2.cols.size() << endl;
+
+
+
+
+		utils::log(this->verbose, "Creating sparse matrix... \n");
 		vector<utils::SparseData> sparse = humap::create_sparse(n_elements, triplets.rows, triplets.cols, triplets.vals);
+
 		umap::Matrix data = umap::Matrix(sparse, greatest.size());
 		reducer = umap::UMAP("precomputed", this->n_neighbors, this->min_dist, this->knn_algorithm, this->init, this->reproducible);
 		reducer.set_ab_parameters(this->a, this->b);
@@ -964,33 +1264,34 @@ void humap::HierarchicalUMAP::fit(py::array_t<double> X, py::array_t<int> y)
 		utils::log(this->verbose, "Associating data points to landmarks... \n");
 
 		auto associate_before = clock::now();
-		
+		utils::log(this->verbose, "Step 1 \n");
 		vector<int> is_landmark(this->metadata[level].size, -1);
 		for( int i = 0; i < greatest.size(); ++i ) {
 			is_landmark[greatest[i]] = i;
 		}
-		
+		utils::log(this->verbose, "Step 2 \n");
 		this->associate_to_landmarks(greatest.size(), this->n_neighbors, greatest, this->reducers[level].cols, 
 								     this->metadata[level].strength, this->metadata[level].owners, this->metadata[level].indices, 
 									 this->metadata[level].association, is_landmark, this->metadata[level].count_influence, this->reducers[level].knn_dists());
-
+		utils::log(this->verbose, "Step 3 \n");
 		
 		int n = 0;
 		for( int i = 0; i < this->metadata[level].size; ++i ) {
 			if( this->metadata[level].owners[i] == -1 )
 				n++;
 		}
-
+		utils::log(this->verbose, "Step 4 \n");
 		int* indices_not_associated = new int[sizeof(int)*n];
 		for( int i = 0, j = 0; i < this->metadata[level].size; ++i )
 			if( this->metadata[level].owners[i] == -1.0 )
 				*(indices_not_associated + j++) = i;
 
+		utils::log(this->verbose, "Step 5 \n");
 		this->associate_to_landmarks(n, this->n_neighbors, indices_not_associated, this->reducers[level].cols,
 									  this->metadata[level].strength, this->metadata[level].owners, this->metadata[level].indices, 
 									  this->metadata[level].association, this->metadata[level].count_influence, 
 									  is_landmark, this->reducers[level].knn_dists());
-
+		utils::log(this->verbose, "Step 6 \n");
 		sec associate_duration = clock::now() - associate_before;
 		utils::log(this->verbose, "done in "  + std::to_string(associate_duration.count()) + " seconds.\n");
 

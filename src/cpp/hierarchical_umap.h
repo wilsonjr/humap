@@ -82,7 +82,7 @@ int markov_chain(vector<vector<int>>& knn_indices, vector<double>& vals, vector<
 	             int num_walks, int walk_length, vector<int>& landmarks, int influence_neighborhood, 
 				 vector<vector<int>>& neighborhood, 
 				//  vector<vector<int>>& association, 
-				vector<map<int, int>>& association,
+				vector<unordered_map<int, int>>& association,
 				 bool reproducible);
 
 // returns the endpoint after a random walk
@@ -326,7 +326,7 @@ private:
 						// vector<vector<double>>& elements,
 						vector<vector<int>>& indices_nzeros, int n, double max_incidence, 
 						// vector<vector<int>>& association
-						vector<map<int, int>>& association);
+						vector<unordered_map<int, int>>& association);
 
 	// create a sparse represention after similarity computaiton 
 	SparseComponents create_sparse(int n, int n_neighbors, 
@@ -337,7 +337,7 @@ private:
 
 	// compute the similarity among landmarks
 	SparseComponents sparse_similarity(int level, int n, int n_neighbors, vector<int>& greatest, vector<vector<int>>& neighborhood,
-									   double max_incidence, vector<map<int, int>>& association
+									   double max_incidence, vector<unordered_map<int, int>>& association
 									//    vector<vector<int>>& association
 									   );
 
@@ -369,6 +369,10 @@ private:
 	// helper function to project indices
 	py::array_t<double> project_data(int level, vector<int> selected_indices);
 
+	SparseComponents compute_landmark_similarity(vector<vector<int>>& neighborhood, 
+			vector<unordered_map<int, int>>& association, double M, int n_neighbors, int N);
+
+	double dRNH(unordered_map<int, int>& l_u, unordered_map<int, int>& l_v);
 };
 
 }

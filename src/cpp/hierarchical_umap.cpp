@@ -885,13 +885,13 @@ humap::SparseComponents humap::HierarchicalUMAP::compute_landmark_similarity(
 	vector<int> sizes;
 	auto before_sort = clock::now();
 	// #pragma omp parallel for 
+	
 	for( int i = 0; i < neighborhood.size(); ++i ) {
-		std::sort(neighborhood[i].begin(), neighborhood[i].end());
+		// std::sort(neighborhood[i].begin(), neighborhood[i].end());
 		sizes.push_back(neighborhood[i].size()+5);
 	}
 	sec duration_sort = clock::now() - before_sort;
-	cout << "sorted_duration: " << duration_sort.count() << endl;
-
+	cout << "duration_sort: " << duration_sort.count() << endl;
 
 	auto before_creating = clock::now();
 	Eigen::SparseMatrix<double, Eigen::RowMajor> mat(neighborhood.size(), N);
@@ -899,28 +899,18 @@ humap::SparseComponents humap::HierarchicalUMAP::compute_landmark_similarity(
 	for( int i = 0; i < neighborhood.size(); ++i )
 		for( int j = 0; j < neighborhood[i].size(); ++j )
 			mat.insert(i, neighborhood[i][j]) = 1.0;
+
 	sec duration_creating = clock::now() - before_creating;
-	cout << "nh x N: " <<  neighborhood.size() << ", " << N << endl;
-	cout << "input size: " <<  mat.rows() << ", " << mat.cols() << endl;
+
 	cout << "duration_creating: " << duration_creating.count() << endl;
+
+	cout << "sort + creating: " << (duration_creating.count() + duration_sort.count()) << endl;
+
+
 
 	auto before_multiplying = clock::now();
 	Eigen::SparseMatrix<double, Eigen::RowMajor> m_mult = (mat * mat.transpose());
-	cout << "output size: " <<  m_mult.rows() << ", " << m_mult.cols() << endl;
 	sec duration_multiplying = clock::now() - before_multiplying;
-	cout << "duration_multiplying: " << duration_multiplying.count() << endl;
-
-	/*
-	SparseMatrix<double> mat(rows,cols);
-for (int k=0; k<mat.outerSize(); ++k)
-  for (SparseMatrix<double>::InnerIterator it(mat,k); it; ++it)
-  {
-    it.value();
-    it.row();   // row index
-    it.col();   // col index (here it is equal to k)
-    it.index(); // inner index, here it is equal to it.row()
-  }
-	*/
 
 	
 	auto before_iterating = clock::now();
@@ -945,12 +935,9 @@ for (int k=0; k<mat.outerSize(); ++k)
 	 				vals.push_back(1.0);
 	 			} 
 			}
-		}
-			
+		}			
 	}
-
 	sec duration_iterating = clock::now() - before_iterating;
-	cout << "duration_iterating: " << duration_iterating.count() << endl;
 
 
 
@@ -1058,7 +1045,6 @@ for (int k=0; k<mat.outerSize(); ++k)
 	// }
 
 	sec duration = clock::now() - before;
-	cout << "compute_landmark_similarity: " << duration.count() << " -> " << rows.size() << endl;
 
 	return humap::SparseComponents(rows, cols, vals);
 }
@@ -1189,46 +1175,15 @@ void humap::HierarchicalUMAP::fit(py::array_t<double> X, py::array_t<int> y)
 		*/
 		utils::log(this->verbose, "Computing similarity among landmarks... \n");
 
-
-
-		utils::log(this->verbose, "NEIGHBORHOOD: "+to_string(neighborhood.size())+", "+to_string(neighborhood[0].size())+"\n");
-
 		SparseComponents triplets = compute_landmark_similarity(neighborhood, association, max_incidence, n_neighbors, this->reducers[level].get_size());
 		// vector<utils::SparseData> sparse = humap::create_sparse(n_elements, triplets.rows, triplets.cols, triplets.vals);
 
-		// for( int i = 0; i < neighborhood.size(); ++i  ) {
-		// 	int max_element = -1;
-
-		// 	for( int j = 0; j < neighborhood[i].size(); ++j ) {
-		// 		max_element = max(max_element, neighborhood[i][j]);
-		// 	}
-
-		// 	cout << i << ": " << max_element << endl;
-
-		// }
-					
 		auto similarity_before = clock::now();		
 
 		// it consists of the intersection of the global and local neighborhoods.	
 		utils::log(this->verbose, "Computing sparse similarity... \n");			
 		// SparseComponents triplets2 = this->sparse_similarity(level+1, this->reducers[level].get_size(), this->n_neighbors, greatest, neighborhood, max_incidence, association); 
-		int max_output = 0;
-		// for( int i = 0; i < triplets.cols.size() && max_output < 100; ++i ) {
-		// 	for( int j = 0; j < triplets2.cols.size() && max_output < 100; ++j ) {
-				
-		// 		if( triplets.cols[i] == triplets2.cols[j] && triplets.rows[i] == triplets2.rows[j] && fabs(triplets.vals[i]-triplets2.vals[j]) > 0.01 ) {
-		// 			cout << "val_triplet: " <<  triplets.vals[i] << ", val_triplet2: " << triplets2.vals[j] << endl;
-		// 			max_output++;
-		// 		}
-		// 	}
-		// }
-
-		cout << "triplets.size(): " << triplets.cols.size() << endl;
-		// cout << "triplets2.size(): " << triplets2.cols.size() << endl;
-
-
-
-
+		
 		utils::log(this->verbose, "Creating sparse matrix... \n");
 		vector<utils::SparseData> sparse = humap::create_sparse(n_elements, triplets.rows, triplets.cols, triplets.vals);
 
@@ -1264,34 +1219,32 @@ void humap::HierarchicalUMAP::fit(py::array_t<double> X, py::array_t<int> y)
 		utils::log(this->verbose, "Associating data points to landmarks... \n");
 
 		auto associate_before = clock::now();
-		utils::log(this->verbose, "Step 1 \n");
 		vector<int> is_landmark(this->metadata[level].size, -1);
 		for( int i = 0; i < greatest.size(); ++i ) {
 			is_landmark[greatest[i]] = i;
 		}
-		utils::log(this->verbose, "Step 2 \n");
+
 		this->associate_to_landmarks(greatest.size(), this->n_neighbors, greatest, this->reducers[level].cols, 
 								     this->metadata[level].strength, this->metadata[level].owners, this->metadata[level].indices, 
 									 this->metadata[level].association, is_landmark, this->metadata[level].count_influence, this->reducers[level].knn_dists());
-		utils::log(this->verbose, "Step 3 \n");
-		
+				
 		int n = 0;
 		for( int i = 0; i < this->metadata[level].size; ++i ) {
 			if( this->metadata[level].owners[i] == -1 )
 				n++;
 		}
-		utils::log(this->verbose, "Step 4 \n");
+
 		int* indices_not_associated = new int[sizeof(int)*n];
 		for( int i = 0, j = 0; i < this->metadata[level].size; ++i )
 			if( this->metadata[level].owners[i] == -1.0 )
 				*(indices_not_associated + j++) = i;
 
-		utils::log(this->verbose, "Step 5 \n");
+
 		this->associate_to_landmarks(n, this->n_neighbors, indices_not_associated, this->reducers[level].cols,
 									  this->metadata[level].strength, this->metadata[level].owners, this->metadata[level].indices, 
 									  this->metadata[level].association, this->metadata[level].count_influence, 
 									  is_landmark, this->reducers[level].knn_dists());
-		utils::log(this->verbose, "Step 6 \n");
+		
 		sec associate_duration = clock::now() - associate_before;
 		utils::log(this->verbose, "done in "  + std::to_string(associate_duration.count()) + " seconds.\n");
 

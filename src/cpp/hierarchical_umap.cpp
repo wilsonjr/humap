@@ -1059,7 +1059,6 @@ void humap::HierarchicalUMAP::fit(py::array_t<double> X, py::array_t<int> y)
 			COMPUTE SIMILARITY AMONG THE LANDMARKS
 		*/
 		utils::log(this->verbose, "Computing similarity among landmarks... \n");
-
 		SparseComponents triplets = compute_landmark_similarity(neighborhood, max_incidence, n_neighbors, this->reducers[level].get_size());
 		// vector<utils::SparseData> sparse = humap::create_sparse(n_elements, triplets.rows, triplets.cols, triplets.vals);
 

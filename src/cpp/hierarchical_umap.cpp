@@ -871,7 +871,8 @@ humap::SparseComponents humap::HierarchicalUMAP::compute_landmark_similarity(
 	vector<vector<int>>& neighborhood,
 	vector<unordered_map<int, int>>& association,
 	double M,
-	int n_neighbors, int N)
+	int n_neighbors, 
+	int N)
 {
 	using clock = chrono::system_clock;
 	using sec = chrono::duration<double>;
@@ -884,10 +885,10 @@ humap::SparseComponents humap::HierarchicalUMAP::compute_landmark_similarity(
 	
 	vector<int> sizes;
 	auto before_sort = clock::now();
-	// #pragma omp parallel for 
-	
+
+	// #pragma omp parallel for 	
 	for( int i = 0; i < neighborhood.size(); ++i ) {
-		// std::sort(neighborhood[i].begin(), neighborhood[i].end());
+		std::sort(neighborhood[i].begin(), neighborhood[i].end());
 		sizes.push_back(neighborhood[i].size()+5);
 	}
 	sec duration_sort = clock::now() - before_sort;
@@ -901,11 +902,6 @@ humap::SparseComponents humap::HierarchicalUMAP::compute_landmark_similarity(
 			mat.insert(i, neighborhood[i][j]) = 1.0;
 
 	sec duration_creating = clock::now() - before_creating;
-
-	cout << "duration_creating: " << duration_creating.count() << endl;
-
-	cout << "sort + creating: " << (duration_creating.count() + duration_sort.count()) << endl;
-
 
 
 	auto before_multiplying = clock::now();
@@ -938,113 +934,6 @@ humap::SparseComponents humap::HierarchicalUMAP::compute_landmark_similarity(
 		}			
 	}
 	sec duration_iterating = clock::now() - before_iterating;
-
-
-
-
-	// #pragma omp parallel for 
-	// for( int i = 0; i < neighborhood.size(); ++i ) {
-	// 	vector<int> acessed(n_neighbors+5, 0);
-	// 	auto line_before = clock::now();
-	// 	for( int j = i+1; j < neighborhood.size(); ++j ) {
-	// 		// if (i == j )
-	// 		// 	continue;
-	// 		double s = 0;//dRNH(association[i], association[j]);
-
-	// 		// for(auto kv : association[i]) {
-	// 		// 	// TODO: divide by max_incidence
-	// 		// 	if (association[j].count(kv.first) > 0)
-	// 		// 		s += std::min(1.0, (double) (association[i][(int)kv.first] * association[j][(int)kv.first])); 
-	// 		// }
-	// 		// for(  )
-
-	// 		// if( i % 10000 == 0) {
-	// 		// 	for( int k = 0; k < neighborhood[i].size(); ++k )
-	// 		// 		cout << neighborhood[i][k] << " ";
-	// 		// 	cout << endl;
-	// 		// }
-			
-
-	// 		int count = 0;
-	// 		int ii = 0, jj = 0;
-	// 		while (ii < neighborhood[i].size() && jj < neighborhood[j].size()) {
-				
-	// 			if (neighborhood[i][ii] == neighborhood[j][jj]) {
-	// 				count++;
-	// 				ii++;
-	// 				jj++;
-	// 			} else if (neighborhood[i][ii] < neighborhood[j][jj]) {
-	// 				ii++;
-	// 			} else {
-	// 				jj++;
-	// 			}
-	// 		}
-
-	// 		// int count = 0;
-	// 		// // if( j % 1000 == 0)
-	// 		// // cout << "done 0" << endl;
-	// 		// // Count occurrences of each element in A
-	// 		// std::unordered_map<int, int> counts;
-	// 		// for (int element : neighborhood[i]) {
-	// 		// 	counts[element] = 0;
-	// 		// }
-	// 		// // if( j % 1000 == 0)
-	// 		// // cout << "done 1" << endl;
-	// 		// // Count occurrences of elements in A
-	// 		// for (int element : neighborhood[i]) {
-	// 		// 	counts[element]++;
-	// 		// }
-	// 		// // if( j % 1000 == 0)
-	// 		// // cout << "done 2" << endl;
-	// 		// // Check occurrences of elements in B and count intersections
-	// 		// for (int element : neighborhood[j]) {
-	// 		// 	counts[element]++;
-	// 		// 	if (counts[element] == 2) {
-	// 		// 		count++;
-	// 		// 	}
-	// 		// }
-
-	// 		// if( j % 1000 == 0)
-	// 		// cout << "done 3" << endl;
-	// 		// #pragma omp critical
-	// 			{
-	// 		max_count = std::max(count, max_count);
-	// 		if( count != 0 ) {
-	// 			s = (count/M);
-							
-	// 			rows.push_back(j);
-	// 			cols.push_back(i);
-	// 			rows.push_back(i);
-	// 			cols.push_back(j);
-
-	// 			vals.push_back(1.0-s);
-	// 			vals.push_back(1.0-s);
-
-	// 			if( j < acessed.size())
-	// 				acessed[j] = 1;
-	// 		}
-	// 			}
-	// 	}
-	// 	sec line_duration = clock::now() - line_before;
-	// 	// cout << "compute_landmark_similarity _line: " << line_duration.count() << endl;
-
-	// 	// #pragma omp critical
-	// 	{
-	// 		cols.push_back(i);
-	// 		rows.push_back(i);
-	// 		vals.push_back(0.0);
-
-	// 		for( int j = 0; j < n_neighbors+5; ++j ) {
-	// 			if( acessed[j] == 0 && i != j ) {	
-	// 				rows.push_back(i);
-	// 				cols.push_back(j);
-	// 				vals.push_back(1.0);
-	// 			} 
-	// 		}
-	// 	}
-	// }
-
-	sec duration = clock::now() - before;
 
 	return humap::SparseComponents(rows, cols, vals);
 }

@@ -369,8 +369,7 @@ private:
 	// helper function to project indices
 	py::array_t<double> project_data(int level, vector<int> selected_indices);
 
-	SparseComponents compute_landmark_similarity(vector<vector<int>>& neighborhood, 
-			vector<unordered_map<int, int>>& association, double M, int n_neighbors, int N);
+	SparseComponents compute_landmark_similarity(vector<vector<int>>& neighborhood, double M, int n_neighbors, int N);
 
 	double dRNH(unordered_map<int, int>& l_u, unordered_map<int, int>& l_v);
 };

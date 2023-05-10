@@ -869,7 +869,6 @@ double humap::HierarchicalUMAP::dRNH(
 
 humap::SparseComponents humap::HierarchicalUMAP::compute_landmark_similarity(
 	vector<vector<int>>& neighborhood,
-	vector<unordered_map<int, int>>& association,
 	double M,
 	int n_neighbors, 
 	int N)
@@ -881,18 +880,15 @@ humap::SparseComponents humap::HierarchicalUMAP::compute_landmark_similarity(
 
 	vector<int> cols;
 	vector<int> rows;
-	vector<double> vals;
-	
+	vector<double> vals;	
 	vector<int> sizes;
-	auto before_sort = clock::now();
 
-	// #pragma omp parallel for 	
+	auto before_sort = clock::now();
 	for( int i = 0; i < neighborhood.size(); ++i ) {
 		std::sort(neighborhood[i].begin(), neighborhood[i].end());
 		sizes.push_back(neighborhood[i].size()+5);
 	}
 	sec duration_sort = clock::now() - before_sort;
-	cout << "duration_sort: " << duration_sort.count() << endl;
 
 	auto before_creating = clock::now();
 	Eigen::SparseMatrix<double, Eigen::RowMajor> mat(neighborhood.size(), N);
@@ -1064,7 +1060,7 @@ void humap::HierarchicalUMAP::fit(py::array_t<double> X, py::array_t<int> y)
 		*/
 		utils::log(this->verbose, "Computing similarity among landmarks... \n");
 
-		SparseComponents triplets = compute_landmark_similarity(neighborhood, association, max_incidence, n_neighbors, this->reducers[level].get_size());
+		SparseComponents triplets = compute_landmark_similarity(neighborhood, max_incidence, n_neighbors, this->reducers[level].get_size());
 		// vector<utils::SparseData> sparse = humap::create_sparse(n_elements, triplets.rows, triplets.cols, triplets.vals);
 
 		auto similarity_before = clock::now();		

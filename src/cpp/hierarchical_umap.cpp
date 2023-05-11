@@ -828,12 +828,12 @@ int humap::markov_chain(vector<vector<int>>& knn_indices,
 						// } 
 						// association[index][i]++;
 
-						if( association[index].count(i) == 0 ) {
+						// if( association[index].count(i) == 0 ) {
 							neighborhood[index].push_back(i);
 							max_neighborhood = max(max_neighborhood, (int) neighborhood[index].size());
-							association[index][i] = 0;
-						}
-						association[index][i] += 1;
+							// association[index][i] = 1;
+						// }
+						// association[index][i] += 1;
 					} 	
 				}
 			}
@@ -909,7 +909,7 @@ humap::SparseComponents humap::HierarchicalUMAP::compute_landmark_similarity(
 	for( int i = 0; i < mat.outerSize(); ++i ) {
 		int count_nonzeros = 0;
 		vector<int> accessed(n_neighbors, 0);
-		for(Eigen::SparseMatrix<double, Eigen::RowMajor>::InnerIterator it(m_mult, i); it; ++it) {
+		for( Eigen::SparseMatrix<double, Eigen::RowMajor>::InnerIterator it(m_mult, i); it; ++it ) {
 			count_nonzeros++;
 			if( it.col() < accessed.size() )
 				accessed[it.col()] = 1;
@@ -919,7 +919,7 @@ humap::SparseComponents humap::HierarchicalUMAP::compute_landmark_similarity(
 			vals.push_back(1.0-(it.value())/M);
 		}
 
-		if(count_nonzeros < n_neighbors ) {
+		if( count_nonzeros < n_neighbors ) {
 			for( int j = 0; j < accessed.size(); ++j ) {
 	 			if( accessed[j] == 0 && i != j ) {	
 	 				rows.push_back(i);
@@ -930,6 +930,13 @@ humap::SparseComponents humap::HierarchicalUMAP::compute_landmark_similarity(
 		}			
 	}
 	sec duration_iterating = clock::now() - before_iterating;
+
+	cout << "compute_landmark_similarity: " << (
+		duration_sort.count() + 
+		duration_creating.count() +
+		duration_multiplying.count() + 
+		duration_iterating.count()
+	) << endl;
 
 	return humap::SparseComponents(rows, cols, vals);
 }

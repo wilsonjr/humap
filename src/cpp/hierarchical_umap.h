@@ -264,7 +264,7 @@ public:
 		
 private:
 
-	int n_neighbors;
+	int n_neighbors = 100;
 	int n_epochs = 500;
 	int n_components = 2;
 	int random_state = 0;
@@ -288,10 +288,11 @@ private:
 	double _fixing_term = 0.01;
 
 	string output_filename = "";
-	ofstream output_file;
+	
 	string init = "Spectral";
 	string similarity_method;
 	string knn_algorithm;
+	ofstream output_file;
 
 	vector<int>                    labels_selected;
 	vector<int>                    influence_selected;
@@ -372,6 +373,9 @@ private:
 	SparseComponents compute_landmark_similarity(vector<vector<int>>& neighborhood, double M, int n_neighbors, int N);
 
 	double dRNH(unordered_map<int, int>& l_u, unordered_map<int, int>& l_v);
+
+	void save(string filename);
+	 
 };
 
 }

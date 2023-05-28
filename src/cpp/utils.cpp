@@ -190,8 +190,9 @@ vector<vector<double>> utils::pairwise_distances(vector<vector<double>>& X)
 */
 void utils::log(bool verbose, const string& message)
 {
-  if( verbose )
-    cout << message;
+  if( verbose ) {
+    py::print(message);
+  }
 }
 
 std::string utils::encode_pos(int a, int b)

@@ -173,6 +173,59 @@ std::vector<T> arrange_by_indices(const std::vector<T>& data, std::vector<int>& 
   return v;
 }
 
+// template <typename T>
+// void save_vector(std::ofstream &ofs, const std::vector<T> &v) {
+//     size_t len = v.size();
+//     ofs.write((char*)&len, sizeof(len));
+
+//     ofs.write((char*)v.data(), len * sizeof(T));
+// }
+
+// template <typename T>
+// void load_vector(std::ifstream &ifs, std::vector<T> &v) {
+//     size_t len;
+//     ifs.read((char*)&len, sizeof(len));
+
+//     v.resize(len);
+//     ifs.read((char*)v.data(), len * sizeof(T));
+// }
+
+// template <typename T>
+// void save_scalar(std::ofstream &ofs, const T &val) {
+//     ofs.write((char*)&val, sizeof(T));
+// }
+
+// template <typename T>
+// void load_scalar(std::ifstream &ifs, T &val) {
+//     ifs.read((char*)&val, sizeof(T));
+// }
+
+// void save_vector_of_vectors(std::ofstream &ofs, const std::vector<std::vector<int>> &v) {
+//     // Save the length of the outer vector
+//     size_t len = v.size();
+//     ofs.write((char*)&len, sizeof(len));
+
+//     // Save each inner vector
+//     for (const auto &inner_v : v) {
+//         save_vector(ofs, inner_v);
+//     }
+// }
+
+// template<typename T>
+// void load_matrix(std::ifstream &ifs, std::vector<std::vector<T>> &v) {
+//     // Load the length of the outer vector
+//     size_t len;
+//     ifs.read((char*)&len, sizeof(len));
+
+//     // Resize the outer vector to the correct length
+//     v.resize(len);
+
+//     // Load each inner vector
+//     for (auto &inner_v : v) {
+//         load_vector(ifs, inner_v);
+//     }
+// }
+
 // Converts an Eigen::Matrix to tuple format
 std::tuple<std::vector<int>, std::vector<int>, std::vector<double>> to_row_format(const Eigen::SparseMatrix<double, Eigen::RowMajor>& M);
 

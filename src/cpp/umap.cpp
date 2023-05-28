@@ -364,12 +364,11 @@ vector<vector<double>> umap::UMAP::optimize_layout_euclidean(vector<vector<doubl
 
 		alpha = initial_alpha * (1.0 - ((double)epoch/(double)n_epochs));
 
-		if( this->verbose && epoch % (int)(n_epochs/10) == 0)
-			printf("\tcompleted %d / %d epochs\n", epoch, n_epochs);
+		if( epoch % (int)(n_epochs/10) == 0) 
+			utils::log(this->verbose, "\tcompleted "+std::to_string(epoch)+"/"+std::to_string(n_epochs)+" epochs\n");
 
 	}
-	if( this->verbose )
-		printf("\tcompleted %d epochs\n", n_epochs);
+	utils::log(this->verbose, "\tcompleted "+std::to_string(n_epochs)+" epochs\n");
 
 
 	return head_embedding;
@@ -663,10 +662,9 @@ vector<vector<double>> umap::UMAP::multi_component_layout(umap::Matrix& data,
 			
 
 		} catch(...) {
-			wcout << "WARNING: spectral initialisation failed! The eigenvector solver\n" <<
-                "failed. This is likely due to too small an eigengap. Consider\n" <<
-                "adding some noise or jitter to your data.\n\n" <<
-                "Falling back to random initialisation!" << endl;
+			utils::log(this->verbose, std::string("WARNING: spectral initialisation failed! The eigenvector solver failed.\n") +
+            	std::string("This is likely due to too small an eigengap. Consider adding some noise or jitter to your data.\n\n") +
+                std::string("Falling back to random initialisation!\n\n"));
 
 			py::module scipy_random = py::module::import("numpy.random");
 			py::object randomState = scipy_random.attr("RandomState")(this->random_state);
@@ -706,8 +704,7 @@ vector<vector<double>> umap::UMAP::spectral_layout(umap::Matrix& data,
 	// random initialization
 	std::srand(this->random_state);
 
-	if( true ) {// this->init != "Spectral" ) {
-		cout << "returning noise object" << endl; 
+	if( this->init != "Spectral" ) {
 		py::module scipy_random = py::module::import("numpy.random");
 		py::object randomState = scipy_random.attr("RandomState")(this->random_state);
 		vector<int> size = {(int)graph.rows(), dim};
@@ -726,7 +723,6 @@ vector<vector<double>> umap::UMAP::spectral_layout(umap::Matrix& data,
 	vector<int> labels = connected_components.attr("__getitem__")(1).cast<vector<int>>();
 	
 	if( n_components > 1) {
-		// cout << "WARNING: found more than one component." << endl;
 		vector<vector<double>> spectral_embedding = this->multi_component_layout(data, graph, n_components, labels, dim);
 		
 		double max_value = spectral_embedding[0][0];
@@ -830,10 +826,10 @@ vector<vector<double>> umap::UMAP::spectral_layout(umap::Matrix& data,
 		return spectral_embedding;
 
 	} catch(...) {
-		wcout << "WARNING (Spectral Layout): spectral initialisation failed! The eigenvector solver\n" <<
-                "failed. This is likely due to too small an eigengap. Consider\n" <<
-                "adding some noise or jitter to your data.\n\n" <<
-                "Falling back to random initialisation!" << endl;
+		utils::log(this->verbose, std::string("WARNING (Spectral Layout): spectral initialisation failed! The eigenvector solver failed. \n")+
+                std::string("This is likely due to too small an eigengap.\n")+
+                std::string("Consider adding some noise or jitter to your data.\n")+
+                std::string("Falling back to random initialisation!"));
                 
 		py::module scipy_random = py::module::import("numpy.random");
 		py::object randomState = scipy_random.attr("RandomState")(this->random_state);
@@ -1057,8 +1053,7 @@ tuple<vector<vector<int>>, vector<vector<double>>> umap::nearest_neighbors(umap:
 	using clock = chrono::system_clock;
 	using sec = chrono::duration<double>;
 
-	if( verbose )
-		cout << "Finding nearest neighbors" << endl;
+	utils::log(verbose, "Finding nearest neighbors\n");
 
 	vector<vector<int>> knn_indices;
 	vector<vector<double>> knn_dists;
@@ -1129,7 +1124,7 @@ tuple<vector<vector<int>>, vector<vector<double>>> umap::nearest_neighbors(umap:
 				knn_indices.push_back(indices);
 			}
 
-		} else if( algorithm == "NNDescent" && reproducible ) {
+		} else if( (algorithm == "NNDescent" && reproducible) || algorithm == "pyNNDescent" ) {
 
 			py::module pynn = py::module::import("pynndescent");
 			int n_trees = min(64, 5 + int(sqrt(X.shape(0))/20.0));
@@ -1265,8 +1260,7 @@ tuple<vector<vector<int>>, vector<vector<double>>> umap::nearest_neighbors(umap:
 
 	sec end = clock::now() - begin; 
 
-	if( verbose )
-		cout << "Computing k nearest neighbors: " << end.count() << " seconds." << endl;
+	utils::log(verbose, "KNN: done in " + std::to_string(end.count()) + " seconds.\n");
 
 
 	return make_tuple(knn_indices, knn_dists);
@@ -1400,21 +1394,19 @@ void umap::UMAP::prepare_for_fitting(umap::Matrix& X)
 
 	if( X.size() <= this->n_neighbors ) {
 
-		cout << "n_neighbors is larger than the dataset size; truncating to X.shape[0] -1" << endl;
+		utils::log(this->verbose, "n_neighbors is larger than the dataset size; truncating to X.shape[0] -1\n");
 		this->_n_neighbors = X.size()-1;
 
 	} else {
 		this->_n_neighbors = this->n_neighbors;
 	}
 
-	if( this->verbose )
-		cout << "Constructing fuzzy simplical set" << endl;
+	utils::log(this->verbose, "Constructing fuzzy simplical set\n");
 
 	if( this->metric == "precomputed" && this->_sparse_data ) {
 
 
-		if( this->verbose )
-			cout << "Computing KNNs for sparse precomputed distancess..." << endl;
+		utils::log(this->verbose, "Computing KNNs for sparse precomputed distancess...\n");
 
 		this->_knn_indices = vector<vector<int>>(X.size(), vector<int>(this->n_neighbors, 0));
 		this->_knn_dists = vector<vector<double>>(X.size(), vector<double>(this->n_neighbors, 0.0));
@@ -1425,8 +1417,7 @@ void umap::UMAP::prepare_for_fitting(umap::Matrix& X)
 
 
 			if( row_data.size() < this->n_neighbors ) {
-				cout << "row_id: " << row_id << ", " << row_data.size() << " " << this->n_neighbors << endl;
-
+				utils::log(this->verbose, "row_id: " + std::to_string(row_id) + ", " + std::to_string(row_data.size()) + " " + std::to_string(this->n_neighbors)+"\n");
 				throw runtime_error("Some rows contain fewer than n_neighbors distances");
 			}
 
@@ -1437,8 +1428,7 @@ void umap::UMAP::prepare_for_fitting(umap::Matrix& X)
 			this->_knn_dists[row_id] = utils::arrange_by_indices<double>(row_data, row_nn_data_indices);
 		}
 	
-		if( this->verbose )
-			cout << "Computing fuzzy simplicial set..." << endl;
+		utils::log(this->verbose, "Computing fuzzy simplicial set...\n");
 
 		X.sparse_matrix = utils::arrange_by_indices<utils::SparseData>(X.sparse_matrix, index);
 
@@ -1448,8 +1438,7 @@ void umap::UMAP::prepare_for_fitting(umap::Matrix& X)
 
 	} else if( X.size() < 100 && !this->force_approximation_algorithm ) {
 
-		if( this->verbose )
-			cout << "Small matrix. Computing pairwise distances." << endl;
+		utils::log(this->verbose, "Small matrix. Computing pairwise distances.\n");
 
 		vector<vector<double>> dmat = umap::pairwise_distances(X);
 		this->pairwise_distance = umap::Matrix(dmat);
@@ -1462,8 +1451,7 @@ void umap::UMAP::prepare_for_fitting(umap::Matrix& X)
 		// TODO: Do I have to compute the nearest neighbors?
 	} else {
 
-		if( this->verbose )
-			cout << "Normal case, computing nearest neighbors and then fuzzy simplicial set" << endl;
+		utils::log(this->verbose, "Computing nearest neighbors and then fuzzy simplicial set\n");
 	
 		string nn_metric = this->metric;
 

@@ -62,7 +62,7 @@ Alternatively (and preferable), you can use conda to install:
 
 **If using pip**:
 
-HUMAP depends on `Eigen <>`. Thus, make it sure to place the headers in */usr/local/include* if using MacOS or *C:\\Eigen* if using Windows.
+HUMAP depends on `Eigen <https://eigen.tuxfamily.org/>`_. Thus, make it sure to place the headers in **/usr/local/include** if using Unix or **C:\\Eigen** if using Windows.
 
 **Manual installation**: 
 

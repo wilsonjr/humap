@@ -46,7 +46,7 @@ class HUMAP(object):
 		Controls logging.
 
 	"""
-	def __init__(self, levels=np.array([0.2, 0.2]), n_neighbors=100, min_dist=0.15, knn_algorithm='NNDescent', init="Spectral", verbose=True, reproducible=False):
+	def __init__(self, levels=np.array([0.2, 0.2]), n_neighbors=100, min_dist=0.15, knn_algorithm='NNDescent', init="Random", verbose=True, reproducible=False):
 		self.levels = levels
 		self.n_levels = len(levels)+1
 		self.n_neighbors = n_neighbors

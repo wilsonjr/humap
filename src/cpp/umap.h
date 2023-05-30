@@ -75,8 +75,8 @@ using namespace efanna2e;
 namespace umap {
 
 
-static double SMOOTH_K_TOLERANCE = 1e-5;
-static double MIN_K_DIST_SCALE = 1e-3;
+static float SMOOTH_K_TOLERANCE = 1e-5;
+static float MIN_K_DIST_SCALE = 1e-3;
 
 
 /**
@@ -128,7 +128,7 @@ public:
 	*
 	* @param eigen_sparse_ Eigen::SparseMatrix representing data points 
 	*/
-	Matrix(Eigen::SparseMatrix<double, Eigen::RowMajor> eigen_sparse_): eigen_sparse(eigen_sparse_), sparse(true)
+	Matrix(Eigen::SparseMatrix<float, Eigen::RowMajor> eigen_sparse_): eigen_sparse(eigen_sparse_), sparse(true)
 	{
 		shape_.push_back(eigen_sparse_.rows());
 		shape_.push_back(eigen_sparse_.cols());
@@ -139,7 +139,7 @@ public:
 	*
 	* @param dense_matrix_ Container representing data points 
 	*/
-	Matrix(vector<vector<double>> dense_matrix_): dense_matrix(dense_matrix_), sparse(false) {
+	Matrix(vector<vector<float>> dense_matrix_): dense_matrix(dense_matrix_), sparse(false) {
 		shape_.push_back(dense_matrix_.size());
 		shape_.push_back(dense_matrix_[0].size());
 	}
@@ -166,7 +166,7 @@ public:
 	}
 
 	// get a matrix row
-	vector<double> get_row(int i);
+	vector<float> get_row(int i);
 
 	// get the matrix size
 	int size() { return shape_[0]; }
@@ -183,8 +183,8 @@ public:
 	// returns the C-like float array of the matrix (only for dense representation)
 	float* data_f();
 
-	// returns the C-like double array of the matrix (only for dense representation)
-	double* data();
+	// returns the C-like float array of the matrix (only for dense representation)
+	float* data();
 
 	// check if the matrix is sparse
 	bool is_sparse() const { return sparse; }
@@ -193,9 +193,9 @@ public:
 	
 	vector<utils::SparseData> sparse_matrix;
 
-	Eigen::SparseMatrix<double, Eigen::RowMajor> eigen_sparse;
+	Eigen::SparseMatrix<float, Eigen::RowMajor> eigen_sparse;
 	
-	vector<vector<double>> dense_matrix;
+	vector<vector<float>> dense_matrix;
 
 private:
 
@@ -217,11 +217,11 @@ public:
 	*
 	* @param metric_ string representing the metric for distance computation. Currently, we only support euclidean.
 	* @param n_neighbors_ int representing the number of neighbors for k nearest neighbor computation.
-	* @param min_dist_ double The effective minimum distance between embedded points.
+	* @param min_dist_ float The effective minimum distance between embedded points.
 	* @param knn_algorithm string representin the knn algorithm
 	* @param init_ string with the type of low-embedding initialization
 	*/
-	UMAP(string metric_, int n_neighbors_, double min_dist_=0.15, string knn_algorithm="NNDescent", string init_="Spectral", bool reproducible_=false): 
+	UMAP(string metric_, int n_neighbors_, float min_dist_=0.15, string knn_algorithm="NNDescent", string init_="Spectral", bool reproducible_=false): 
 		metric(metric_), 
 		verbose(false),
 		n_neighbors(n_neighbors_),
@@ -249,14 +249,14 @@ public:
 	*
 	* @return Eigen::SparseMatrix with the kernel graph
 	*/
-	Eigen::SparseMatrix<double, Eigen::RowMajor>& get_graph() { return this->graph_; }
+	Eigen::SparseMatrix<float, Eigen::RowMajor>& get_graph() { return this->graph_; }
 
 	/**
 	* Get the knn distances 
 	* 
-	* @return vector<vector<double>> with the knn distances for each data point
+	* @return vector<vector<float>> with the knn distances for each data point
 	*/
-	vector<vector<double>>& knn_dists() { return _knn_dists; }
+	vector<vector<float>>& knn_dists() { return _knn_dists; }
 
 	/**
 	* Get the knn indices 
@@ -268,30 +268,30 @@ public:
 	/**
 	* Get the sigmas found for each data point during kernel computation 
 	*
-	* @return vector<double> with the sigmas of each data point
+	* @return vector<float> with the sigmas of each data point
 	*/
-	vector<double> sigmas() { return this->_sigmas; }
+	vector<float> sigmas() { return this->_sigmas; }
 
 	/**
 	*  Get the distance of each data point to its closest neighbor 
 	*
-	* @return vector<double> with the distance of each data point to its closest neighbor
+	* @return vector<float> with the distance of each data point to its closest neighbor
 	*/
-	vector<double> rhos() { return this->_rhos; }
+	vector<float> rhos() { return this->_rhos; }
 	
 	// fit dataset using an array of SparseData
 	void fit(const vector<utils::SparseData>& X);
 	
 	// fit dataset using a SparseMatrix
-	void fit(const Eigen::SparseMatrix<double, Eigen::RowMajor>& X);
+	void fit(const Eigen::SparseMatrix<float, Eigen::RowMajor>& X);
 
 	// fit dataset using a dense matrix
-	void fit(vector<vector<double>> X);
+	void fit(vector<vector<float>> X);
 
 	// receives the fit operation
 	void fit(const Matrix& X);
 
-	void set_ab_parameters(double a, double b) {
+	void set_ab_parameters(float a, float b) {
 		this->a = a;
 		this->b = b;
 	} 
@@ -302,7 +302,7 @@ public:
 	}
 
 	// set how free is the fixing data points
-	void set_fixing_term(double fixing_term) {
+	void set_fixing_term(float fixing_term) {
 		this->_fixing_term = fixing_term;
 	}
 
@@ -315,15 +315,15 @@ public:
 
 
 	// produces initial low-dimensional representation using Spectral Embedding
-	vector<vector<double>> spectral_layout(Matrix& data, const Eigen::SparseMatrix<double, Eigen::RowMajor>& graph, int dim);
+	vector<vector<float>> spectral_layout(Matrix& data, const Eigen::SparseMatrix<float, Eigen::RowMajor>& graph, int dim);
 
 
-	vector<double> make_epochs_per_sample(const vector<double>& weights, int n_epochs);
+	vector<float> make_epochs_per_sample(const vector<float>& weights, int n_epochs);
 
 	// optimize the low-dimensional representation to slowly converge to UMAP projection
-	vector<vector<double>> optimize_layout_euclidean(vector<vector<double>>& head_embedding, vector<vector<double>>& tail_embedding,
+	vector<vector<float>> optimize_layout_euclidean(vector<vector<float>>& head_embedding, vector<vector<float>>& tail_embedding,
 								   const vector<int>& head, const vector<int>& tail, int n_epochs, int n_vertices, 
-								   const vector<double>& epochs_per_sample);
+								   const vector<float>& epochs_per_sample);
 
 
 	Matrix& get_data() { return dataset; }
@@ -334,11 +334,11 @@ public:
 	string                                       metric;
 	vector<int>                                  rows;
 	vector<int>                                  cols;
-	vector<double>                               vals;
-	vector<double> 								 sum_vals;
-	vector<double> 							     vals_transition;
+	vector<float>                               vals;
+	vector<float> 								 sum_vals;
+	vector<float> 							     vals_transition;
 	map<string, string> 						 knn_args;
-	Eigen::SparseMatrix<double, Eigen::RowMajor> transition_matrix;
+	Eigen::SparseMatrix<float, Eigen::RowMajor> transition_matrix;
 	
 private:
 	
@@ -353,14 +353,14 @@ private:
 	int random_state = 0;
 	int n_neighbors, _n_neighbors;	
 	
-	double _a, _b;
-	double local_connectivity;
-	double a = -1.0, b = -1.0;
-	double _fixing_term = 0.01;
-	double _initial_alpha = 1.0;
-	double repulsion_strength = 1.0;
-	double negative_sample_rate = 5.0;	
-	double spread = 1.0, min_dist = 0.001;
+	float _a, _b;
+	float local_connectivity;
+	float a = -1.0, b = -1.0;
+	float _fixing_term = 0.01;
+	float _initial_alpha = 1.0;
+	float repulsion_strength = 1.0;
+	float negative_sample_rate = 5.0;	
+	float spread = 1.0, min_dist = 0.001;
 
 	string init = "Spectral";
 
@@ -368,37 +368,37 @@ private:
 	Matrix pairwise_distance;
 
 	vector<bool>		   _free_datapoints;
-	vector<double> 		   _sigmas; 
-	vector<double>         _rhos; 
+	vector<float> 		   _sigmas; 
+	vector<float>         _rhos; 
 	vector<vector<int>>    _knn_indices;
-	vector<vector<double>> _knn_dists;
-	vector<vector<double>> embedding_;
+	vector<vector<float>> _knn_dists;
+	vector<vector<float>> embedding_;
 
-	Eigen::SparseMatrix<double, Eigen::RowMajor> graph_; 
+	Eigen::SparseMatrix<float, Eigen::RowMajor> graph_; 
 
 	void fit() { this->prepare_for_fitting(this->dataset); }
 
 	// method for Spectral Embedding
-	vector<vector<double>> component_layout(umap::Matrix& data, int n_components, vector<int>& component_labels, int dim);
+	vector<vector<float>> component_layout(umap::Matrix& data, int n_components, vector<int>& component_labels, int dim);
 
 	// method for Spectral Embedding
-	vector<vector<double>> multi_component_layout(umap::Matrix& data,  const Eigen::SparseMatrix<double, Eigen::RowMajor>& graph, int n_components, 
+	vector<vector<float>> multi_component_layout(umap::Matrix& data,  const Eigen::SparseMatrix<float, Eigen::RowMajor>& graph, int n_components, 
 												  vector<int>& component_labels, int dim);
 
 	// optimize the layout for one epoch
-	void optimize_euclidean_epoch(vector<vector<double>>& head_embedding, vector<vector<double>>& tail_embedding,
+	void optimize_euclidean_epoch(vector<vector<float>>& head_embedding, vector<vector<float>>& tail_embedding,
 								   const vector<int>& head, const vector<int>& tail, int n_vertices, 
-								   const vector<double>& epochs_per_sample, double a, double b, 
-								   double gamma, int dim, bool move_other, double alpha, vector<double>& epochs_per_negative_sample,
-								   vector<double>& epoch_of_next_negative_sample, vector<double>& epoch_of_next_sample, 
+								   const vector<float>& epochs_per_sample, float a, float b, 
+								   float gamma, int dim, bool move_other, float alpha, vector<float>& epochs_per_negative_sample,
+								   vector<float>& epoch_of_next_negative_sample, vector<float>& epoch_of_next_sample, 
 								   int n);
 
-	void optimize_euclidean_epoch_reproducible(vector<vector<double>>& head_embedding, vector<vector<double>>& tail_embedding,
+	void optimize_euclidean_epoch_reproducible(vector<vector<float>>& head_embedding, vector<vector<float>>& tail_embedding,
 										   const vector<int>& head, const vector<int>& tail, int n_vertices, 
-										   const vector<double>& epochs_per_sample, double a, double b, 
-										   double gamma, int dim, bool move_other, double alpha, vector<double>& epochs_per_negative_sample,
-										   vector<double>& epoch_of_next_negative_sample, 
-										   vector<double>& epoch_of_next_sample, 
+										   const vector<float>& epochs_per_sample, float a, float b, 
+										   float gamma, int dim, bool move_other, float alpha, vector<float>& epochs_per_negative_sample,
+										   vector<float>& epoch_of_next_negative_sample, 
+										   vector<float>& epoch_of_next_sample, 
 										   int n);
 
 };
@@ -407,29 +407,29 @@ private:
 
 
 
-tuple<double, double> find_ab_params(double spread, double min_dist);
+tuple<float, float> find_ab_params(float spread, float min_dist);
 
 // construct the graph representing the similarity between each data sample
-tuple<Eigen::SparseMatrix<double, Eigen::RowMajor>, vector<double>, vector<double>> fuzzy_simplicial_set(
-	umap::Matrix& X, int n_neighbors, double random_state, string metric, 
-	vector<vector<int>>& knn_indices, vector<vector<double>>& knn_dists,
-	double local_connectivity=1.0, bool apply_set_operations=true, bool verbose=false, umap::UMAP* obj=0);
+tuple<Eigen::SparseMatrix<float, Eigen::RowMajor>, vector<float>, vector<float>> fuzzy_simplicial_set(
+	umap::Matrix& X, int n_neighbors, float random_state, string metric, 
+	vector<vector<int>>& knn_indices, vector<vector<float>>& knn_dists,
+	float local_connectivity=1.0, bool apply_set_operations=true, bool verbose=false, umap::UMAP* obj=0);
 
 // use the knn distances to find the kernel parameters
-tuple<vector<double>, vector<double>> smooth_knn_dist(vector<vector<double>>& distances,
-	double k, int n_iter=64, double local_connectivity=1.0, double bandwidth=1.0);
+tuple<vector<float>, vector<float>> smooth_knn_dist(vector<vector<float>>& distances,
+	float k, int n_iter=64, float local_connectivity=1.0, float bandwidth=1.0);
 
 // find the nearest neighbors
-tuple<vector<vector<int>>, vector<vector<double>>> nearest_neighbors(umap::Matrix& X,
+tuple<vector<vector<int>>, vector<vector<float>>> nearest_neighbors(umap::Matrix& X,
 	int n_neighbors, string metric, map<string, string> knn_args, bool verbose=false,bool reproducible=false);
 
 // compute the affinities after find knn, sigma and rho values
-tuple<vector<int>, vector<int>, vector<double>, vector<double>> compute_membership_strenghts(
-	vector<vector<int>>& knn_indices, vector<vector<double>>& knn_dists, 
-	vector<double>& sigmas, vector<double>& rhos);
+tuple<vector<int>, vector<int>, vector<float>, vector<float>> compute_membership_strenghts(
+	vector<vector<int>>& knn_indices, vector<vector<float>>& knn_dists, 
+	vector<float>& sigmas, vector<float>& rhos);
 
 // computes the pairwise distance between data points
-std::vector<std::vector<double>> pairwise_distances(Matrix& X, string metric="euclidean");
+std::vector<std::vector<float>> pairwise_distances(Matrix& X, string metric="euclidean");
 
 
 

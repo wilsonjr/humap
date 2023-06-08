@@ -911,10 +911,6 @@ humap::SparseComponents humap::HierarchicalUMAP::compute_landmark_similarity(
 		}			
 	}
 	sec duration_iterating = clock::now() - before_iterating;
-
-	utils::log(this->verbose, "Similarity between landmarks: "+ std::to_string(duration_sort.count() + duration_creating.count() + 
-				duration_multiplying.count() +  duration_iterating.count()) +" seconds.\n");
-
 	return humap::SparseComponents(rows, cols, vals);
 }
 
@@ -940,7 +936,7 @@ void humap::HierarchicalUMAP::fit(py::array_t<float> X, py::array_t<int> y)
 
 	this->hierarchy_y.push_back(vector<int>((int*)y.request().ptr, (int*)y.request().ptr + y.request().shape[0]));
 
-	utils::log(this->verbose, "Level 0 with "  + std::to_string(first_level.size()) + " data samples.\n"+"Fitting the first hierarchy level... ");
+	utils::log(this->verbose, "L0 - "  + std::to_string(first_level.size()) + " data samples.\n");
 	
 	umap::UMAP reducer = umap::UMAP("euclidean", this->n_neighbors, this->min_dist, this->knn_algorithm, this->init, this->reproducible);
 	reducer.set_ab_parameters(this->a, this->b);
@@ -953,7 +949,7 @@ void humap::HierarchicalUMAP::fit(py::array_t<float> X, py::array_t<int> y)
 	// reducer.fit(this->hierarchy_X[0]);
 	reducer.fit(first_level);
 	duration = clock::now() - before;
-	utils::log(this->verbose, "\nL0 - Fitting: done in " + std::to_string(duration.count()) + " seconds.\n");
+	utils::log(this->verbose, "L0 - Fitting: done in " + std::to_string(duration.count()) + " seconds.\n\n");
 	this->reducers.push_back(reducer);
 	
 	
@@ -968,14 +964,14 @@ void humap::HierarchicalUMAP::fit(py::array_t<float> X, py::array_t<int> y)
 		auto level_before = clock::now();
 		int n_elements = (int) (this->percents[level] * this->reducers[level].get_size());		
 	
-		utils::log(this->verbose, std::string("Level " + std::to_string(level+1) + ": " + std::to_string(n_elements) + " data samples."));
+		utils::log(this->verbose, std::string("L" + std::to_string(level+1) + " - " + std::to_string(n_elements) + " data samples.\n"));
 
 
 		/*
 			COMPUTING RANDOM WALK FOR SAMPLING SELETION
  		*/
  		auto begin_random_walk = clock::now();
- 		utils::log(this->verbose, "Computing random walks for sampling selection... \n");
+ 		// utils::log(this->verbose, "Computing random walks for sampling selection... \n");
 	
  		vector<int> landmarks = humap::markov_chain(this->reducers[level].knn_indices(),
  										this->reducers[level].vals_transition, 
@@ -984,7 +980,7 @@ void humap::HierarchicalUMAP::fit(py::array_t<float> X, py::array_t<int> y)
 										this->landmarks_wl, this->reproducible); 
 
 		sec end_random_walk = clock::now() - begin_random_walk;
-		utils::log(this->verbose, "\nL"+std::to_string(level+1)+" - Selecting Landmarks: done in " + std::to_string(end_random_walk.count()) + " seconds.\n");
+		utils::log(this->verbose, "L"+std::to_string(level+1)+" - Selecting Landmarks: done in " + std::to_string(end_random_walk.count()) + " seconds.\n");
 
 		// we sort points based on their endpoints
 		// the most visited ones will be landmarks for the next hierarchy level
@@ -998,7 +994,7 @@ void humap::HierarchicalUMAP::fit(py::array_t<float> X, py::array_t<int> y)
 			COMPUTING RANDOM WALK FOR CONSTRUCTING REPRESENTATION NEIGHBORHOOD
  		*/
  		auto influence_begin = clock::now();
- 		utils::log(this->verbose, "Computing random walks for constucting representation neighborhood... \n");
+ 		// utils::log(this->verbose, "Computing random walks for constucting representation neighborhood... \n");
 
 
  		vector<vector<int>> neighborhood;
@@ -1016,7 +1012,7 @@ void humap::HierarchicalUMAP::fit(py::array_t<float> X, py::array_t<int> y)
 											neighborhood, association, this->reproducible);
 		
  		sec influence_time = clock::now() - influence_begin;
-		utils::log(this->verbose, "\nL"+std::to_string(level+1)+" - Constructing Neighborhood: done in " + std::to_string(influence_time.count()) + " seconds.\n");
+		utils::log(this->verbose, "L"+std::to_string(level+1)+" - Constructing Neighborhood: done in " + std::to_string(influence_time.count()) + " seconds.\n");
  			
  		level_landmarks.push_back(inds_lands);
 
@@ -1035,17 +1031,17 @@ void humap::HierarchicalUMAP::fit(py::array_t<float> X, py::array_t<int> y)
 		/*
 			COMPUTE SIMILARITY AMONG THE LANDMARKS
 		*/
-		utils::log(this->verbose, "Computing similarity among landmarks... \n");
+		// utils::log(this->verbose, "Computing similarity among landmarks... \n");
 		SparseComponents triplets = compute_landmark_similarity(neighborhood, max_incidence, n_neighbors, this->reducers[level].get_size());
 		// vector<utils::SparseData> sparse = humap::create_sparse(n_elements, triplets.rows, triplets.cols, triplets.vals);
 
 		auto similarity_before = clock::now();		
 
 		// it consists of the intersection of the global and local neighborhoods.	
-		utils::log(this->verbose, "Computing sparse similarity... \n");			
+		// utils::log(this->verbose, "Computing sparse similarity... \n");			
 		// SparseComponents triplets2 = this->sparse_similarity(level+1, this->reducers[level].get_size(), this->n_neighbors, greatest, neighborhood, max_incidence, association); 
 		
-		utils::log(this->verbose, "Creating sparse matrix... \n");
+		// utils::log(this->verbose, "Creating sparse matrix... \n");
 		vector<utils::SparseData> sparse = humap::create_sparse(n_elements, triplets.rows, triplets.cols, triplets.vals);
 
 		umap::Matrix data = umap::Matrix(sparse, greatest.size());
@@ -1053,12 +1049,12 @@ void humap::HierarchicalUMAP::fit(py::array_t<float> X, py::array_t<int> y)
 		reducer.set_ab_parameters(this->a, this->b);
 
 		sec similarity_after = clock::now() - similarity_before;
-		utils::log(this->verbose, "\nL"+std::to_string(level+1)+" - Sparse Similarity: done in "  + std::to_string(similarity_after.count()) + " seconds.\n");
+		utils::log(this->verbose, "L"+std::to_string(level+1)+" - Sparse Similarity: done in "  + std::to_string(similarity_after.count()) + " seconds.\n");
 
 		/*
 			FITTING HIERARCHY LEVEL			
 		*/
-		utils::log(this->verbose, "Fitting the hierarchy level... \n");
+		// utils::log(this->verbose, "Fitting the hierarchy level... \n");
 
 		this->metadata[level].count_influence = vector<int>(greatest.size(), 0);
 
@@ -1066,12 +1062,12 @@ void humap::HierarchicalUMAP::fit(py::array_t<float> X, py::array_t<int> y)
 		reducer.fit(data);
 		sec fit_duration = clock::now() - fit_before;
 
-		utils::log(this->verbose, "\nL"+std::to_string(level+1)+" - Fitting: done in " + std::to_string(fit_duration.count()) + " seconds.\n");
+		utils::log(this->verbose, "L"+std::to_string(level+1)+" - Fitting: done in " + std::to_string(fit_duration.count()) + " seconds.\n");
 
 		/*
 			ASSOCIATING DATA POINTS TO LANDMARKS
 		*/
-		utils::log(this->verbose, "Associating data points to landmarks... \n");
+		// utils::log(this->verbose, "Associating data points to landmarks... \n");
 
 		auto associate_before = clock::now();
 		vector<int> is_landmark(this->metadata[level].size, -1);
@@ -1101,20 +1097,20 @@ void humap::HierarchicalUMAP::fit(py::array_t<float> X, py::array_t<int> y)
 									  is_landmark, this->reducers[level].knn_dists());
 		
 		sec associate_duration = clock::now() - associate_before;
-		utils::log(this->verbose, "\nL"+std::to_string(level+1)+" - Performing association to landmarks: done in "  + std::to_string(associate_duration.count()) + " seconds.\n");
+		utils::log(this->verbose, "L"+std::to_string(level+1)+" - Associating data points to landmarks: done in "  + std::to_string(associate_duration.count()) + " seconds.\n");
 
 		this->metadata.push_back(Metadata(greatest, greatest.size()));
 		this->reducers.push_back(reducer);
 		this->hierarchy_y.push_back(utils::arrange_by_indices(this->hierarchy_y[level], greatest));
 		
 		sec level_duration = clock::now() - level_before;
-		utils::log(this->verbose, "\nL"+std::to_string(level+1)+" - Construction: done in " + std::to_string(level_duration.count()) + "\n\n");
+		utils::log(this->verbose, "L"+std::to_string(level+1)+" - Construction: done in " + std::to_string(level_duration.count()) + "\n\n");
 
 		free(indices_not_associated);
 	}
 
 	sec hierarchy_duration = clock::now() - hierarchy_before;
-	utils::log(this->verbose, "Hierarchical Representation: done in " + std::to_string(hierarchy_duration.count()) + " seconds.\n\n");
+	utils::log(this->verbose, "Hierarchical Representation: done in " + std::to_string(hierarchy_duration.count()) + " seconds.\n");
 
 	for( int i = 0; i < this->hierarchy_y.size(); ++i ) {
 		this->embeddings.push_back(vector<vector<float>>());
@@ -1329,10 +1325,6 @@ vector<vector<float>> humap::HierarchicalUMAP::embed_data(int level, Eigen::Spar
 	/*
 		COMPUTE INITIAL LOW-DIMENSIONAL REPRESENTATION
 	*/
-	if( this->verbose ) {
-		utils::log(this->verbose, "Initiating low-dimensional representation...\n");
-	}
-	
 	auto tic = clock::now();
 	vector<vector<float>> embedding = this->reducers[level].spectral_layout(X, graph, this->n_components);
 	sec toc = clock::now() - tic; 
@@ -1346,10 +1338,8 @@ vector<vector<float>> humap::HierarchicalUMAP::embed_data(int level, Eigen::Spar
 		}
 	}
 
-	if( this->verbose ) {
-		utils::log(this->verbose, "done in " + std::to_string(toc.count()) + " seconds.\n");
-	}
-
+	utils::log(this->verbose, "Initial low-dimensional representation: done in " + std::to_string(toc.count()) + " seconds.\n\n");
+	
 
 	
 	vector<int> rows, cols;
@@ -1389,10 +1379,8 @@ vector<vector<float>> humap::HierarchicalUMAP::embed_data(int level, Eigen::Spar
 		}
 	}
 
-	if( this->verbose ) {
-		utils::log(this->verbose, "Embedding level " + std::to_string(level) + " with " + std::to_string(embedding.size()) + " data samples.\n\n");
-	}
-
+	utils::log(this->verbose, "Embedding level " + std::to_string(level) + " with " + std::to_string(embedding.size()) + " data samples.\n");
+	
 	this->reducers[level].verbose = this->verbose;
 	
 
@@ -1408,7 +1396,7 @@ vector<vector<float>> humap::HierarchicalUMAP::embed_data(int level, Eigen::Spar
 	// vector<vector<float>> result = embedding;
 	sec duration = clock::now() - before;
 	if( this->verbose ) {
-		utils::log(this->verbose, "\nEMBEDDING: Done in" + std::to_string(duration.count()) + "seconds.\n");
+		utils::log(this->verbose, "Embedding: Done in " + std::to_string(duration.count()) + " seconds.\n");
 	}
 
 	// makes sure a level only influences on the level below it

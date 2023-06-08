@@ -191,7 +191,7 @@ vector<vector<float>> utils::pairwise_distances(vector<vector<float>>& X)
 void utils::log(bool verbose, const string& message)
 {
   if( verbose ) {
-    py::print(message);
+    printf("%s", message.c_str());
   }
 }
 

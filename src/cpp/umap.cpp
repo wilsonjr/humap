@@ -368,7 +368,7 @@ vector<vector<float>> umap::UMAP::optimize_layout_euclidean(vector<vector<float>
 			utils::log(this->verbose, "\tcompleted "+std::to_string(epoch)+"/"+std::to_string(n_epochs)+" epochs\n");
 
 	}
-	utils::log(this->verbose, "\tcompleted "+std::to_string(n_epochs)+" epochs\n");
+	utils::log(this->verbose, "\tcompleted "+std::to_string(n_epochs)+" epochs\n\n");
 
 
 	return head_embedding;

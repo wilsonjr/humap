@@ -171,27 +171,21 @@ IndexKDtree::IndexKDtree(const size_t dimension, const size_t n, Metric m, Index
 		if(node->Lchild !=NULL){
 			DFStest(++level, node->DivDim, node->Lchild);
 			//if(level > 15)
-			std::cout<<"dim: "<<node->DivDim<<"--cutval: "<<node->DivVal<<"--S: "<<node->StartIdx<<"--E: "<<node->EndIdx<<" TREE: "<<node->treeid<<std::endl;
 			if(node->Lchild->Lchild ==NULL){
 				std::vector<unsigned>& tmp = LeafLists[node->treeid];
 				for(unsigned i = node->Rchild->StartIdx; i < node->Rchild->EndIdx; i++){
 					const float* tmpfea =data_ + tmp[i] * dimension_+ node->DivDim;
-					std::cout<< *tmpfea <<" ";
 				}
-				std::cout<<std::endl;
 			}
 		}
 		else if(node->Rchild !=NULL){
 			DFStest(++level, node->DivDim, node->Rchild);
 		}
 		else{
-			std::cout<<"dim: "<<dim<<std::endl;
 			std::vector<unsigned>& tmp = LeafLists[node->treeid];
 			for(unsigned i = node->StartIdx; i < node->EndIdx; i++){
 				const float* tmpfea =data_ + tmp[i] * dimension_+ dim;
-				std::cout<< *tmpfea <<" ";
 			}
-			std::cout<<std::endl;
 		}
 	}
 
@@ -384,15 +378,13 @@ IndexKDtree::IndexKDtree(const size_t dimension, const size_t n, Metric m, Index
 		  DFSbuild(node, rng, &myids[0]+node->StartIdx, node->EndIdx-node->StartIdx, node->StartIdx);
 	  }
 	  //DFStest(0,0,tree_roots_[0]);
-	  std::cout<<"build tree completed"<<std::endl;
-
 	  for(size_t i = 0; i < (unsigned)TreeNumBuild; i++){
 		  getMergeLevelNodeList(tree_roots_[i], i ,0);
 	  }
 
-	  std::cout << "merge node list size: " << mlNodeList.size() << std::endl;
 	  if(error_flag){
-		  std::cout << "merge level deeper than tree, max merge deepth is " << max_deepth-1<<std::endl;
+		  ;
+		  //std::cout << "merge level deeper than tree, max merge deepth is " << max_deepth-1<<std::endl;
 	  }
 
 #pragma omp parallel for
@@ -401,7 +393,6 @@ IndexKDtree::IndexKDtree(const size_t dimension, const size_t n, Metric m, Index
 	  }
 
 
-	  std::cout << "merge tree completed" << std::endl;
 
 	  final_graph_.reserve(nd_);
 	  std::mt19937 rng(seed ^ omp_get_thread_num());

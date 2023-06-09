@@ -6,8 +6,9 @@ import _hierarchical_umap
 import numpy as np 
 
 from scipy.optimize import curve_fit
-
 from sklearn.utils import check_array
+
+import logging
 
 class HUMAP(object):
 	"""
@@ -34,19 +35,24 @@ class HUMAP(object):
 			* FLANN (Python instalation required)
 
 
-	init (str): (optional, default 'Spectral')
+	init (str): (optional, default 'Random')
 		Initialization method for the low dimensional embedding. Options include:	
-			* Spectral
+			* Spectral 
 			* random
 
 	reproducible (bool): (optional, default 'False')
 		If the results among different runs need to be reproducible. It affects the runtime execution.
 
-	verbose (bool): (optional, default True)
+	verbose (bool): (optional, default False)
 		Controls logging.
 
 	"""
-	def __init__(self, levels=np.array([0.2, 0.2]), n_neighbors=100, min_dist=0.15, knn_algorithm='NNDescent', init="Spectral", verbose=True, reproducible=False):
+	def __init__(self, levels=np.array([0.2, 0.2]), n_neighbors=100, min_dist=0.15, knn_algorithm='NNDescent', init="Random", verbose=False, reproducible=False):
+
+		if init != 'Random':
+			logging.warn("Sorry, only Random initialization is available at this time.")
+			init = 'Random'
+
 		self.levels = levels
 		self.n_levels = len(levels)+1
 		self.n_neighbors = n_neighbors
@@ -199,7 +205,8 @@ class HUMAP(object):
 
 				y = self.h_umap.get_labels_selected()
 				indices_cluster = self.h_umap.get_indices_selected() 
-				return [embedding, y, indices_cluster]
+				indices_fixed = self.h_umap.get_indices_fixed()
+				return [embedding, y, indices_cluster, indices_fixed]
 
 			except:
 				raise TypeError("Accepted parameters: indices and class_based.")
@@ -274,6 +281,20 @@ class HUMAP(object):
 	def set_n_epochs(self, epochs):
 		self.h_umap.set_n_epochs(epochs)
 
+	def get_knn(self, level):
+
+		if level < 0 or level >= self.n_levels:
+			raise ValueError("level must be in [0, n_levels-1]")
+		else:			
+			return self.h_umap.get_knn(level)
+
+	def get_knn_distances(self, level):
+
+		if level < 0 or level >= self.n_levels:
+			raise ValueError("level must be in [0, n_levels-1]")
+		else:			
+			return self.h_umap.get_knn_dists(level)
+
 
 	def influence(self, level):
 		r"""
@@ -343,11 +364,11 @@ class UMAP(HUMAP):
 			* Spectral
 			* random
 
-	verbose (bool): (optional, default True)
+	verbose (bool): (optional, default False)
 		Controls logging.
 
 	"""
-	def __init__(self, n_neighbors=100, min_dist=0.15, knn_algorithm='NNDescent', init="Spectral", verbose=True, reproducible=False):
+	def __init__(self, n_neighbors=100, min_dist=0.15, knn_algorithm='NNDescent', init="Spectral", verbose=False, reproducible=False):
 		super().__init__(np.array([]), n_neighbors, min_dist, knn_algorithm, init, verbose, reproducible)
 
 	def fit_transform(self, X):

@@ -41,7 +41,7 @@ namespace py = pybind11;
 PYBIND11_MODULE(_hierarchical_umap, m) {
 	
 	py::class_<humap::HierarchicalUMAP>(m, "HUMAP")
-		.def(py::init<string, py::array_t<double>, int, double, string, string, bool, bool>())
+		.def(py::init<string, py::array_t<float>, int, float, string, string, bool, bool>())
 		.def(py::init<>())
 		.def("fit", &humap::HierarchicalUMAP::fit)
 		.def("transform", &humap::HierarchicalUMAP::transform)
@@ -56,6 +56,7 @@ PYBIND11_MODULE(_hierarchical_umap, m) {
 		.def("set_ab_parameters", &humap::HierarchicalUMAP::set_ab_parameters)
 		.def("get_labels_selected", &humap::HierarchicalUMAP::get_labels_selected)
 		.def("get_indices_selected", &humap::HierarchicalUMAP::get_indices_selected)
+		.def("get_indices_fixed", &humap::HierarchicalUMAP::get_indices_fixed)
 		.def("get_influence_selected", &humap::HierarchicalUMAP::get_influence_selected)
 		.def("set_landmarks_nwalks", &humap::HierarchicalUMAP::set_landmarks_nwalks)
 		.def("set_landmarks_wl", &humap::HierarchicalUMAP::set_landmarks_wl)
@@ -68,7 +69,8 @@ PYBIND11_MODULE(_hierarchical_umap, m) {
 		.def("set_fixing_term", &humap::HierarchicalUMAP::set_fixing_term)
 		.def("set_info_file", &humap::HierarchicalUMAP::set_info_file)
 		.def("set_n_epochs", &humap::HierarchicalUMAP::set_n_epochs)
-
+		.def("get_knn", &humap::HierarchicalUMAP::get_knn)
+		.def("get_knn_dists", &humap::HierarchicalUMAP::get_knn_dists)
 		.def("__repr__",
 			[](humap::HierarchicalUMAP& a) {
 				return "<class.HierarchicalUMAP>";

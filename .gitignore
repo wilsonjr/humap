@@ -13,3 +13,10 @@ evaluation/comparison-techniques/*
 evaluation/comparison-drill/*
 evaluation/comparison-np/*
 .DS_Store
+reinstall.sh
+*.npy 
+test.*
+.vscode
+.ipynb_checkpoints
+datasets/*
+*.csv

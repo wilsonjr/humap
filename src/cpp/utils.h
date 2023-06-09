@@ -62,7 +62,7 @@ struct SparseData
 {
   SparseData() {}
 
-  SparseData(vector<double> data_, vector<int> indices_): data(data_), indices(indices_) {} 
+  SparseData(vector<float> data_, vector<int> indices_): data(data_), indices(indices_) {} 
 
 
   /**
@@ -71,13 +71,13 @@ struct SparseData
   * @param index column index in the sparse matrix
   * @param value the non-zero value
   */
-  void push(int index, double value) {
+  void push(int index, float value) {
     data.push_back(value);
     indices.push_back(index);
   }
 
   // non-zero values
-  vector<double> data;
+  vector<float> data;
 
   // column indices
   vector<int> indices;
@@ -96,14 +96,14 @@ struct SparseData
  * @return Container with the resulting values
  */
 template<typename T>
-std::vector<double> linspace(T start_in, T end_in, int num_in)
+std::vector<float> linspace(T start_in, T end_in, int num_in)
 {
 
-  std::vector<double> linspaced;
+  std::vector<float> linspaced;
 
-  double start = static_cast<double>(start_in);
-  double end = static_cast<double>(end_in);
-  double num = static_cast<double>(num_in);
+  float start = static_cast<float>(start_in);
+  float end = static_cast<float>(end_in);
+  float num = static_cast<float>(num_in);
 
   if (num == 0) { return linspaced; }
   if (num == 1) 
@@ -112,7 +112,7 @@ std::vector<double> linspace(T start_in, T end_in, int num_in)
       return linspaced;
     }
 
-  double delta = (end - start) / (num - 1);
+  float delta = (end - start) / (num - 1);
 
   for(int i=0; i < num-1; ++i)
     {
@@ -148,6 +148,9 @@ std::vector<int> argsort(const std::vector<T>& data, bool reverse=false) {
 }
 
 
+
+
+
 /**
  * Rearrages an array based on indices
  *
@@ -170,28 +173,81 @@ std::vector<T> arrange_by_indices(const std::vector<T>& data, std::vector<int>& 
   return v;
 }
 
+// template <typename T>
+// void save_vector(std::ofstream &ofs, const std::vector<T> &v) {
+//     size_t len = v.size();
+//     ofs.write((char*)&len, sizeof(len));
+
+//     ofs.write((char*)v.data(), len * sizeof(T));
+// }
+
+// template <typename T>
+// void load_vector(std::ifstream &ifs, std::vector<T> &v) {
+//     size_t len;
+//     ifs.read((char*)&len, sizeof(len));
+
+//     v.resize(len);
+//     ifs.read((char*)v.data(), len * sizeof(T));
+// }
+
+// template <typename T>
+// void save_scalar(std::ofstream &ofs, const T &val) {
+//     ofs.write((char*)&val, sizeof(T));
+// }
+
+// template <typename T>
+// void load_scalar(std::ifstream &ifs, T &val) {
+//     ifs.read((char*)&val, sizeof(T));
+// }
+
+// void save_vector_of_vectors(std::ofstream &ofs, const std::vector<std::vector<int>> &v) {
+//     // Save the length of the outer vector
+//     size_t len = v.size();
+//     ofs.write((char*)&len, sizeof(len));
+
+//     // Save each inner vector
+//     for (const auto &inner_v : v) {
+//         save_vector(ofs, inner_v);
+//     }
+// }
+
+// template<typename T>
+// void load_matrix(std::ifstream &ifs, std::vector<std::vector<T>> &v) {
+//     // Load the length of the outer vector
+//     size_t len;
+//     ifs.read((char*)&len, sizeof(len));
+
+//     // Resize the outer vector to the correct length
+//     v.resize(len);
+
+//     // Load each inner vector
+//     for (auto &inner_v : v) {
+//         load_vector(ifs, inner_v);
+//     }
+// }
+
 // Converts an Eigen::Matrix to tuple format
-std::tuple<std::vector<int>, std::vector<int>, std::vector<double>> to_row_format(const Eigen::SparseMatrix<double, Eigen::RowMajor>& M);
+std::tuple<std::vector<int>, std::vector<int>, std::vector<float>> to_row_format(const Eigen::SparseMatrix<float, Eigen::RowMajor>& M);
 
 // Creates an Eigen::Matrix from containers
-Eigen::SparseMatrix<double, Eigen::RowMajor> create_sparse(vector<int>& rows, vector<int>& cols, vector<double>& vals, int size, int density);
+Eigen::SparseMatrix<float, Eigen::RowMajor> create_sparse(vector<int>& rows, vector<int>& cols, vector<float>& vals, int size, int density);
 
 // Creates an Eigen::Matrix from SparseData
-Eigen::SparseMatrix<double, Eigen::RowMajor> create_sparse(const vector<SparseData>& X, int size, int density);
+Eigen::SparseMatrix<float, Eigen::RowMajor> create_sparse(const vector<SparseData>& X, int size, int density);
 
 // Computes the squared distance of two points
-double rdist(const vector<double>& x, const vector<double>& y);
+float rdist(const vector<float>& x, const vector<float>& y);
 
 // Clip a gradient value
-double clip(double value);
+float clip(float value);
 
 // Computes the pairwise distance for a matrix of points
-vector<vector<double>> pairwise_distances(vector<vector<double>>& X);
+vector<vector<float>> pairwise_distances(vector<vector<float>>& X);
 
 // output verbosity
 void log(bool verbose, const string& message);
 
-
+std::string encode_pos(int a, int b);
 }
 
 #endif

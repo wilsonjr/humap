@@ -133,7 +133,7 @@ Please, use the following reference to cite HUMAP in your work:
 License
 -------
 
-HUMAP follows the 3-clause BSD license and it uses the open-source NNDescent implementation from `EFANNA <https://github.com/ZJULearning/efanna>`_. It also uses a C++ implementation of `UMAP <http://github.com/lmcinnes/umap>`_ for embedding hierarchy levels.
+HUMAP follows the 3-clause BSD license and it uses the open-source NNDescent implementations from `EFANNA <https://github.com/ZJULearning/efanna>`_.
 
 E-mail me (wilson_jr at outlook.com) if you like to contribute.
 

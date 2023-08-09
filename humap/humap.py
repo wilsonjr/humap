@@ -49,10 +49,6 @@ class HUMAP(object):
 	"""
 	def __init__(self, levels=np.array([0.2, 0.2]), n_neighbors=100, min_dist=0.15, knn_algorithm='NNDescent', init="Random", verbose=False, reproducible=False):
 
-		# if init != 'Random':
-		# 	logging.warn("Sorry, only Random initialization is available at this time.")
-		# 	init = 'Random'
-
 		self.levels = levels
 		self.n_levels = len(levels)+1
 		self.n_neighbors = n_neighbors

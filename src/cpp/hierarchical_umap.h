@@ -190,6 +190,8 @@ public:
 	// generates and returns the embedding of the hierarchy level
 	py::array_t<float> transform(int level);
 
+	py::array_t<float> transform_with_init(int level, py::array_t<float> X_embedded);
+
 	// returns the indices of the embedding corresponding to the hierarchy level below
 	py::array_t<int> get_indices(int level);
 
@@ -307,6 +309,8 @@ private:
 	vector<vector<float>> 		   fixed_datapoints;
 	vector<vector<int>>            level_landmarks;
 	vector<vector<vector<float>>> embeddings;
+
+	vector<vector<float>> embedding_init;
 
 	vector<Metadata> metadata;
 

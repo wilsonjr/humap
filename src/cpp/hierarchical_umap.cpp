@@ -1148,6 +1148,26 @@ py::array_t<float> humap::HierarchicalUMAP::transform(int level)
 }
 
 /**
+* Generate the embedding for a hierarchical level with custom initialization
+*
+* @param level int representing the hierarchical level
+* @param X_embedded py::array_t containing the initialization (2D matrix)
+* @return py::array_t containing the embedding 
+*/
+py::array_t<float> humap::HierarchicalUMAP::transform_with_init(int level, py::array_t<float> X_embedded) 
+{
+	if( level >= this->hierarchy_y.size() || level < 0 )
+		throw new runtime_error("Level out of bounds.");
+
+	this->embedding_init = humap::convert_to_vector(X_embedded);
+
+
+	vector<vector<float>> result = this->embed_data(level, this->reducers[level].get_graph(), this->reducers[level].get_data());// this->hierarchy_X[level]);
+
+	return py::cast(result);
+}
+
+/**
 * Get the landmark influencing the data point
 *
 * @param level int represeting the hierarchical level
@@ -1326,7 +1346,13 @@ vector<vector<float>> humap::HierarchicalUMAP::embed_data(int level, Eigen::Spar
 		COMPUTE INITIAL LOW-DIMENSIONAL REPRESENTATION
 	*/
 	auto tic = clock::now();
-	vector<vector<float>> embedding = this->reducers[level].spectral_layout(X, graph, this->n_components);
+	vector<vector<float>> embedding;
+	if( this->embedding_init.size() != 0 ) {
+		utils::log(this->verbose, "Computing embeddings with custom initialization.\n");
+		embedding = this->embedding_init;
+	} else {
+		embedding = this->reducers[level].spectral_layout(X, graph, this->n_components);
+	}
 	sec toc = clock::now() - tic; 
     
 	this->reducers[level].set_free_datapoints(this->free_datapoints);

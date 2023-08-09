@@ -49,9 +49,9 @@ class HUMAP(object):
 	"""
 	def __init__(self, levels=np.array([0.2, 0.2]), n_neighbors=100, min_dist=0.15, knn_algorithm='NNDescent', init="Random", verbose=False, reproducible=False):
 
-		if init != 'Random':
-			logging.warn("Sorry, only Random initialization is available at this time.")
-			init = 'Random'
+		# if init != 'Random':
+		# 	logging.warn("Sorry, only Random initialization is available at this time.")
+		# 	init = 'Random'
 
 		self.levels = levels
 		self.n_levels = len(levels)+1
@@ -61,7 +61,6 @@ class HUMAP(object):
 		self.verbose = verbose
 		self.init = init
 		self.reproducible = reproducible
-
 		self.h_umap = _hierarchical_umap.HUMAP('precomputed', self.levels, self.n_neighbors, self.min_dist, self.knn_algorithm, self.init, self.verbose, self.reproducible)
 
 
@@ -157,6 +156,9 @@ class HUMAP(object):
 		"""
 
 		return self.h_umap.get_original_indices(level)
+
+	def transform_with_init(self, level, X_embedded):
+		return self.h_umap.transform_with_init(level, X_embedded)
 
 	def transform(self, level, **kwargs):
 		r"""
@@ -371,7 +373,7 @@ class UMAP(HUMAP):
 	def __init__(self, n_neighbors=100, min_dist=0.15, knn_algorithm='NNDescent', init="Spectral", verbose=False, reproducible=False):
 		super().__init__(np.array([]), n_neighbors, min_dist, knn_algorithm, init, verbose, reproducible)
 
-	def fit_transform(self, X):
+	def fit_transform(self, X, X_embedded=None):
 		"""
 		Generates the embedding.
 		
@@ -393,4 +395,7 @@ class UMAP(HUMAP):
 			raise ValueError("Input dimensionality must be > 2.")
 
 		super().fit(X, None)
-		return super().transform(0)	
+		if X_embedded is None:
+			return super().transform(0)	
+				
+		return super().transform_with_init(0, X_embedded)	

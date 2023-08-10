@@ -711,50 +711,27 @@ vector<vector<float>> umap::UMAP::spectral_layout(umap::Matrix& data,
 		py::object noiseObj = randomState.attr("uniform")(py::arg("low")=-10, py::arg("high")=10, py::arg("size")=size);
 
 		return noiseObj.cast<vector<vector<float>>>();
-	} else {
-		std::cout <<"PCA Layout" << std::endl;
-		// >>> from sklearn.datasets import load_digits
-		// >>> from sklearn.manifold import SpectralEmbedding
-		// >>> X, _ = load_digits(return_X_y=True)
-		// >>> X.shape
-		// (1797, 64)
-		// >>> embedding = SpectralEmbedding(n_components=2)
-		// >>> X_transformed = embedding.fit_transform(X[:100])
-		// >>> X_transformed.shape
-		// std::cout << "hello"
-		std::cout <<"PCA Layout 1" << std::endl;
-		py::module sklearn_manifold = py::module::import("sklearn.manifold");
-		std::cout <<"PCA Layout 2" << std::endl;
-		py::object spectral_embedding = sklearn_manifold.attr("SpectralEmbedding")(py::arg("n_components")=2);
-		std::cout <<"PCA Layout 3" << std::endl;
-		py::object initial_embedding = spectral_embedding.attr("fit_transform")(py::cast(data.dense_matrix));		
-		std::cout <<"PCA Layout 4" << std::endl;
-		return initial_embedding.cast<vector<vector<float>>>();
-	}
-	std::cout <<"Spectral Layout 1" << std::endl;
+	} 
 	int n_samples = graph.rows();
 
 	py::module csgraph = py::module::import("scipy.sparse.csgraph");
 	py::object connected_components = csgraph.attr("connected_components")(graph);
-	std::cout <<"Spectral Layout 2" << std::endl;
+	
 	int n_components = connected_components.attr("__getitem__")(0).cast<int>();
 	vector<int> labels = connected_components.attr("__getitem__")(1).cast<vector<int>>();
-	std::cout <<"Spectral Layout 3" << std::endl;
-	if( n_components > 1 && false) {
-		std::cout <<"Spectral Layout 4" << std::endl;
+	
+	if( n_components > 1) {
 		vector<vector<float>> spectral_embedding = this->multi_component_layout(data, graph, n_components, labels, dim);
-		std::cout <<"Spectral Layout 5" << std::endl;
 		float max_value = spectral_embedding[0][0];
 		for( int i = 0; i < spectral_embedding.size(); ++i )
 			for( int j = 0; j <spectral_embedding[i].size(); ++j )
 				max_value = max(max_value, spectral_embedding[i][j]);
 
-	std::cout <<"Spectral Layout 6" << std::endl;
 		py::module scipy_random = py::module::import("numpy.random");
 		py::object randomState = scipy_random.attr("RandomState")(this->random_state);
 		vector<int> size = {(int)graph.rows(), n_components};
 		py::object noiseObj = randomState.attr("normal")(py::arg("scale")=0.0001, py::arg("size")=size);
-std::cout <<"Spectral Layout 7" << std::endl;
+
 		vector<vector<float>> noise = noiseObj.cast<vector<vector<float>>>();
 		float expansion = 10.0/max_value;
 		for( int i = 0; i < spectral_embedding.size(); ++i ) {
@@ -775,8 +752,6 @@ std::cout <<"Spectral Layout 7" << std::endl;
 	for( int i = 0; i < temp.size(); ++i )
 		temp[i] = 1.0/sqrt(diag_data[i]);
 	
-
-
 	py::module scipy_sparse = py::module::import("scipy.sparse");
 	py::object Iobj = scipy_sparse.attr("identity")(graph.rows(), py::arg("format") = "csr");
 	py::object Dobj = scipy_sparse.attr("spdiags")(py::cast(temp), 0, graph.rows(), graph.rows(), py::arg("format") = "csr");
@@ -784,8 +759,6 @@ std::cout <<"Spectral Layout 7" << std::endl;
 	Eigen::SparseMatrix<float, Eigen::RowMajor> D = Dobj.cast<Eigen::SparseMatrix<float, Eigen::RowMajor>>();
 	Eigen::SparseMatrix<float, Eigen::RowMajor> L = I-D*graph*D;
 	
-
-
 	int k = dim+1;
 	int num_lanczos_vectors = max(2*k+1, (int)sqrt(graph.rows()));
 

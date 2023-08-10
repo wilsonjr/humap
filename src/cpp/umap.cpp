@@ -710,26 +710,22 @@ vector<vector<float>> umap::UMAP::spectral_layout(umap::Matrix& data,
 		vector<int> size = {(int)graph.rows(), dim};
 		py::object noiseObj = randomState.attr("uniform")(py::arg("low")=-10, py::arg("high")=10, py::arg("size")=size);
 
-
 		return noiseObj.cast<vector<vector<float>>>();
 	} 
-
 	int n_samples = graph.rows();
 
 	py::module csgraph = py::module::import("scipy.sparse.csgraph");
 	py::object connected_components = csgraph.attr("connected_components")(graph);
-
+	
 	int n_components = connected_components.attr("__getitem__")(0).cast<int>();
 	vector<int> labels = connected_components.attr("__getitem__")(1).cast<vector<int>>();
 	
 	if( n_components > 1) {
 		vector<vector<float>> spectral_embedding = this->multi_component_layout(data, graph, n_components, labels, dim);
-		
 		float max_value = spectral_embedding[0][0];
 		for( int i = 0; i < spectral_embedding.size(); ++i )
 			for( int j = 0; j <spectral_embedding[i].size(); ++j )
 				max_value = max(max_value, spectral_embedding[i][j]);
-
 
 		py::module scipy_random = py::module::import("numpy.random");
 		py::object randomState = scipy_random.attr("RandomState")(this->random_state);
@@ -756,8 +752,6 @@ vector<vector<float>> umap::UMAP::spectral_layout(umap::Matrix& data,
 	for( int i = 0; i < temp.size(); ++i )
 		temp[i] = 1.0/sqrt(diag_data[i]);
 	
-
-
 	py::module scipy_sparse = py::module::import("scipy.sparse");
 	py::object Iobj = scipy_sparse.attr("identity")(graph.rows(), py::arg("format") = "csr");
 	py::object Dobj = scipy_sparse.attr("spdiags")(py::cast(temp), 0, graph.rows(), graph.rows(), py::arg("format") = "csr");
@@ -765,8 +759,6 @@ vector<vector<float>> umap::UMAP::spectral_layout(umap::Matrix& data,
 	Eigen::SparseMatrix<float, Eigen::RowMajor> D = Dobj.cast<Eigen::SparseMatrix<float, Eigen::RowMajor>>();
 	Eigen::SparseMatrix<float, Eigen::RowMajor> L = I-D*graph*D;
 	
-
-
 	int k = dim+1;
 	int num_lanczos_vectors = max(2*k+1, (int)sqrt(graph.rows()));
 
@@ -1079,6 +1071,7 @@ tuple<vector<vector<int>>, vector<vector<float>>> umap::nearest_neighbors(umap::
 		
 	} else {
 		string algorithm = knn_args["knn_algorithm"];
+		utils::log(verbose, "AKNN: "+algorithm+"\n");
 
 		if( algorithm == "FLANN" ) {
 
@@ -1093,6 +1086,26 @@ tuple<vector<vector<int>>, vector<vector<float>>> umap::nearest_neighbors(umap::
 			knn_dists = knn_dists_.cast<vector<vector<float>>>();
 			knn_indices = knn_indices_.cast<vector<vector<int>>>();
 
+		} else if( algorithm == "HNSW" ) {
+			hnswlib::SpaceInterface<float>* space = new hnswlib::L2Space(X.shape(1));
+			hnswlib::HierarchicalNSW<float> appr_knn(space, X.shape(0), 16, 200, 0);
+			#pragma omp parallel for
+			for( long i = 0; i < X.shape(0); ++i ) {
+				appr_knn.addPoint((void*) X.dense_matrix[i].data(), i);
+			}
+
+			knn_indices = vector<vector<int>>(X.size(), vector<int>(n_neighbors, 0));
+			knn_dists = vector<vector<float>>(X.size(), vector<float>(n_neighbors, 0.0));
+			#pragma omp parallel for
+			for( long i = 0; i < X.shape(0); ++i ) {
+				std::priority_queue<std::pair<float, hnswlib::labeltype>> result = appr_knn.searchKnn((const void*) X.dense_matrix[i].data(), n_neighbors);
+
+				for( long j = 0; j < n_neighbors; ++j ) {
+					knn_dists[i][j] = result.top().first; 
+					knn_indices[i][j] = result.top().second;
+					result.pop();
+				}
+			}
 		} else if( algorithm == "ANNOY" ) {
 			py::module scipy_random = py::module::import("numpy.random");
 			scipy_random.attr("seed")(0);
@@ -1176,10 +1189,7 @@ tuple<vector<vector<int>>, vector<vector<float>>> umap::nearest_neighbors(umap::
 			params.Set<unsigned>("R", R); 
 			
 			float* data = X.data_f();
-
 			index.Build(X.shape(0), data, params);
-			
-
 			delete data;
 
 			knn_indices = vector<vector<int>>(X.size(), vector<int>(n_neighbors, 0));

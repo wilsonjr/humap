@@ -67,6 +67,8 @@
 #include "external/efanna/index_kdtree.h"
 #include "external/efanna/util.h"
 
+#include "external/hnswlib/hnswlib.h"
+
 namespace py = pybind11;
 
 using namespace std;

@@ -45,6 +45,7 @@ PYBIND11_MODULE(_hierarchical_umap, m) {
 		.def(py::init<>())
 		.def("fit", &humap::HierarchicalUMAP::fit)
 		.def("transform", &humap::HierarchicalUMAP::transform)
+		.def("transform_with_init", &humap::HierarchicalUMAP::transform_with_init)
 		.def("get_influence", &humap::HierarchicalUMAP::get_influence)
 		.def("get_labels", &humap::HierarchicalUMAP::get_labels)
 		.def("get_indices", &humap::HierarchicalUMAP::get_indices)

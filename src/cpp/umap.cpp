@@ -1098,6 +1098,7 @@ tuple<vector<vector<int>>, vector<vector<float>>> umap::nearest_neighbors(umap::
 		
 	} else {
 		string algorithm = knn_args["knn_algorithm"];
+		utils::log(verbose, "AKNN: "+algorithm+"\n");
 
 		if( algorithm == "FLANN" ) {
 
@@ -1112,6 +1113,26 @@ tuple<vector<vector<int>>, vector<vector<float>>> umap::nearest_neighbors(umap::
 			knn_dists = knn_dists_.cast<vector<vector<float>>>();
 			knn_indices = knn_indices_.cast<vector<vector<int>>>();
 
+		} else if( algorithm == "HNSW" ) {
+			hnswlib::SpaceInterface<float>* space = new hnswlib::L2Space(X.shape(1));
+			hnswlib::HierarchicalNSW<float> appr_knn(space, X.shape(0), 16, 200, 0);
+			#pragma omp parallel for
+			for( long i = 0; i < X.shape(0); ++i ) {
+				appr_knn.addPoint((void*) X.dense_matrix[i].data(), i);
+			}
+
+			knn_indices = vector<vector<int>>(X.size(), vector<int>(n_neighbors, 0));
+			knn_dists = vector<vector<float>>(X.size(), vector<float>(n_neighbors, 0.0));
+			#pragma omp parallel for
+			for( long i = 0; i < X.shape(0); ++i ) {
+				std::priority_queue<std::pair<float, hnswlib::labeltype>> result = appr_knn.searchKnn((const void*) X.dense_matrix[i].data(), n_neighbors);
+
+				for( long j = 0; j < n_neighbors; ++j ) {
+					knn_dists[i][j] = result.top().first; 
+					knn_indices[i][j] = result.top().second;
+					result.pop();
+				}
+			}
 		} else if( algorithm == "ANNOY" ) {
 			py::module scipy_random = py::module::import("numpy.random");
 			scipy_random.attr("seed")(0);
@@ -1195,10 +1216,7 @@ tuple<vector<vector<int>>, vector<vector<float>>> umap::nearest_neighbors(umap::
 			params.Set<unsigned>("R", R); 
 			
 			float* data = X.data_f();
-
 			index.Build(X.shape(0), data, params);
-			
-
 			delete data;
 
 			knn_indices = vector<vector<int>>(X.size(), vector<int>(n_neighbors, 0));

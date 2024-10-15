@@ -119,13 +119,15 @@ Please, use the following reference to cite HUMAP in your work:
 
 .. code:: bibtex
 
-    @misc{marciliojr_humap2021,
-      title={HUMAP: Hierarchical Uniform Manifold Approximation and Projection}, 
-      author={Wilson E. Marcílio-Jr and Danilo M. Eler and Fernando V. Paulovich and Rafael M. Martins},
-      year={2021},
-      eprint={2106.07718},
-      archivePrefix={arXiv},
-      primaryClass={cs.LG}
+	@ARTICLE{marciliojr_humap2024,
+		author={Marcílio-Jr, Wilson E. and Eler, Danilo M. and Paulovich, Fernando V. and Martins, Rafael M.},
+		journal={IEEE Transactions on Visualization and Computer Graphics}, 
+		title={HUMAP: Hierarchical Uniform Manifold Approximation and Projection}, 
+		year={2024},
+		volume={},
+		number={},
+		pages={1-10},
+		doi={10.1109/TVCG.2024.3471181}
 	}
 
 
@@ -133,9 +135,7 @@ Please, use the following reference to cite HUMAP in your work:
 License
 -------
 
-HUMAP follows the 3-clause BSD license and it uses the open-source NNDescent implementations from `EFANNA <https://github.com/ZJULearning/efanna>`_.
-
-E-mail me (wilson_jr at outlook.com) if you like to contribute.
+HUMAP follows the 3-clause BSD license.
 
 
 ......

@@ -92,6 +92,8 @@ The simplest usage of HUMAP is as it follows:
 
 
 	X, y = fetch_openml('mnist_784', version=1, return_X_y=True)
+        X = X.values
+	y = y.to_numpy().astype(int)
 
 	# build a hierarchy with three levels
 	hUmap = humap.HUMAP([0.2, 0.2])

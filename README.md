@@ -96,7 +96,7 @@ The simplest usage of HUMAP is as it follows:
 	y = y.to_numpy().astype(int)
 
 	# build a hierarchy with three levels
-	hUmap = humap.HUMAP([0.2, 0.2])
+	hUmap = humap.HUMAP(np.array([0.2, 0.2]))
 	hUmap.fit(X, y)
 
 	# embed level 2
